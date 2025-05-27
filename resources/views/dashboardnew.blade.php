@@ -104,15 +104,24 @@
                 </thead>
                 <tbody>
                   @forelse ($answers as $answer )
-                    <tr>
-                     @if (!empty($answer))
+                    
+                     @if (!($answer==0))
+                     <tr>
 
                     <td>{{$answer["agent_name"]}}</td>
                     <td>{{$answer["producttype"]}}</td>
                     <td>{{$answer["total_sale"]}}</td> 
+                    </tr>
+                    @else
+                    <tr>
+                    <td>No Sales Made</td>
+                    <td></td>
+                    <td></td>
+                  </tr>
+
                      @endif
 
-                  </tr>
+                  
                   @empty
                     <tr>
                     <td>No Sales Made</td>
