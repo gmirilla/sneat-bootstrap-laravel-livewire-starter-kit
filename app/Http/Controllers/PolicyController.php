@@ -67,7 +67,7 @@ class PolicyController extends Controller
                 # began the purchase of a private motor policy
                 $producttype='Private Motor Third Party';
                 $contribution=15000;
-                $usekey='car';
+                $usekey='private';
                  $insurancetype='Commercial';
                 $vehicleuse="mcycle";
                 break;
@@ -76,7 +76,7 @@ class PolicyController extends Controller
                 # began the purchase of a Commercial  motor policy
                 $producttype='Commercial Motor Third Party';
                 $contribution=20000;
-                $usekey='bus';
+                $usekey='commercial';
                 $insurancetype='Commercial';
                 $vehicleuse="mcycle";
                 break;
@@ -84,7 +84,7 @@ class PolicyController extends Controller
                 # began the purchase of a Motorcycle policy
                 $producttype='Motorcycle Third Party';
                 $contribution=5000;
-                $usekey='mcycle';
+                $usekey='commercial';
                  $insurancetype='Commercial';
                 $vehicleuse="mcycle";
                 break;
@@ -300,7 +300,7 @@ class PolicyController extends Controller
     "engineCapacity"=> "1.6L",
     "vehicleModel"=> $policyrisk->vehiclemodel,
     "useOFVehicle"=>$policy->usekey,
-    "insuranceType"=>"mcycle"
+    "insuranceType"=>"motorcycle"
                 ];
 
                 $policydatajSon=json_encode($policydata);

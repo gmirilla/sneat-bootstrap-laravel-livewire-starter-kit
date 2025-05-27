@@ -27,6 +27,6 @@ return [
   "githubUrl" => "https://github.com/",
   "dribbbleUrl" => "https://dribbble.com/",
   "instagramUrl" => "https://www.instagram.com/",
-  "API_ELITE_TOKEN" =>"token_f461f5247c406e501fcdc1d68b8a2c0efa2a64b0", //default agent token
-  "API_ELITE_URL"=>'https://demo.bitlect.net/api/v1/policy'
+  "API_ELITE_TOKEN" =>"token_7fcc1dfa5eee58e7cc614ae2d4be00f9012e86df", //default agent token
+  "API_ELITE_URL"=>'http://elitepolicy.salamtakafulinsurance.com/api/v1/policy'
 ];

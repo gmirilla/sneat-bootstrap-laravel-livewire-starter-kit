@@ -47,8 +47,8 @@
                 
             @empty
                 <tr>
-                    <td>No Vehicle Makes Recorded in System</td>
                     <td></td>
+                    <td> No Vehicle Makes Recorded in System</td>
                     <td></td>
                     <td></td>
                 </tr>
