@@ -3,7 +3,7 @@
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.js"></script>
 <x-layouts.app>
-    This is a a Test
+     
         @if ($errors->any())
   <div class="alert alert-danger">
       <ul>

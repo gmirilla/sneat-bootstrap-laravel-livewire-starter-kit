@@ -105,10 +105,13 @@
                 <tbody>
                   @forelse ($answers as $answer )
                     <tr>
-                     
+                     @if (!empty($answer))
+
                     <td>{{$answer["agent_name"]}}</td>
                     <td>{{$answer["producttype"]}}</td>
-                    <td>{{$answer["total_sale"]}}</td>
+                    <td>{{$answer["total_sale"]}}</td> 
+                     @endif
+
                   </tr>
                   @empty
                     <tr>

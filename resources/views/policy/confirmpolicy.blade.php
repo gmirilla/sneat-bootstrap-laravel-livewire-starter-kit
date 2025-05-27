@@ -8,7 +8,7 @@
                 @endphp
     
 <x-layouts.app>
-    This is a a Test
+     
         @if ($errors->any())
   <div class="alert alert-danger">
       <ul>

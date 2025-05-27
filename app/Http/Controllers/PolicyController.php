@@ -283,24 +283,24 @@ class PolicyController extends Controller
                     $gsm='+234 806 565 7291';
                 }
                 #Use the ELite API and push data
+
+
                 $policydata=[
-                   "InsuredName" => $policy->insured_name,
-                   "address"=>$insured->address,
-                   "dateOFBirth"=>$insured->dob,
-                   "state"=>$insured->state,
-                   "gender"=>$insured->gender,
-                   "GSMNo"=>$gsm,
-                   "emailAddress"=>$insured->email,
-                   "EngineNo"=>$policyrisk->engineno,
-                   "ChasisNo"=>$policyrisk->chassisno,
-                   "vehicleColour"=>$policyrisk->vehiclecolor,
-                   "YearOfMake"=>strval($policyrisk->yearofmake),
-                   "VehicleMake"=>$policyrisk->vehiclemake,
-                   "RegistrationNo"=>$policyrisk->regno,
-                   "VehicleType"=> $policy->usekey, 
-                   "VehicleModel"=>$policyrisk->vehiclemodel,
-                   "insuranceType"=>$policy->insurancetype,
-                   "UseOFVehicle"=>$policy->vehicleuse
+                        "fullName"=>$policy->insured_name,
+    "ContactAddress" => $insured->address,  
+    "mobileNumber"=> $gsm,
+    "Email"=> $insured->email,
+    "engineNumber"=> $policyrisk->engineno,
+    "chassisNumber"=> $policyrisk->chassisno,
+    "vehicleColor"=> $policyrisk->vehiclecolor,
+    "yearOfMake"=> strval($policyrisk->yearofmake),
+    "vehicleMake"=> $policyrisk->vehiclemake,
+    "registrationNumber"=> $policyrisk->regno,
+    "vehicleType"=> $policy->usekey,
+    "engineCapacity"=> "1.6L",
+    "vehicleModel"=> $policyrisk->vehiclemodel,
+    "useOFVehicle"=>$policy->usekey,
+    "insuranceType"=>"mcycle"
                 ];
 
                 $policydatajSon=json_encode($policydata);
@@ -337,7 +337,7 @@ class PolicyController extends Controller
                 # code...
 
                 $policy->elite_msg=$data['data']['status'] .$data['data']['message'] .$accesstoken;
-                $policy->policyno=$data['data']['policy_number'];
+                $policy->policyno='';
                 $policy->status='approved';
                 $policy->save();
                 #Get Agent Credit Balance and change to reflect success;
