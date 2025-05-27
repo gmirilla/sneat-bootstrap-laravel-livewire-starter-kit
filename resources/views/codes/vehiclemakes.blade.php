@@ -31,8 +31,11 @@
         <table class="table table-striped" id='vehiclemakes'>
             <thead>
                 <thead>
-                <th>S/no</th><th>NIIP ID</th><th>Vehicle Make</th><th>Actions</th>
+                <th>S/no</th>
+                <th>NIIP ID</th>
+                <th>Vehicle Make</th><th>Actions</th>
             </thead>
+            <tbody>
             @forelse ($vmakes as $vmake)
                 <tr>
                 <td></td>
@@ -49,7 +52,7 @@
                     <td></td>
                 </tr>
             @endforelse
-
+            </tbody>
         </table>
     </div>
 </div>
