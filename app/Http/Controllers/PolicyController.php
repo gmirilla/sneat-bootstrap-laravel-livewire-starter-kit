@@ -299,8 +299,8 @@ class PolicyController extends Controller
     "vehicleType"=> $policy->vehicleuse,
     "engineCapacity"=> "1.6L",
     "vehicleModel"=> $policyrisk->vehiclemodel,
-    "useOFVehicle"=>$policy->usekey,
-    "insuranceType"=>"motorcycle"
+    "useOFVehicle"=>'n/a',
+    "insuranceType"=>$policy->usekey
                 ];
 
                 $policydatajSon=json_encode($policydata);
