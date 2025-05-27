@@ -44,6 +44,7 @@
             @empty
                 <tr>
                     <td>No Vehicle Makes Recorded in System</td>
+                    <td></td>
                 </tr>
             @endforelse
 

@@ -17,6 +17,8 @@ class VehicleMakeController extends Controller
             'vmakeimport' => 'required|max:2048|mimes:xlsx,xls,csv'
         ]);
 
+        dd($request);
+
         Excel::import(new vehicleMakeImport, $request->file('vmakeimport'));
 
         return back()->with('success', 'Vehicle Makes imported successfully.');
