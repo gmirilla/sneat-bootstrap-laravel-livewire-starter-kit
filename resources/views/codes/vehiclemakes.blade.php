@@ -22,7 +22,7 @@
         <form action="{{route('importvmake')}}" method="post" enctype="multipart/form-data">
             @csrf
         <div class="col-auto mb-3">
-            <input type="file" name="vmodelimport"  required class="form-control" id='vmodelimport'>
+            <input type="file" name="vmakeimport"  required class="form-control" id='vmakeimport'>
         </div>
         <button type="submit" class="btn btn-primary">Import</button>
         </form>
@@ -33,7 +33,8 @@
                 <thead>
                 <th>S/no</th>
                 <th>NIIP ID</th>
-                <th>Vehicle Make</th><th>Actions</th>
+                <th>Vehicle Make</th>
+                <th>Actions</th>
             </thead>
             <tbody>
             @forelse ($vmakes as $vmake)
