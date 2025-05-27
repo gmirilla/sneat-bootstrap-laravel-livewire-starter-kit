@@ -19,7 +19,7 @@
         VEHICLE MAKE MAPPING
     </div>
     <div class="card-body">
-        <form action="{{route('importvmodel')}}" method="post" enctype="multipart/form-data">
+        <form action="{{route('importvmake')}}" method="post" enctype="multipart/form-data">
             @csrf
         <div class="col-auto mb-3">
             <input type="file" name="vmodelimport"  required class="form-control" id='vmodelimport'>
