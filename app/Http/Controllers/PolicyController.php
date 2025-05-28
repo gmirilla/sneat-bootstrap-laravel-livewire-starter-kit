@@ -377,7 +377,10 @@ class PolicyController extends Controller
                 ->post(config('variables.NIIP_URL'));
 
                 //handle niip response
+            
                 $niipresponsedata = json_decode($niipresponse->body(), true);
+                //debugging niip response
+                dd($niipresponsedata);
                 switch ($niipresponsedata['statusCode']) {
                     case '00':
                         # code...
