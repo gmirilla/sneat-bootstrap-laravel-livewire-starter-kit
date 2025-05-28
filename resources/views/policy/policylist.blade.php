@@ -69,7 +69,7 @@
                                     
                                     @if ($policy->status=='approved' && !empty($policy->policyno))
                                     <br>
-                                        <a target="_blank" class="btn btn-success"  style="font-size:0.75rem"  href="https://demo.bitlect.net/api/v1/policy/view-certificate?policy_no={{$policy->policyno}}">
+                                        <a target="_blank" class="btn btn-success"  style="font-size:0.75rem"  href="http://elitepolicy.salamtakafulinsurance.com/api/v1/policy/view-certificate?policy_no={{$policy->policyno}}">
                                         Certificate
                                         </a>
                                     @endif

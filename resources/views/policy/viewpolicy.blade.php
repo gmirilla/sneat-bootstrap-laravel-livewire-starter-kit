@@ -47,7 +47,7 @@
     View
   </a>
   @if ($policy->status=='approved')
-  <a target="_blank" class="btn btn-success ml-3" href="https://demo.bitlect.net/api/v1/policy/view-certificate?policy_no={{$policy->policyno}}">Certificate</a>
+  <a target="_blank" class="btn btn-success ml-3" href="http://elitepolicy.salamtakafulinsurance.com/api/v1/policy/view-certificate?policy_no={{$policy->policyno}}">Certificate</a>
   @endif
         </h5>
   
