@@ -19,7 +19,8 @@ class policyrisk extends Model
     }
     public function getvmodelid()
     {
-         $vmodelid= vehicleModel::where('vmodelname', $this->vehiclemodel)->first();
+         $vmodelid= vehicleModel::where('vmodelname', $this->vehiclemodel)->where('niipvmiid', $this->getvmakeid())
+         ->first();
          return $vmodelid ? $vmodelid->vmodelid : null;
 
     }
