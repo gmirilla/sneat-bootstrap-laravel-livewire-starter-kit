@@ -28,5 +28,7 @@ return [
   "dribbbleUrl" => "https://dribbble.com/",
   "instagramUrl" => "https://www.instagram.com/",
   "API_ELITE_TOKEN" =>"token_7fcc1dfa5eee58e7cc614ae2d4be00f9012e86df", //default agent token
-  "API_ELITE_URL"=>'http://elitepolicy.salamtakafulinsurance.com/api/v1/policy'
+  "API_ELITE_URL"=>'http://elitepolicy.salamtakafulinsurance.com/api/v1/policy',
+  "NIIP_URL" => 'https://niip.ng/api/getPolicyByInsuranceCompany',
+  "NIIP_API_KEY" => "ef7c2e443f6a4ebba15477eeb38c42d16d2d6272aeb24f52b601154d517614c7", // niip token
 ];

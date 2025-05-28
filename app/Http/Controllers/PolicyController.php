@@ -317,7 +317,6 @@ class PolicyController extends Controller
                 }
                 
 
-               echo  $accesstoken;
                 $response = Http::withHeader('Auth-Token',$accesstoken)->withBody($policydatajSon)
                 ->post(config('variables.API_ELITE_URL'));
 
@@ -328,7 +327,7 @@ class PolicyController extends Controller
                 break;
         }
             #handle response from elite check status for success/fail
-            $policy->elite_msg=$response->body();
+          $policy->elite_msg=$response->body();
 
             // Decode JSON string into an associative array
             $data = json_decode($response->body(), true);
@@ -336,7 +335,7 @@ class PolicyController extends Controller
             if ($data['data']['status'] == 'success') {
                 # code...
 
-                $policy->elite_msg=$data['data']['status'] .$data['data']['message'] .$accesstoken;
+                $policy->elite_msg=$data['data']['status'] .$data['data']['message'];
                 $policy->policyno=$data['data']['policy_number'];
                 $policy->status='approved';
                 $policy->save();
@@ -347,8 +346,57 @@ class PolicyController extends Controller
                 }
 
                 #TO DO Upload policy to NIIP
-   
-            } else {
+
+                #Prepare Third Party Motor Policy API Data for NIIP
+                $niipdata=["APIKey" => config('variables.NIIP_API_KEY'),
+    "Purpose" => 7,
+    "VehicleColor" => 15, // TO DO Get Vehicle Color
+    "VehicleMake" => $policyrisk->getvmakeid(),
+    "VehicleModel" => $policyrisk->getvmodelid(),
+    "EngineCap" => 3, // TO DO Get Engine Capacity
+    "State" => $policy->getuser()->state,
+    "LGA" => 514, // TO DO Get LGA
+    "RegNo" => $policyrisk->regno,
+    "ChassisNo" => $policyrisk->chassisno,
+    "EngineNo" => $policyrisk->engineno,
+    "PolicyHolderFirstName" => $policy->getuser()->firstname,
+    "PolicyHolderLastName" => $policy->getuser()->lastname,
+    "PolicyHolderMiddleName" => ' ',
+    "PolicyHolderMobileNo" => $policy->getuser()->telno,
+    "PolicyHolderEmail" => $policy->getuser()->email,
+    "PolicyHolderNIN" => '  ',
+    "IssueDate" => date_format($policy->start_date,'Y-m-d'),
+    "PolicyHolderAddress" => str_replace(' ', '', $policy->getaddress()),
+    "PolicyNumber" => $policy->policyno 
+
+            ];
+                #encode NIIP Data to JSON
+             $niipdatajSon=json_encode($niipdata);   
+
+             $niipresponse = Http::withBody($niipdatajSon)
+                ->post(config('variables.NIIP_URL'));
+
+                //handle niip response
+                $niipresponsedata = json_decode($niipresponse->body(), true);
+                switch ($niipresponsedata['statusCode']) {
+                    case '00':
+                        # code...
+                        $policy->niip_status=$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'].'- -'.
+                        $niipresponsedata['policyNumber']. '- '. $niipresponsedata['brownCardPolicyNumber'];
+                        break;
+                    case '01':
+                        # code...
+                        $policy->niip_status=$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'];
+                        break;
+
+                    default:
+                        # code...
+                        $policy->niip_status='Error: '.$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'];
+                        break;
+                }
+            }
+            // Handle failure response from Elite
+            else {
                 # code...
    
 

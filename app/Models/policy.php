@@ -44,6 +44,19 @@ class policy extends Model
         return $agent ? $agent->name : 'Agent Not Found';
 
     }
+            public function getaddress()
+    {
+        $address = User::where('id', $this->insured_id)->first();
+        return $address ? $address->address : 'Address Not Found';
+
+    }
+                public function getuser()
+    {
+         
+        return User::where('id', $this->insured_id)->first();
+
+    }
+
 
 
 }
