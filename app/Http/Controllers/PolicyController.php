@@ -337,7 +337,7 @@ class PolicyController extends Controller
                 # code...
 
                 $policy->elite_msg=$data['data']['status'] .$data['data']['message'] .$accesstoken;
-                $policy->policyno='';
+                $policy->policyno=$data['data']['policyNo'];
                 $policy->status='approved';
                 $policy->save();
                 #Get Agent Credit Balance and change to reflect success;
