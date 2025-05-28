@@ -348,8 +348,9 @@ class PolicyController extends Controller
                 #TO DO Upload policy to NIIP
 
                 #Prepare Third Party Motor Policy API Data for NIIP
+/** 
                 $niipdata=["APIKey" => config('variables.NIIP_API_KEY'),
-    "Purpose" => 7,
+    "Purpose" => 7, 
     "VehicleColor" => 15, // TO DO Get Vehicle Color
     "VehicleMake" => $policyrisk->getvmakeid(),
     "VehicleModel" => $policyrisk->getvmodelid(),
@@ -398,6 +399,7 @@ class PolicyController extends Controller
                         $policy->niip_status='Error: '.$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'];
                         break;
                 }
+                        */
             }
             // Handle failure response from Elite
             else {
