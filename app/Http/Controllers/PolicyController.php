@@ -380,6 +380,7 @@ class PolicyController extends Controller
             
                 $niipresponsedata = json_decode($niipresponse->body(), true);
                 //debugging niip response
+                echo $niipdata['VehicleMake']. ' -- '.$niipdata['VehicleModel'];
                 dd($niipresponsedata);
                 switch ($niipresponsedata['statusCode']) {
                     case '00':
