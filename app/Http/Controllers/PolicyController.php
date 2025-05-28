@@ -365,7 +365,7 @@ class PolicyController extends Controller
     "PolicyHolderMobileNo" => $policy->getuser()->telno,
     "PolicyHolderEmail" => $policy->getuser()->email,
     "PolicyHolderNIN" => '  ',
-    "IssueDate" => date_format($policy->start_date,'Y-m-d'),
+    "IssueDate" => date('Y-m-d', strtotime($policy->start_date)),
     "PolicyHolderAddress" => str_replace(' ', '', $policy->getaddress()),
     "PolicyNumber" => $policy->policyno 
 
