@@ -14,13 +14,13 @@ class policyrisk extends Model
     public function getvmakeid()
     {
          $vmakeid= vehicleMake::where('vmake', $this->vehiclemake)->first();
-         return $vmakeid ? $vmakeid->id : null;
+         return $vmakeid ? $vmakeid->niipvmid : null;
 
     }
     public function getvmodelid()
     {
          $vmodelid= vehicleModel::where('vmodelname', $this->vehiclemodel)->first();
-         return $vmodelid ? $vmodelid->id : null;
+         return $vmodelid ? $vmodelid->vmodelid : null;
 
     }
 
