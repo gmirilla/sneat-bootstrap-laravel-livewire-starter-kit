@@ -354,8 +354,8 @@ class PolicyController extends Controller
     "VehicleMake" => $policyrisk->getvmakeid(),
     "VehicleModel" => $policyrisk->getvmodelid(),
     "EngineCap" => 3, // TO DO Get Engine Capacity
-    "State" => $policy->getuser()->state,
-    "LGA" => 514, // TO DO Get LGA
+    "State" => 20,
+    "LGA" => 385, // TO DO Get LGA
     "RegNo" => $policyrisk->regno,
     "ChassisNo" => $policyrisk->chassisno,
     "EngineNo" => $policyrisk->engineno,
