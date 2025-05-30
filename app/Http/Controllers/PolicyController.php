@@ -238,7 +238,7 @@ class PolicyController extends Controller
             $policyrisk->vehiclemodel=$vmodel->vmodelname;
             $policyrisk->yearofmake=$request->yearofmake;
             $policyrisk->vechiclecolorid=$request->vehiclecolor;
-            $policyrisk->vehiclecolor=vehiclecolor::where('id',$request->vehiclecolor)->first()->color;;
+            $policyrisk->vehiclecolor=vehiclecolor::where('colorid',$request->vehiclecolor)->first()->color;;
             
             
 
