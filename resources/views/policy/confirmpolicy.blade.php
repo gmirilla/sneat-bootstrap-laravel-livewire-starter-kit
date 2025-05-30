@@ -6,6 +6,28 @@
                     $creditleft=$agent->noallocated - $agent->noused;
             
                 @endphp
+                <style>
+                    .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+}
+                </style>
     
 <x-layouts.app>
      
@@ -18,6 +40,7 @@
       </ul>
   </div>
 @endif
+<div>
      <div class="card col-9 mb-3">
         <div class="card-header"><h4>CONFIRM POLICY DETAILS BELOW</h4></div>
         </div>
@@ -113,7 +136,7 @@
             </div>
             @if ($user->role=='agent' && ($agent->allowcredit==true) && ($creditleft>=0))
             <div class="p-2 bd-highlight" style="margin-right: 5px">  
-                <button class="btn btn-primary" type="submit" name="agencycredit" onclick="disableButton()" id="acredtbtn">Agency Credit</button>
+                <button class="btn btn-primary" type="submit" name="agencycredit" onclick="disableButton()" id="acreditbtn">Agency Credit</button>
             </div>
              <div class="p-2 bd-highlight" style="margin-right: 5px"><h5>You Have {{$creditleft}} Upload Credit(s) left: </h5>  
                
@@ -126,6 +149,10 @@
 
      </div>
      </form>
+     </div>
+
+
+
      
 <script>
 function disableButton() {

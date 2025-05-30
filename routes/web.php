@@ -2,8 +2,12 @@
 
 use App\Http\Controllers\AgentsdetailsModelController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\LgaController;
+use App\Http\Controllers\NiipvehicleuseController;
 use App\Http\Controllers\PolicyController;
+use App\Http\Controllers\StatesController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\VehiclecolorController;
 use App\Http\Controllers\VehicleMakeController;
 use App\Http\Controllers\VehicleModelController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +54,32 @@ Route::middleware('auth')->group(function () {
     Route::get('agent_profile',[AgentsdetailsModelController::class, 'agentprofile'])->name('agentprofile');  
     Route::post('agent_update',[AgentsdetailsModelController::class, 'agentupdate'])->name('agentupdate'); 
        
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('list_state',[StatesController::class, 'index'])->name('list_states'); 
+    Route::post('import_states',[StatesController::class, 'importstates'])->name('importstates');   
+
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('list_color',[VehiclecolorController::class, 'index'])->name('list_colors'); 
+    Route::post('import_color',[VehiclecolorController::class, 'importvcolor'])->name('importcolor'); 
+    Route::get('/get-colors', [VehiclecolorController::class, 'getColors']);  
+
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('list_vuse',[NiipvehicleuseController::class, 'index'])->name('list_vuse'); 
+    Route::post('import_vuse',[NiipvehicleuseController::class, 'importvuse'])->name('importvuse');   
+
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('list_lga',[LgaController::class, 'index'])->name('list_lga'); 
+    Route::post('import_lga',[LgaController::class, 'importlga'])->name('importlga');  
+     Route::get('/get-lga/{state}', [LgaController::class, 'getlgas']);  
+
 });
 
 

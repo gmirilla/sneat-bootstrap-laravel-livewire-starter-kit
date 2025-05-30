@@ -31,4 +31,6 @@ return [
   "API_ELITE_URL"=>'http://elitepolicy.salamtakafulinsurance.com/api/v1/policy',
   "NIIP_URL" => 'https://niip.ng/api/getPolicyByInsuranceCompany',
   "NIIP_API_KEY" => "ef7c2e443f6a4ebba15477eeb38c42d16d2d6272aeb24f52b601154d517614c7", // niip token
+  "NIID_URL" => 'https://restapi.niid.org/NIIDRESTService/api/motorinsurance',
+
 ];

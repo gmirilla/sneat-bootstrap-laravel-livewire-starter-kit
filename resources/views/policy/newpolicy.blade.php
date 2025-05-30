@@ -11,6 +11,9 @@
       </ul>
   </div>
 @endif
+@php
+    $user = auth()->user();
+@endphp
 <div class="col-12 col-md col-xl col-sm py-md-3 pl-md-5t  fs-6, fs-md-5, fs-lg-5, fs-xl-1">
 <form action="{{route('submit_mpolicy')}}" method="post">
     @csrf
@@ -28,6 +31,7 @@
                     <input class="form-control form-control-lg" type="text" name='producttype' hidden value="{{$producttype}}">
                     <input class="form-control form-control-lg" type="text" name='insurancetype' hidden value="{{$insurancetype }}">
                     <input class="form-control form-control-lg" type="text" name='vehicleuse' hidden value="{{$vehicleuse}}">
+                    <input type="text" name="niipusecode" id="niipusecode" hidden value="{{$niipusecode}}">
                 </div>
                 <div class="col-auto">
                     <label for="" class="form-label">CONTRIBUTION ( &#8358;)</label>
@@ -72,10 +76,18 @@
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="state">State of Residence</label>
-                    <select class='form-select form-control-lg' name="state" id="state">
-                        <option value="FCT">FCT</option>
-                        <option value="KAN">KANO</option>
-                    </select>
+                    <select class='form-select form-control-lg'  required name="state" id="state" onchange="getlga()">
+                        <option value="">Select State</option>
+                        @foreach($states as $state) 
+                        <option value="{{ $state->stateid }}">{{ $state->statename }}</option>
+                        @endforeach
+                    </select>  
+                </div>
+                <div class="col-auto">
+                    <label class='form-label' for="state">LGA</label>
+                    <select class='form-select form-control-lg'  required name="lgas" id="lgas" >
+                        <option value="">Select LGA</option>
+                    </select>  
                 </div>
                 <div class="row gy-2 gx-3 align-items-center mb-3">
                 <div>
@@ -135,7 +147,14 @@
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="vehiclecolor">Vehicle Color</label>
-                    <input type="text" class="form-control form-control-lg" name="vehiclecolor">
+                    
+                    <select name="vehiclecolor" id="colors" class="form-select form-control-lg" >
+                        <option value="">Select Color</option>
+                        @foreach($colors as $color)
+                        <option value="{{ $color->colorid }}">{{ $color->color }}</option>
+                        @endforeach
+
+                    </select>
                 </div>
                 <div class="col-auto">
                     <input type="text"  name="vehicletype" id="vehicletype"  hidden value="{{$usekey}}">
@@ -158,20 +177,24 @@ I also consent to the processing of my personal data in accordance with the Comp
 
             </div>
         </div>
+        @if ($user->role=='agent')            
+        
         <div class="d-flex flex-row-reverse bd-highlight">
             <div class="p-2 bd-highlight" style="margin-right: 5px">
                 <button class="btn btn-primary" type="submit">Submit Policy</button>
-
             </div>
-            
+     
         </div>
+        @endif
      </div>
      </form>
 </div>
 
+
+
 <script>
 function test(params) {
-    console.log('I got Here');
+
     let e = document.getElementById('vehiclemake');
     var value = e.value;
     var text = e.options[e.selectedIndex].text;
@@ -182,6 +205,25 @@ function test(params) {
                 $('#vehiclemodel').html('');
                 models.forEach(function(model) {
                     $('#vehiclemodel').append('<option value="' + model.id + '">' + model.vmodelname + '</option>');
+                });
+            }
+        });
+
+}
+
+function getlga(params) {
+
+    let e = document.getElementById('state');
+  
+    var value = e.value;
+    var text = e.options[e.selectedIndex].text;
+        $.ajax({
+            url: '/get-lga/' + value,
+            type: 'GET',
+            success: function(lgas) {
+                $('#lgas').html('');
+                lgas.forEach(function(lga) {
+                    $('#lgas').append('<option value="' + lga.lgaid + '">' + lga.lganame + '</option>');
                 });
             }
         });

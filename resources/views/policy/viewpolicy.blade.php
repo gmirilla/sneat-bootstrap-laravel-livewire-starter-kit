@@ -118,11 +118,19 @@
                     <input class='form-control form-control-lg' type="tel" name="phone"   {{$statcheck}} value="{{$insured->telno}}" required id="phone" placeholder="Phone no.">
                 </div>
                 <div class="col-auto">
-                    <label class='form-label' for="state">State of Residence**</label>
-                    <select class='form-select form-control-lg' name="state" id="state">
-                        <option value="FCT">FCT</option>
-                        <option value="KAN">KANO</option>
-                    </select>
+                    <label class='form-label' for="state">State of Residence</label>
+                    <select class='form-select form-control-lg'  required name="state" id="state" onchange="getlga()">
+                        <option value="">Select State</option>
+                        @foreach($states as $state) 
+                        <option value="{{ $state->stateid }}">{{ $state->statename }}</option>
+                        @endforeach
+                    </select>  
+                </div>
+                <div class="col-auto">
+                    <label class='form-label' for="state">LGA</label>
+                    <select class='form-select form-control-lg'  required name="lgas" id="lgas" >
+                        <option value="">Select LGA</option>
+                    </select>  
                 </div>
                 <div class="row gy-2 gx-3 align-items-center mb-3">
                 <div>
@@ -205,10 +213,14 @@
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="vehiclecolor">Vehicle Color</label>
-                    <input type="text" {{$statcheck}} class="form-control form-control-lg" 
-                    {{$statcheck}} 
-                    value="{{$policyrisk->vehiclecolor}}"
-                    name="vehiclecolor">
+                    
+                    <select name="vehiclecolor" id="colors" class="form-select form-control-lg" >
+                        <option value="">Select Color</option>
+                        @foreach($colors as $color)
+                        <option value="{{ $color->colorid }}">{{ $color->color }}</option>
+                        @endforeach
+
+                    </select>
                 </div>
                 <div class="col-auto">
                     <input type="text"  name="vehicletype" id="vehicletype"  hidden value="{{$policy->usekey}}">
@@ -263,6 +275,27 @@ function test(params) {
         });
 
 }
+
+
+function getlga(params) {
+    console.log('I got WHere');
+    let e = document.getElementById('state');
+    console.log(e);
+    var value = e.value;
+    var text = e.options[e.selectedIndex].text;
+        $.ajax({
+            url: '/get-lga/' + value,
+            type: 'GET',
+            success: function(lgas) {
+                $('#lgas').html('');
+                lgas.forEach(function(lga) {
+                    $('#lgas').append('<option value="' + lga.lgaid + '">' + lga.lganame + '</option>');
+                });
+            }
+        });
+
+}
+
 
 </script>
 </x-layouts.app>

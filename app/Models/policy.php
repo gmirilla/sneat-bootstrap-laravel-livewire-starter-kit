@@ -30,7 +30,9 @@ class policy extends Model
         'create_uid',
         'update_uid',
         'producttype',
-        'usekey','vehicleuse','insurancetype'
+        'usekey','vehicleuse','insurancetype',
+        'niidresponse',
+        'niipvehicleuse',
     ];
 
     public function getrisk()

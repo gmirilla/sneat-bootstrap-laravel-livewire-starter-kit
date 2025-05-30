@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\agentsdetailsModel;
 use App\Models\policy;
 use App\Models\policyrisk;
+use App\Models\states;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +14,7 @@ use App\Models\User;
 use App\Models\vehicleMake;
 use Illuminate\Support\Facades\Http;
 use App\Exceptions\InvalidUserActionException;
+use App\Models\vehiclecolor;
 use App\Models\vehicleModel;
 
 class PolicyController extends Controller
@@ -70,6 +72,7 @@ class PolicyController extends Controller
                 $usekey='private';
                  $insurancetype='Private';
                 $vehicleuse="car";
+                $niipusecode= 3; // Private Motor
                 break;
 
             case ($request->has('btncommercialmotor')):
@@ -79,6 +82,7 @@ class PolicyController extends Controller
                 $usekey='commercial';
                 $insurancetype='Commercial';
                 $vehicleuse="car";
+                $niipusecode= 8; // Commercial Motor
                 break;
             case ($request->has('btnmotorcycle')):
                 # began the purchase of a Motorcycle policy
@@ -87,6 +91,7 @@ class PolicyController extends Controller
                 $usekey='commercial';
                  $insurancetype='Commercial';
                 $vehicleuse="motorcycle";
+                $niipusecode= 4;  // Motorcycle
                 break;
             default:
                 # To Do  create a default 
@@ -94,8 +99,11 @@ class PolicyController extends Controller
                 break;
         }
         $vmakes=vehicleMake::orderBy('vmake')->get();
+        $states=states::all();
+        $colors=vehiclecolor::all();
 
-        return view('policy.newpolicy',compact('vmakes','producttype','contribution','usekey','insurancetype','vehicleuse'));
+
+        return view('policy.newpolicy',compact('vmakes','producttype','contribution','usekey','insurancetype','vehicleuse','states','colors','niipusecode'));	
     }
 
     /**
@@ -118,6 +126,14 @@ class PolicyController extends Controller
 
 
     //$validatedata=$request->validate()
+
+        $request->validate([
+    'chassisno' => ['required', 'regex:/^[^IO]*$/']
+], [
+    'chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
+]);
+ //validate chassis number to exclude I and O
+
 
 
 
@@ -145,7 +161,7 @@ class PolicyController extends Controller
             $insured=User::where('email',$request->email)->first();
             if (empty($insured)) {
 
-                $genpassword='A#r15b1t';
+                $genpassword='Password';
                 
                 # create new insured user profile
                 $insured= new User();
@@ -158,6 +174,8 @@ class PolicyController extends Controller
                 $insured->telno=$request->phone;
                 $insured->state=$request->state;
                 $insured->address=$request->address;
+                $insured->stateid=$request->state;
+                $insured->lgaid=$request->lgas;
                 $insured->password=Hash::make($genpassword);
 
                 $insured->save();
@@ -165,6 +183,7 @@ class PolicyController extends Controller
 
             } else {
                 # Map policy to existing user...
+                
             }
             #Create Motor Policy 
             $start_date=date_create();
@@ -184,8 +203,6 @@ class PolicyController extends Controller
 
             }
             
-
-            
             $policy->insured_id=$insured->id;
             $policy->producttype=$request->producttype;
             $policy->insured_name=$fullname;
@@ -201,6 +218,9 @@ class PolicyController extends Controller
             $policy->commission=0;
             $policy->insurancetype=$request->insurancetype;
             $policy->vehicleuse=$request->vehicleuse;
+            $policy->stateid=$request->state;
+            $policy->lgaid=$request->lgas;
+            $policy->niipvehicleuse=$request->niipusecode;
             
              $policy->save();
 
@@ -215,7 +235,8 @@ class PolicyController extends Controller
             $policyrisk->vehiclemake=$vmake->vmake;
             $policyrisk->vehiclemodel=$vmodel->vmodelname;
             $policyrisk->yearofmake=$request->yearofmake;
-            $policyrisk->vehiclecolor=$request->vehiclecolor;
+            $policyrisk->vechiclecolorid=$request->vehiclecolor;
+            $policyrisk->vehiclecolor=vehiclecolor::where('id',$request->vehiclecolor)->first()->color;;
             
             
 
@@ -328,6 +349,7 @@ class PolicyController extends Controller
         }
             #handle response from elite check status for success/fail
           $policy->elite_msg=$response->body();
+          
 
             // Decode JSON string into an associative array
             $data = json_decode($response->body(), true);
@@ -344,19 +366,22 @@ class PolicyController extends Controller
                     $agent->noused=$agent->noused + 1;
                     $agent->save();
                 }
-
+                $policy->save();
+    
                 #TO DO Upload policy to NIIP
 
                 #Prepare Third Party Motor Policy API Data for NIIP
-/** 
-                $niipdata=["APIKey" => config('variables.NIIP_API_KEY'),
-    "Purpose" => 7, 
-    "VehicleColor" => 15, // TO DO Get Vehicle Color
+
+                $niipdata=
+                [
+        "APIKey" => config('variables.NIIP_API_KEY'),
+    "Purpose" => $policy->niipvehicleuse, 
+    "VehicleColor" => $policyrisk->vechiclecolorid, 
     "VehicleMake" => $policyrisk->getvmakeid(),
     "VehicleModel" => $policyrisk->getvmodelid(),
     "EngineCap" => 3, // TO DO Get Engine Capacity
-    "State" => 20,
-    "LGA" => 385, // TO DO Get LGA
+    "State" => $policy->stateid,
+    "LGA" => $policy->lgaid,
     "RegNo" => $policyrisk->regno,
     "ChassisNo" => $policyrisk->chassisno,
     "EngineNo" => $policyrisk->engineno,
@@ -372,17 +397,27 @@ class PolicyController extends Controller
 
             ];
                 #encode NIIP Data to JSON
-             $niipdatajSon=json_encode($niipdata);   
+             $niipdatajSon=json_encode($niipdata);
 
-             $niipresponse = Http::withBody($niipdatajSon)
-                ->post(config('variables.NIIP_URL'));
-
+            try{
+                             $niipresponse = Http::withBody($niipdatajSon)->timeout(180)->post(config('variables.NIIP_URL'));
+              // Set timeout to 180 seconds
                 //handle niip response
             
                 $niipresponsedata = json_decode($niipresponse->body(), true);
+
+            }
+            catch (\Exception $e) {
+                # code...
+                $policy->niip_status='Error: '.$e->getMessage();
+                $policy->save();
+                $errors=$policy->niip_status;
+                $id=$policy->id;
+
+                return redirect()->route('list_policy', compact('errors', 'id'));
+            }
+
                 //debugging niip response
-                echo $niipdata['VehicleMake']. ' -- '.$niipdata['VehicleModel'];
-                dd($niipresponsedata);
                 switch ($niipresponsedata['statusCode']) {
                     case '00':
                         # code...
@@ -399,7 +434,7 @@ class PolicyController extends Controller
                         $policy->niip_status='Error: '.$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'];
                         break;
                 }
-                        */
+                    
             }
             // Handle failure response from Elite
             else {
@@ -442,10 +477,12 @@ class PolicyController extends Controller
         $insured=User::where('id',$policy->insured_id)->first();
         $policyrisk=policyrisk::where('policyid', $policy->id)->first();
         $vmakes=vehicleMake::orderBy('vmake')->get();
+        $states=states::all();
+        $colors=vehiclecolor::all();
 
         //dd($policy);
 
-        return view('policy.viewpolicy', compact('policy','insured','policyrisk','vmakes'));
+        return view('policy.viewpolicy', compact('policy','insured','policyrisk','vmakes','producttype','states','colors'));
     }
 
 
