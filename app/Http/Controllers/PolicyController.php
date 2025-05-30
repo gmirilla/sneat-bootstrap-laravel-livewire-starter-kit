@@ -37,11 +37,11 @@ class PolicyController extends Controller
                 break;
             case 'admin':
                 # Retreieve all policies
-                $policies=policy::all();
+                $policies=policy::all()->orderBy('updated_at', 'desc')->get();
                 break;
             case 'superadmin':
                 # Retreieve all policies
-                $policies=policy::all();
+                $policies=policy::all()->orderBy('updated_at', 'desc')->get();
                 break;
             case 'user':
                 # Retrieve policies created by and for this user this user
