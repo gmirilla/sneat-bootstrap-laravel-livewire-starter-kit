@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Http;
 use App\Exceptions\InvalidUserActionException;
 use App\Models\vehiclecolor;
 use App\Models\vehicleModel;
+use App\Jobs\PostNIIPDataSlow; // Import the job class
+use App\Jobs\PostNIIDDataSlow; // Import the job class
 
 class PolicyController extends Controller
 {
@@ -37,11 +39,11 @@ class PolicyController extends Controller
                 break;
             case 'admin':
                 # Retreieve all policies
-                $policies=policy::all()->orderBy('updated_at', 'desc')->get();
+                $policies=policy::all();
                 break;
             case 'superadmin':
                 # Retreieve all policies
-                $policies=policy::all()->orderBy('updated_at', 'desc')->get();
+                $policies=policy::all();
                 break;
             case 'user':
                 # Retrieve policies created by and for this user this user
@@ -397,44 +399,8 @@ class PolicyController extends Controller
 
             ];
                 #encode NIIP Data to JSON
-             $niipdatajSon=json_encode($niipdata);
 
-            try{
-                             $niipresponse = Http::withBody($niipdatajSon)->timeout(180)->post(config('variables.NIIP_URL'));
-              // Set timeout to 180 seconds
-                //handle niip response
-            
-                $niipresponsedata = json_decode($niipresponse->body(), true);
-
-            }
-            catch (\Exception $e) {
-                # code...
-                $policy->niip_status='Error: '.$e->getMessage();
-                $policy->save();
-                $errors=$policy->niip_status;
-                $id=$policy->id;
-
-                return redirect()->route('list_policy', compact('errors', 'id'));
-            }
-
-                //debugging niip response
-                switch ($niipresponsedata['statusCode']) {
-                    case '00':
-                        # code...
-                        $policy->niip_status=$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'].'- -'.
-                        $niipresponsedata['policyNumber']. '- '. $niipresponsedata['brownCardPolicyNumber'];
-                        break;
-                    case '01':
-                        # code...
-                        $policy->niip_status=$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'];
-                        break;
-
-                    default:
-                        # code...
-                        $policy->niip_status='Error: '.$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'];
-                        break;
-                }
-                    
+            PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
             }
             // Handle failure response from Elite
             else {
@@ -533,5 +499,37 @@ class PolicyController extends Controller
     public function destroy(policy $policy)
     {
         //
+    }
+    public function testasync()
+    {
+        // Test asynchronous job dispatching
+        $niipdata = [
+            "APIKey" => config('variables.NIIP_API_KEY'),
+            "Purpose" => 3, // Example purpose code
+            "VehicleColor" => 1, // Example color ID
+            "VehicleMake" => 1, // Example make ID
+            "VehicleModel" => 1, // Example model ID
+            "EngineCap" => 3,
+            "State" => 1,
+            "LGA" => 1,
+            "RegNo" => 'ABC123',
+            "ChassisNo" => 'CHASSIS123',
+            "EngineNo" => 'ENGINE123',
+            "PolicyHolderFirstName" => 'John',
+            "PolicyHolderLastName" => 'Doe',
+            "PolicyHolderMiddleName" => 'M',
+            "PolicyHolderMobileNo" => '08012345678',
+            "PolicyHolderEmail" => 'john.doe@example.com',
+            "PolicyHolderNIN" => '12345678901',	
+            "IssueDate" => date('Y-m-d'),	
+            "PolicyHolderAddress" => '123 Main St, City, State',	
+            "PolicyNumber" => 'P/2025/KN-HQ/010401/016242'	
+        ];
+
+        //PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
+        echo "NIIP data dispatched successfully.";
+
+        PostNIIPDataSlow::dispatch($niipdata);
+
     }
 }

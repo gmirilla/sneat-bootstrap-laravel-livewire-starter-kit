@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::post('submit_mpolicy',[PolicyController::class, 'submitmpolicy'])->name('submit_mpolicy');
     Route::post('confirm_mpolicy',[PolicyController::class, 'confirmmpolicy'])->name('confirm_mpolicy');
     Route::post('pay_policy',[PolicyController::class, 'paypolicy'])->name('pay_policy');
+    Route::get('test_async',[PolicyController::class, 'testasync'])->name('test_async');
 
 
 });
