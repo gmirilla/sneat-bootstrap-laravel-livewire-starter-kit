@@ -43,8 +43,6 @@ class PostNIIPDataSlow implements ShouldQueue
                 # code...
                 $policy->niip_status='Error: '.$e->getMessage();
                 $policy->save();
-                $errors=$policy->niip_status;
-                $id=$policy->id;
 
             }
 

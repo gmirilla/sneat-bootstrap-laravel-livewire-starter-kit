@@ -504,7 +504,7 @@ class PolicyController extends Controller
     {
         // Test asynchronous job dispatching
         $niipdata = [
-            "APIKey" => config('variables.NIIP_API_KEY'),
+            //"APIKey" => config('variables.NIIP_API_KEY'),
             "Purpose" => 3, // Example purpose code
             "VehicleColor" => 1, // Example color ID
             "VehicleMake" => 1, // Example make ID
