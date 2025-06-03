@@ -59,6 +59,16 @@
      N/A   
     @endif
   </div>
+  <div class="card card-body">
+    @if ($policy->status=='approved' and empty($policy->niip_status))
+        <form action="{{ route('retry_niip') }}" method="POST">
+            @csrf
+            <input type="hidden" name="policyno" value="{{ $policy->policyno }}">
+            <button type="submit" class="btn btn-warning">Retry NIIP Submission</button>
+        </form>
+    @endif
+
+  </div>
 </div>
         </div>
         <div class="card-body">
