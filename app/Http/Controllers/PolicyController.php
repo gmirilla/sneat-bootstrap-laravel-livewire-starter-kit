@@ -565,7 +565,6 @@ class PolicyController extends Controller
         //PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
         echo "NIIP data dispatched successfully.";
 
-        dd($niipdata);
 
         PostNIIPDataSlow::dispatch($niipdata);
 
