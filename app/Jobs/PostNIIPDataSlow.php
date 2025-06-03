@@ -46,23 +46,9 @@ class PostNIIPDataSlow implements ShouldQueue
 
             }
 
-                //debugging niip response
-                switch ($niipresponsedata['statusCode']) {
-                    case '00':
-                        # code...
-                        $policy->niip_status=$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'].'- -'.
-                        $niipresponsedata['policyNumber']. '- '. $niipresponsedata['brownCardPolicyNumber'];
-                        break;
-                    case '01':
-                        # code...
-                        $policy->niip_status=$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'];
-                        break;
 
-                    default:
-                        # code...
-                        $policy->niip_status='Error: '.$niipresponsedata['statusCode']. ' - ' .$niipresponsedata['message'];
-                        break;
-                }
+                $policy->niip_status='Error: '.$e->getMessage();
+                $policy->save();
         Log::info('Processing Data:', ['data' => $this->data]);
         Log::info('Error Data:', [$niipresponsedata['message']]);
     }

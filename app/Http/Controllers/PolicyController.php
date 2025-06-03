@@ -532,4 +532,42 @@ class PolicyController extends Controller
         PostNIIPDataSlow::dispatch($niipdata);
 
     }
+
+        public function retryniip(Request $request)
+    {
+        // Test asynchronous job dispatching
+        $policy = policy::where('policyno', $request->policyno)->first();  
+        $policyrisk = $policy->getrisk();
+
+        $niipdata = [
+                "APIKey" => config('variables.NIIP_API_KEY'),
+    "Purpose" => $policy->niipvehicleuse, 
+    "VehicleColor" => $policyrisk->vechiclecolorid, 
+    "VehicleMake" => $policyrisk->getvmakeid(),
+    "VehicleModel" => $policyrisk->getvmodelid(),
+    "EngineCap" => 3, // TO DO Get Engine Capacity
+    "State" => $policy->stateid,
+    "LGA" => $policy->lgaid,
+    "RegNo" => $policyrisk->regno,
+    "ChassisNo" => $policyrisk->chassisno,
+    "EngineNo" => $policyrisk->engineno,
+    "PolicyHolderFirstName" => $policy->getuser()->firstname,
+    "PolicyHolderLastName" => $policy->getuser()->lastname,
+    "PolicyHolderMiddleName" => ' ',
+    "PolicyHolderMobileNo" => $policy->getuser()->telno,
+    "PolicyHolderEmail" => $policy->getuser()->email,
+    "PolicyHolderNIN" => '  ',
+    "IssueDate" => date('Y-m-d', strtotime($policy->start_date)),
+    "PolicyHolderAddress" => str_replace(' ', '', $policy->getaddress()),
+    "PolicyNumber" => $policy->policyno 
+        ];
+
+        //PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
+        echo "NIIP data dispatched successfully.";
+
+        dd($niipdata);
+
+        PostNIIPDataSlow::dispatch($niipdata);
+
+    }
 }

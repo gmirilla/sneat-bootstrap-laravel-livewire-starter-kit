@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Controllers\LgaController;
 use Illuminate\Database\Eloquent\Model;
 
 class policy extends Model
@@ -32,7 +33,7 @@ class policy extends Model
         'producttype',
         'usekey','vehicleuse','insurancetype',
         'niidresponse',
-        'niipvehicleuse',
+        'niipvehicleuse','lgaid','stateid'
     ];
 
     public function getrisk()
@@ -56,6 +57,13 @@ class policy extends Model
     {
          
         return User::where('id', $this->insured_id)->first();
+
+    }
+
+                public function getlga()
+    {
+        $lga = Lga::where('lgaid', $this->lgaid)->first();
+        return $lga ? $lga->name : 'LGA Not Found';
 
     }
 

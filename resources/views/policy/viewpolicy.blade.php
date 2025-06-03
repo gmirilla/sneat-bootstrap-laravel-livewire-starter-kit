@@ -119,18 +119,45 @@
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="state">State of Residence</label>
-                    <select class='form-select form-control-lg'  required name="state" id="state" onchange="getlga()">
-                        <option value="">Select State</option>
+                       
                         @foreach($states as $state) 
-                        <option value="{{ $state->stateid }}">{{ $state->statename }}</option>
+                        @php
+                            if ($state->stateid == $policy->stateid) {
+                                $statename = $state->statename;
+                            }
+                            else {
+                                $statename = '';
+                            }
+                        @endphp
+
                         @endforeach
-                    </select>  
+                    </select> 
+                    @if ($statcheck=='disabled')
+                       <input class="form-control form-control-lg"  
+                    {{$statcheck}} 
+                    value="{{$statename}}"
+                    required name="state" placeholder="Select State">
+                    @else
+                        <select class="form-select form-control-lg" name="state" id="state" onchange="getlga()">
+                            <option value="">Select State</option>
+                            @foreach($states as $state)
+                                <option value="{{ $state->stateid }}"  {{ $policy->stateid == $state->stateid ? 'selected' : 'No  State Selected' }}>
+                                    {{ $state->statename }}</option>
+                            @endforeach 
+                        </select>
+                     @endif 
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="state">LGA</label>
-                    <select class='form-select form-control-lg'  required name="lgas" id="lgas" >
-                        <option value="">Select LGA</option>
-                    </select>  
+                  
+                        @if ($statcheck=='disabled')
+                           <input class="form-control form-control-lg"  {{$statcheck}}  
+                           value="{{$policy->getlga()}}" required name="lgas" placeholder="Select LGA">
+                        @else
+                          <select class='form-select {{$statcheck}} form-control-lg'  required name="lgas" id="lgas" >
+                            <option value="">Select LGA</option>
+                            </select> 
+                        @endif
                 </div>
                 <div class="row gy-2 gx-3 align-items-center mb-3">
                 <div>
@@ -214,7 +241,7 @@
                 <div class="col-auto">
                     <label class='form-label' for="vehiclecolor">Vehicle Color</label>
                     
-                    <select name="vehiclecolor" id="colors" class="form-select form-control-lg" >
+                    <select name="vehiclecolor" id="colors" {{$statcheck}} class="form-select form-control-lg" >
                         <option value="">Select Color</option>
                         @foreach($colors as $color)
                         <option value="{{ $color->colorid }}">{{ $color->color }}</option>
