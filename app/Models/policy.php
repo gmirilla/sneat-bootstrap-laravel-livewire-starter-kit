@@ -62,7 +62,7 @@ class policy extends Model
 
                 public function getlga()
     {
-        $lga = Lga::where('lgaid', $this->lgaid)->first();
+        $lga = lga::where('lgaid', $this->lgaid)->first();
         return $lga ? $lga->name : 'LGA Not Found';
 
     }
