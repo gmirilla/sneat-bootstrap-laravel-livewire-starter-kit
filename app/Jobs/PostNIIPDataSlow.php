@@ -51,7 +51,7 @@ class PostNIIPDataSlow implements ShouldQueue
                 $policy->save();
                 
         Log::info('Processing Data:', ['data' => $this->data]);
-        Log::info('Error Data:', [$niipresponsedata['message']]);
+       
     }
 
 }
