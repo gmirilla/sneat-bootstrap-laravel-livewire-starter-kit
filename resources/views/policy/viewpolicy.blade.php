@@ -19,6 +19,16 @@
       </ul>
   </div>
 @endif
+  <div class="card card-body">
+    @if ($policy->status=='approved' and empty($policy->niip_status))
+        <form action="{{ route('retry_niip') }}" method="get">
+            @csrf
+            <input type="hidden" name="policyno" value="{{ $policy->policyno }}">
+            <button type="submit" class="btn btn-warning">Retry NIIP Submission</button>
+        </form>
+    @endif
+
+  </div>
 <div class="col-12 col-md col-xl col-sm py-md-3 pl-md-5t  fs-6, fs-md-5, fs-lg-5, fs-xl-1">
 <form action="{{route('submit_mpolicy')}}" method="post">
     @csrf
@@ -58,16 +68,6 @@
     @else
      N/A   
     @endif
-  </div>
-  <div class="card card-body">
-    @if ($policy->status=='approved' and empty($policy->niip_status))
-        <form action="{{ route('retry_niip') }}" method="POST">
-            @csrf
-            <input type="hidden" name="policyno" value="{{ $policy->policyno }}">
-            <button type="submit" class="btn btn-warning">Retry NIIP Submission</button>
-        </form>
-    @endif
-
   </div>
 </div>
         </div>
