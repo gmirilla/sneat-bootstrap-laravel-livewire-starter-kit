@@ -7,7 +7,7 @@
             # code...
             $statcheck='disabled';
         }
-        
+        $user = auth()->user();
     @endphp
      
         @if ($errors->any())
@@ -20,7 +20,7 @@
   </div>
 @endif
   <div class="card card-body">
-    @if ($policy->status=='approved' and empty($policy->niip_status))
+    @if ($policy->status=='approved' and empty($policy->niip_status) and $user->role=='admin')
         <form action="{{ route('retry_niip') }}" method="get">
             @csrf
             <input type="hidden" name="policyno" value="{{ $policy->policyno }}">
@@ -231,10 +231,10 @@
                     @if ($statcheck=='disabled')
                        <input class="form-control form-control-lg"
                     {{$statcheck}} value="{{$policyrisk->vehiclemodel}}"
-                    required name="vehiclemodel" placeholder="Type to search..."> 
+                     name="vehiclemodel" placeholder="Type to search..."> 
 
                     @else
-                    <select id="vehiclemodel" class="form-select form-control-lg" name="vmodel">
+                    <select id="vehiclemodel" required class="form-select form-control-lg" name="vmodel">
     <option value="">Select Model</option>
 </select>
 

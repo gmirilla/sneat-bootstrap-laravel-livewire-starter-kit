@@ -121,7 +121,7 @@
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="vehiclemake">Vehicle Make</label>
-                    <select name="vehiclemake" class="form-select form-control-lg" id="vehiclemake" onchange="test()">
+                    <select name="vehiclemake" required class="form-select form-control-lg" id="vehiclemake" onchange="test()">
                          <option value="">Select Make</option>
                             @foreach($vmakes as $vmake)
                              <option value="{{ $vmake->niipvmid }}">{{ $vmake->vmake }}</option>
@@ -131,7 +131,7 @@
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="vehiclemake">Vehicle Model</label>
-                      <select id="vehiclemodel" class="form-select form-control-lg" name="vmodel">
+                      <select id="vehiclemodel" required class="form-select form-control-lg" name="vmodel">
     <option value="">Select Model</option>
 </select>
 
