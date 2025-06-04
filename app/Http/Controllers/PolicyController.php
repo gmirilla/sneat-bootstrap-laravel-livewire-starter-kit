@@ -204,7 +204,10 @@ class PolicyController extends Controller
                 $policy= new policy();
 
             }
-            
+            $policy->firstname=$request->fname;
+            $policy->lastname=$request->lname;
+            $policy->telno=$request->phone;
+            $policy->email=$request->email;
             $policy->insured_id=$insured->id;
             $policy->producttype=$request->producttype;
             $policy->insured_name=$fullname;
@@ -238,11 +241,23 @@ class PolicyController extends Controller
             $policyrisk->vehiclemodel=$vmodel->vmodelname;
             $policyrisk->yearofmake=$request->yearofmake;
             $policyrisk->vechiclecolorid=$request->vehiclecolor;
-            $policyrisk->vehiclecolor=vehiclecolor::where('colorid',$request->vehiclecolor)->first()->color;;
-            
-            
+            $policyrisk->vehiclecolor=vehiclecolor::where('colorid',$request->vehiclecolor)->first()->color;
 
-            $policyrisk->contribution=$request->contribution;
+            if ($policy->producttype=='Private Motor Third Party') {
+                # code...
+                $policy->vehicleuse='car';
+                    $policy->insurancetype='Private';
+            }
+            else if ($policy->producttype=='Commercial Motor Third Party') {
+                # code...
+                $policy->vehicleuse='car';
+                $policy->insurancetype='Commercial';
+            } elseif ($policy->producttype=='Motorcycle Third Party') {
+                # code...
+                $policy->vehicleuse='motorcycle';
+                $policy->insurancetype='Motorcycle';
+            }
+
             $policyrisk->save();
 
 
