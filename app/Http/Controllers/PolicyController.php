@@ -247,15 +247,18 @@ class PolicyController extends Controller
                 # code...
                 $policy->vehicleuse='car';
                     $policy->insurancetype='Private';
+                    $policyrisk->contribution=15000;
             }
             else if ($policy->producttype=='Commercial Motor Third Party') {
                 # code...
                 $policy->vehicleuse='car';
                 $policy->insurancetype='Commercial';
+                $policyrisk->contribution=20000;
             } elseif ($policy->producttype=='Motorcycle Third Party') {
                 # code...
                 $policy->vehicleuse='motorcycle';
                 $policy->insurancetype='Motorcycle';
+                $policyrisk->contribution=5000;
             }
 
             $policyrisk->save();
