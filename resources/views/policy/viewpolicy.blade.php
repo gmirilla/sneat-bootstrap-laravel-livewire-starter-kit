@@ -20,7 +20,7 @@
   </div>
 @endif
   <div class="card card-body">
-    @if ($policy->status=='approved' and empty($policy->niip_status) and $user->role=='admin')
+    @if ($policy->status=='approved' and strpos($policy->niip_status, '"isSuccess":false') and $user->role=='admin')
         <form action="{{ route('retry_niip') }}" method="get">
             @csrf
             <input type="hidden" name="policyno" value="{{ $policy->policyno }}">
