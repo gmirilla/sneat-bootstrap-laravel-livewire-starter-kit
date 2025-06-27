@@ -1,1 +1,1 @@
-delete from lgas
+drop

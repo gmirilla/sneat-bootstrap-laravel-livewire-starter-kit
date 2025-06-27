@@ -52,8 +52,27 @@
                     </select>                  
             </div>
             <div class="col-auto">
-                    <label class='form-label' for="agentname">AUTH_TOKEN</label>
-                    <input type="text" class="form-control form-control-lg" name="authtoken" value="{{$agent->auth_token}}">                 
+                    <label class='form-label' for="agentname">AUTH_TOKEN** (ELITE)</label>
+                    <input type="text" class="form-control form-control-lg" name="authtoken" value="{{$agent->auth_token}}">               
+            </div>
+
+            <div class="col-auto">
+                    <label class='form-label' for="apitoken">API_TOKEN** (MOBILE APP)</label>
+                    <input type="text" class="form-control form-control-lg" name="apitoken" value="{{$user->apitoken}}">                 
+            </div>
+            <div class="col-auto">
+                @php
+                    if (empty($user->apitoken)){
+                        $apigeneratebuttonstatus='enabled';
+                        $apirevokebuttonstatus='disabled';
+                    }else {
+                        # code...
+                        $apigeneratebuttonstatus='disabled';
+                        $apirevokebuttonstatus='enabled';
+                    }
+                @endphp
+                    <button type="button" class="btn btn-secondary" {{$apigeneratebuttonstatus}} onclick="generateApiToken()">Generate New API Token</button> 
+                    <button type="button" class="btn btn-danger" {{$apirevokebuttonstatus}} onclick="revokeApiToken()">Revoke API Token</button>                   
             </div>
             <div class="col-auto">
                 @if ($agent->allowcredit==true)
@@ -72,4 +91,16 @@
         </div>
     </div>
 </div>
+<script>
+    function generateApiToken() {
+        fetch('/generate-api-token/?auid={{$user->id}}')
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector('input[name="apitoken"]').value = data.token;
+                console.log('user id', {{$user->id}})
+
+            })
+            .catch(error => console.error('Error generating API token:', error));
+    }
+</script>
 </x-layouts.app>

@@ -17,7 +17,7 @@ use App\Exceptions\InvalidUserActionException;
 use App\Models\vehiclecolor;
 use App\Models\vehicleModel;
 use App\Jobs\PostNIIPDataSlow; // Import the job class
-use App\Jobs\PostNIIDDataSlow; // Import the job class
+
 
 class PolicyController extends Controller
 {
@@ -193,7 +193,7 @@ class PolicyController extends Controller
 
             #GET Vehicle Make and Model To BE USED with NIIP integration
             $vmake=vehicleMake::where('niipvmid',$request->vehiclemake )->first();
-            $vmodel=vehicleModel::where('id',$request->vmodel)->first();
+            $vmodel=vehicleModel::where('vmodelid',$request->vmodel)->first();
          
             #check if policy exists
             if ($request->has('policyid')){
@@ -517,6 +517,15 @@ class PolicyController extends Controller
     public function destroy(policy $policy)
     {
         //
+    }
+
+        /**
+     * Remove the specified resource from storage.
+     */
+    public function testapi()
+    {
+        //
+        return view('api.apitest');
     }
     public function testasync()
     {

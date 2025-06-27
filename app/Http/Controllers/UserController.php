@@ -63,6 +63,19 @@ class UserController extends Controller
     }
 
 
+    
+    /**
+     * Set the user's API Token.
+     */
+    public function generateeapitoken(Request $request)
+    {
+        //
+        $user=User::where('id', $request->auid)->first();
+        $token=$user->setApiToken();
+        return response()->json(['token' => $token]);
+    }
+
+
     /**
      * Show the form for creating a new resource.
      */

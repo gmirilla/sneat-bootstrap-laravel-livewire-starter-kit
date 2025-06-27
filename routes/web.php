@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::post('confirm_mpolicy',[PolicyController::class, 'confirmmpolicy'])->name('confirm_mpolicy');
     Route::post('pay_policy',[PolicyController::class, 'paypolicy'])->name('pay_policy');
     Route::get('test_async',[PolicyController::class, 'testasync'])->name('test_async');
+    
     Route::get('retry_niip',[PolicyController::class, 'retryniip'])->name('retry_niip');
 
 
@@ -55,7 +56,8 @@ Route::middleware('auth')->group(function () {
     Route::get('list_agents',[AgentsdetailsModelController::class, 'index'])->name('list_agents'); 
     Route::get('agent_profile',[AgentsdetailsModelController::class, 'agentprofile'])->name('agentprofile');  
     Route::post('agent_update',[AgentsdetailsModelController::class, 'agentupdate'])->name('agentupdate'); 
-       
+    Route::get('generate-api-token',[UserController::class, 'generateeapitoken'])->name('generateeapitoken');
+
 });
 
 Route::middleware('auth')->group(function () {
@@ -105,5 +107,7 @@ Route::middleware(['auth'])->group(function () {
   Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
   Volt::route('settings/password', 'settings.password')->name('settings.password');
 });
+
+
 
 require __DIR__ . '/auth.php';
