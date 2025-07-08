@@ -204,7 +204,7 @@ function test(params) {
             success: function(models) {
                 $('#vehiclemodel').html('');
                 models.forEach(function(model) {
-                    $('#vehiclemodel').append('<option value="' + model.id + '">' + model.vmodelname + '</option>');
+                    $('#vehiclemodel').append('<option value="' + model.vmodelid + '">' + model.vmodelname + '</option>');
                 });
             }
         });
