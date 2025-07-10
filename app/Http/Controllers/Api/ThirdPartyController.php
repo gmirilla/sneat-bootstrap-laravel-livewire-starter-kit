@@ -31,7 +31,7 @@ class ThirdPartyController extends Controller
     'lname' => 'required|string',
     'email' => 'required|email',
     'gender' => 'required|in:Male,Female,Other',
-    'dob' => 'required|date_format:d-M-Y',
+    'dob' => 'required|date_format:Y-m-d',
     'phone' => 'required|string',
     'state' => 'required|integer|exists:states,stateid',
     'lga' => 'required|integer|exists:lgas,lgaid',
