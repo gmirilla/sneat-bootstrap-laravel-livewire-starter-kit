@@ -21,6 +21,7 @@
 @endif
   <div class="card card-body">
     @if ($policy->status=='approved'  and $user->role=='admin')
+    @dd($policy);
         <p>
             <b>NIIP RESPONSE: </b><br> {{$policy->niip_status}}
         </p>

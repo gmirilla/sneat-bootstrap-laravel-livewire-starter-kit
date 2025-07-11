@@ -25,6 +25,14 @@ class ThirdPartyController extends Controller
     //
     public function newpolicy(Request $request)
     {
+
+        // LOG API CALLS
+        $jsonData = json_encode($request->all());
+        $logData = date('Y-m-d H:i:s') . ' - ' . $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'] . "\n" . $jsonData . "\n";
+        file_put_contents(storage_path('logs/api_log.txt'), $logData, FILE_APPEND);
+
+
+
         //TO DO:Validate the request data
         $rules = [
     'fname' => 'required|string',
