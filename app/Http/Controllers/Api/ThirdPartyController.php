@@ -44,7 +44,7 @@ class ThirdPartyController extends Controller
     'state' => 'required|integer|exists:states,stateid',
     'lga' => 'required|integer|exists:lgas,lgaid',
     'address' => 'required|string',
-    'vehicleuse' => 'required|string|in: privatemotor,commercialmotor,motorcycle',
+    'vehicleuse' => 'required|string|in:privatemotor,commercialmotor,motorcycle',
     'vehiclemakeid' => 'required|integer|exists:vehicle_makes,niipvmid',
     'vehiclemodelid' => 'required|integer|exists:vehicle_models,vmodelid',
     'vehiclecolor' => 'required|integer|exists:vehiclecolors,colorid',
