@@ -43,7 +43,6 @@ class ThirdPartyController extends Controller
     'phone' => 'required|string',
     'state' => 'required|integer|exists:states,stateid',
     'lga' => 'required|integer|exists:lgas,lgaid',
-    'address' => 'required|string',
     'vehicleuse' => 'required|string|in:privatemotor,commercialmotor,motorcycle',
     'vehiclemakeid' => 'required|integer|exists:vehicle_makes,niipvmid',
     'vehiclemodelid' => 'required|integer|exists:vehicle_models,vmodelid',
@@ -67,9 +66,9 @@ if ($validator->fails()) {
         'errors' => $validator->errors(),
     ], 422);
 };
- 
 
-        //First create new user account if phonenumber is unique 
+
+        //First create new user account if phonenumber is unique
 
          $insured=User::where('telno',$request->phone)->first();
          $fullname= $request->fname. "  ".$request->lname;
@@ -89,6 +88,11 @@ if ($validator->fails()) {
                 $insured->telno=$request->phone;
                 $insured->state=$request->state;
                 $insured->address=$request->address;
+                //Default values for Address if null
+        if (empty($insured->address)) {
+            $insured->address = 'No Address Provided';
+        }
+
                 $insured->stateid=$request->state;
                 $insured->lgaid=$request->lga;
                 $insured->password=Hash::make($genpassword);
