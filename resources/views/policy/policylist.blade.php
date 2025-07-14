@@ -95,9 +95,6 @@
                                         Certificate
                                         </a>
                                     @endif
-
-                                    Echo out NIIP msg {{$policy->niip_status}}
-                                    
                                 </td>
                             </tr>
                         @empty
