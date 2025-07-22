@@ -106,19 +106,29 @@
                                 <td>{{$policy->insured_name}}</td>
                                 <td>{{$policy->contribution}}</td>
                                 <td>
-                                    @if ($policy->status =='approved')
-                                       <span class="pill pillgreen"> {{$policy->status}} </span> <br>
-                                    @else
-                                       <span class="pill pillinfo"> {{$policy->status}} </span> <br>
-                                    @endif
-                                    <!--dd($policy->getniipstatus()) -->                           
-                                    @if (($policy->getniipstatus()==true) && ($policy->getniipstatus()['isSuccess']==true))
-                                      <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}"><span class="pill pillgreen">NIIP Uploaded 
-                                    </span> </a><br>
-                                    @else
-                                       <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
-                                        <span class="pill pillinfo"> NIIP Issue</span></a> <br>
-                                    @endif
+                                    @switch($policy->status)
+                                        @case('approved')
+                                            <span class="pill pillgreen"> {{$policy->status}} </span> <br>
+                                            @if (($policy->getniipstatus()==true) && ($policy->getniipstatus()['isSuccess']==true))
+                                                <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
+                                                    <span class="pill pillgreen">NIIP Success </span> </a><br>
+                                            @else
+                                                <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
+                                                    <span class="pill pillinfo"> NIIP Issue</span></a> <br>
+                                            @endif
+
+                                            @break
+                                        @case('draft')
+                                            <span class="pill pilldraft"> {{$policy->status}} </span> <br>
+                                            
+                                            @break
+                                        @case('failed')
+                                            <span class="pill pillinfo"> {{$policy->status}} </span> <br>
+                                            @break
+                                        @default
+                                            <span class="pill pillinfo"> {{$policy->status}} </span> <br>
+                                            
+                                    @endswitch
                                 
                                 </td>
                                 <td><form action="{{route('view_policy')}}" method="get">
