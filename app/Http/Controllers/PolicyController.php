@@ -463,10 +463,12 @@ class PolicyController extends Controller
         $vmakes=vehicleMake::orderBy('vmake')->get();
         $states=states::all();
         $colors=vehiclecolor::all();
+        $errors=$request->errors;
+        $retrymessage=$request->retrymessage;
 
         //dd($policy);
 
-        return view('policy.viewpolicy', compact('policy','insured','policyrisk','vmakes','producttype','states','colors'));
+        return view('policy.viewpolicy', compact('policy','insured','policyrisk','vmakes','producttype','states','colors', 'errors','retrymessage'));
     }
 
 
@@ -590,10 +592,15 @@ class PolicyController extends Controller
         ];
 
         //PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
-        echo "NIIP data dispatched successfully.";
+       // echo "NIIP data dispatched successfully.";
 
-        echo json_encode($niipdata);
+       // echo json_encode($niipdata);
         PostNIIPDataSlow::dispatch($niipdata);
+
+        $id=$policy->id;
+        $retrymessage="NIIP data dispatched.";
+
+        return redirect()->route('view_policy', compact('retrymessage', 'id'));
 
     }
 }

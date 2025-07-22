@@ -19,6 +19,11 @@
       </ul>
   </div>
 @endif
+@if (!empty($retrymessage))
+  <div class="alert alert-info">
+    <p>{{$retrymessage}}</p>
+  </div>
+@endif
   <div class="card card-body">
     @if ($policy->status=='approved'  and $user->role=='admin')
 
