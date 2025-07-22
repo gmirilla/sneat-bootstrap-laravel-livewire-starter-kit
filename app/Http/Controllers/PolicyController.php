@@ -468,7 +468,7 @@ class PolicyController extends Controller
 
         //dd($policy);
 
-        return view('policy.viewpolicy', compact('policy','insured','policyrisk','vmakes','producttype','states','colors', 'errors','retrymessage'));
+        return view('policy.viewpolicy', compact('policy','insured','policyrisk','vmakes','producttype','states','colors','retrymessage'));
     }
 
 
