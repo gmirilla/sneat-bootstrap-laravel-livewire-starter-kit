@@ -3,6 +3,30 @@
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.2.2/js/dataTables.bootstrap5.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"></link>
+<style>
+    .pillgreen {
+  background-color: #0d5800;
+  border: none;
+  color: rgb(255, 252, 252);
+  padding: 5px 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  border-radius: 16px;
+    }
+        .pillinfo {
+  background-color: #680707;
+  border: none;
+  color: rgb(255, 252, 252);
+  padding: 5px 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  border-radius: 16px;
+    }
+</style>
 <x-layouts.app>
      
         @if ($errors->any())
@@ -81,7 +105,19 @@
                                 
                                 <td>{{$policy->insured_name}}</td>
                                 <td>{{$policy->contribution}}</td>
-                                <td>{{$policy->status}}</td>
+                                <td>
+                                    @if ($policy->status =='approved')
+                                       <span class="pill pillgreen"> {{$policy->status}} </span> <br>
+                                    @else
+                                       <span class="pill pillinfo"> {{$policy->status}} </span> <br>
+                                    @endif
+                                    @if ($policy->getniipstatus()=='true')
+                                       <span class="pill pillgreen">NIIP Uploaded </span> <br>
+                                    @else
+                                       <span class="pill pillinfo"> NIIP Issue</span> <br>
+                                    @endif
+                                
+                                </td>
                                 <td><form action="{{route('view_policy')}}" method="get">
                                     <input type="number" value="{{$policy->id}}" hidden name='id'>
 

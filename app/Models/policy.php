@@ -67,6 +67,14 @@ class policy extends Model
 
     }
 
+    public function getniipstatus()
+    {
+        $data = json_decode($this->status, true); 
+        $niipstatus=$data['isSuccess'];
+        return $niipstatus? $niipstatus : 'NIIP Status Pending';
+
+    }
+
 
 
 }
