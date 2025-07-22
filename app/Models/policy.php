@@ -69,12 +69,20 @@ class policy extends Model
 
 public function getNiipStatus()
 {
-    $data = json_decode($this->status, true);
+    $data = json_decode($this->niip_status, true) ?? false;
+    if (!isset($data['status'])) {
 
-    // Safely check if 'isSuccess' key exists and is truthy
-    return isset($data['isSuccess']) && $data['isSuccess']
-        ? $data['isSuccess']
-        : 'NIIP Status Pending';
+        # code...
+    }
+    else {
+        $data['isSuccess']=false;
+        $data['message']=$data['title'];
+    }
+
+    //isSuccess
+
+    return $data;
+
 }
 
 

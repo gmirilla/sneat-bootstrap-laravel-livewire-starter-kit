@@ -16,7 +16,7 @@
   border-radius: 16px;
     }
         .pillinfo {
-  background-color: #680707;
+  background-color: red;
   border: none;
   color: rgb(255, 252, 252);
   padding: 5px 10px;
@@ -111,10 +111,13 @@
                                     @else
                                        <span class="pill pillinfo"> {{$policy->status}} </span> <br>
                                     @endif
-                                    @if ($policy->getniipstatus()==true)
-                                       <span class="pill pillgreen">NIIP Uploaded: {{$policy->getniipstatus()}} </span> <br>
+                                    <!--dd($policy->getniipstatus()) -->                           
+                                    @if (($policy->getniipstatus()==true) && ($policy->getniipstatus()['isSuccess']==true))
+                                      <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}"><span class="pill pillgreen">NIIP Uploaded 
+                                    </span> </a><br>
                                     @else
-                                       <span class="pill pillinfo"> NIIP Issue: {{$policy->getniipstatus()}}</span> <br>
+                                       <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
+                                        <span class="pill pillinfo"> NIIP Issue</span></a> <br>
                                     @endif
                                 
                                 </td>
@@ -142,6 +145,32 @@
         </div>
     </div>
 </div>
+<!-- Dynamic Modal -->
+<div class="modal fade" id="dynamicModal" tabindex="-1" aria-labelledby="dynamicModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="dynamicModalLabel">Message</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modalMessage">
+        <!-- Message goes here -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const modal = document.getElementById('dynamicModal');
+  modal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const message = button.getAttribute('data-message');
+    const modalBody = modal.querySelector('#modalMessage');
+    modalBody.textContent = message;
+  });
+</script>
 <script>
   new DataTable('#policylist');
 </script>
