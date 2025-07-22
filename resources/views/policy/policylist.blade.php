@@ -111,10 +111,10 @@
                                     @else
                                        <span class="pill pillinfo"> {{$policy->status}} </span> <br>
                                     @endif
-                                    @if ($policy->getniipstatus()=='true')
-                                       <span class="pill pillgreen">NIIP Uploaded </span> <br>
+                                    @if ($policy->getniipstatus()==true)
+                                       <span class="pill pillgreen">NIIP Uploaded: {{$policy->getniipstatus()}} </span> <br>
                                     @else
-                                       <span class="pill pillinfo"> NIIP Issue</span> <br>
+                                       <span class="pill pillinfo"> NIIP Issue: {{$policy->getniipstatus()}}</span> <br>
                                     @endif
                                 
                                 </td>
