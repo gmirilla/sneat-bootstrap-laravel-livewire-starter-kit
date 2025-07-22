@@ -26,6 +26,17 @@
   margin: 4px 2px;
   border-radius: 16px;
     }
+            .pillyellow {
+  background-color: rgb(202, 227, 9);
+  border: none;
+  color: rgb(255, 252, 252);
+  padding: 5px 10px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  margin: 4px 2px;
+  border-radius: 16px;
+    }
 </style>
 <x-layouts.app>
      
@@ -109,13 +120,22 @@
                                     @switch($policy->status)
                                         @case('approved')
                                             <span class="pill pillgreen"> {{$policy->status}} </span> <br>
-                                            @if (($policy->getniipstatus()==true) && ($policy->getniipstatus()['isSuccess']==true))
-                                                <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
-                                                    <span class="pill pillgreen">NIIP Success </span> </a><br>
-                                            @else
-                                                <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
-                                                    <span class="pill pillinfo"> NIIP Issue</span></a> <br>
-                                            @endif
+                                   @php $niip = $policy->getniipstatus(); @endphp
+
+@if (is_array($niip) && ($niip['isSuccess'] ?? false) === true)
+    <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
+        <span class="pill pillgreen">NIIP Success</span>
+    </a><br>
+@elseif (is_array($niip) && ($niip['statusCode'] ?? '') === '11')
+    <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
+        <span class="pill pillyellow">Possible Issue</span>
+    </a><br>
+
+@else
+    <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal" data-message="{{$policy->niip_status}}">
+        <span class="pill pillinfo">NIIP Issue</span>
+    </a><br>
+@endif
 
                                             @break
                                         @case('draft')
