@@ -28,7 +28,7 @@
     border-radius: 5px;
 }
                 </style>
-    
+<script src="https://js.paystack.co/v2/inline.js"> 
 <x-layouts.app>
      
         @if ($errors->any())
@@ -44,7 +44,7 @@
      <div class="card col-9 mb-3">
         <div class="card-header"><h4>CONFIRM POLICY DETAILS BELOW</h4></div>
         </div>
-<form action="{{route('pay_policy')}}" method="post">
+<form id="submitPolicy" action="{{route('pay_policy')}}" method="post">
     @csrf
     <div class="card col-9 mb-3">
         <div class="card-header"><h4>PRODUCT DETAILS</h4></div>
@@ -128,7 +128,9 @@
             <div class="row gy-2 gx-3 align-items-center mb-3">
         <div class="d-flex flex-row-reverse bd-highlight">
             <div class="p-2 bd-highlight" style="margin-right: 5px">
-                <button class="btn btn-primary" type="submit" disabled name="paystack" data-toggle="tooltip" data-placement="right"title="Coming Soon">FlutterWave</button>
+                @if ($accesscode !=null)
+                <button onclick="paywithpaystack(event)" class="btn btn-primary" type="button" name="paystack" data-acode="{{$accesscode}}" data-toggle="tooltip" data-placement="right" title="Pay Using Paystack">Paystack</button>
+                @endif
 
             </div>
             <div class="p-2 bd-highlight" style="margin-right: 5px">
@@ -159,6 +161,52 @@ function disableButton() {
     var button = document.getElementById("acreditbtn");
     button.disabled = true;
     button.innerText = "Processing...";
+}
+
+function paywithpaystack(event) {
+  event.preventDefault(); // Prevent form submission
+
+  const access_code = event.currentTarget.getAttribute('data-acode');
+  const popup = new PaystackPop();
+
+  popup.resumeTransaction(access_code, {
+    onCancel: () => {
+      console.log("User cancelled");
+      handlePaystackClose();
+    },
+   onSuccess: (transaction) => {
+  const form = document.getElementById('submitPolicy');
+
+  // Create a hidden input to hold the Paystack transaction data
+  const input = document.createElement('input');
+  input.type = 'hidden';
+  input.name = 'paystack';
+  input.value = JSON.stringify(transaction);
+  form.appendChild(input);
+
+  // Submit the form normally
+  form.submit();
+},
+    onError: (error) => {
+      console.log("Error: ", error.message);
+    }
+  });
+}
+
+
+function handlePaystackClose(){
+    //Verify payment status 
+    console.log("Handling Paystack close event");
+    alert("Paystack window closed");
+}
+
+function paystacksuccess(e){
+const transaction=e;
+const form=document.getElementById('submitPolicy');
+const formData=new FormData(form);
+formData.append('paystackreference', transaction);
+
+console.log("Form data to be Sent: ", ...formData.entries());
 }
 </script>
 </x-layouts.app>
