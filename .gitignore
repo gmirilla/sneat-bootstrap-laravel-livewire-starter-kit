@@ -20,5 +20,5 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
-*.env
+.env
 .sql
