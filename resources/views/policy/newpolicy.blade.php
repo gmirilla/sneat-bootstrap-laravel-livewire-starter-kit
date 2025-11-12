@@ -177,7 +177,7 @@ I also consent to the processing of my personal data in accordance with the Comp
 
             </div>
         </div>
-        @if ($user->role=='agent')            
+        @if ($user->role=='agent'|| $user->role=='user')            
         
         <div class="d-flex flex-row-reverse bd-highlight">
             <div class="p-2 bd-highlight" style="margin-right: 5px">

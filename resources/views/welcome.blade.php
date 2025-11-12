@@ -28,6 +28,14 @@
                 <p class="card-text mb-5">
                   Streamlined, efficient, and customer-focused, we’re here to empower customers and agents.
                    Let’s accelerate your journey to smarter takaful solutions today!</p>
+                   <div id="policyvalidation">
+                    <p>You can easily reprint your policy Certificate here:</p>
+                    <form action="" method="get">
+                      <input type="text" class="form-control mb-3" placeholder="Enter Policy Number for Certificate" name="policynumber" id="policynumber" style="color:white; background-color: grey;" required>
+                      <button type="button" class="btn btn-primary" onclick="getCertificate()">Get Policy Certificate</button>
+          
+                    </form>
+                   </div>
               
               </div>
             </div>
@@ -42,5 +50,12 @@
     <!-- Include Scripts -->
     @include('partials.scripts')
     <!-- / Include Scripts -->
+    <script>
+      function getCertificate(){
+        const policynumber = document.getElementById('policynumber').value;
+        console.log(policynumber);
+        window.location.href= "http://elitepolicy.salamtakafulinsurance.com/api/v1/policy/view-certificate?policy_no="+policynumber;
+      } 
+      </script>
   </body>
 </html>
