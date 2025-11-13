@@ -304,6 +304,7 @@ class PolicyController extends Controller
         $policy = policy::where('id', $request->policyid)->first();
         $policyrisk = policyrisk::where('policyid', $request->policyid)->first();
         $insured = User::where('id', $policy->insured_id)->first();
+        $transaction=null;
         #Validation of mandatory Field with default values
         $gsm = $insured->telno;
         if (empty($gsm)) {
