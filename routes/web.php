@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::post('confirm_mpolicy',[PolicyController::class, 'confirmmpolicy'])->name('confirm_mpolicy');
     Route::post('pay_policy',[PolicyController::class, 'paypolicy'])->name('pay_policy');
     Route::get('test_async',[PolicyController::class, 'testasync'])->name('test_async');
+    Route::post('/filter_report',[PolicyController::class, 'filterreport'])->name('filterreport');
     
     Route::get('retry_niip',[PolicyController::class, 'retryniip'])->name('retry_niip');
     Route::get('init_paystack',[PolicyController::class, 'init_paystack'])->name('init_paystack');

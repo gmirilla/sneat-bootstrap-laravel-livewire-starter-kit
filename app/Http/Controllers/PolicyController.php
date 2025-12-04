@@ -39,6 +39,7 @@ class PolicyController extends Controller
             case 'agent':
                 # RETRIEVE ALL POLICIES CREATED BY THIS AGENT
                 $policies = policy::where('agent_id', $user->id)->orderBy('updated_at', 'desc')->get();
+
                 break;
             case 'admin':
                 # Retreieve all policies
@@ -47,6 +48,7 @@ class PolicyController extends Controller
             case 'superadmin':
                 # Retreieve all policies
                 $policies = policy::all();
+
                 break;
             case 'user':
                 # Retrieve policies created by and for this user this user
@@ -57,8 +59,9 @@ class PolicyController extends Controller
                 # code...
                 break;
         }
+        $products=policy::select('producttype')->distinct()->pluck('producttype');
 
-        return view('policy.policylist', compact('policies'));
+        return view('policy.policylist', compact('policies','products'));
     }
 
     /**
@@ -160,7 +163,7 @@ class PolicyController extends Controller
                 # code...
                 break;
             case 'agent':
-                # The User is regisetered as an agent first create new user account if email is unique
+                # The User is registered as an agent first create new user account if email is unique
 
                 $insured = User::where('email', $request->email)->first();
                 if (empty($insured)) {
@@ -643,5 +646,40 @@ class PolicyController extends Controller
         $retrymessage = "NIIP data dispatched.";
 
         return redirect()->route('view_policy', compact('retrymessage', 'id'));
+    }
+
+    public function filterreport(Request $request){
+        Auth::check();
+        $user = Auth::user();
+
+            $query = Policy::query();
+            $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto']);
+
+
+    if ($request->filled('policytype')) {
+        $query->where('producttype', $request->policytype);
+    }
+
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
+    }
+
+    if ($request->filled('datefrom')) {
+        $query->whereDate('created_at', '>=', $request->datefrom);
+    }
+
+    if ($request->filled('dateto')) {
+        $query->whereDate('created_at', '<=', $request->dateto);
+    }
+
+    $policies = $query->get();
+    $products=policy::select('producttype')->distinct()->pluck('producttype');
+
+    return view('policy.policylist', compact('policies','products','searchParams'));
+
+
+
+
+
     }
 }

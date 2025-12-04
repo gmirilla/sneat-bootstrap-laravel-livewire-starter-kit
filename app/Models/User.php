@@ -74,4 +74,5 @@ class User extends Authenticatable implements CanResetPassword
         return $this->apitoken;
     }
 
+
 }
