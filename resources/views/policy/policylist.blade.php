@@ -182,12 +182,6 @@
         </div>
 
         <div class="card row gy-2 gx-3 align-items-center mb-3">
-
-            @if (empty($searchParams))
-                Empty record
-            @else
-                Not empty
-            @endif
             <div class="card-body table-responsive">
                 <table class="table table-striped table-sm" style="font-size:0.8rem" id='policylist'>
                     @if (empty($searchParams))
