@@ -134,11 +134,28 @@ class PolicyController extends Controller
 
         //$validatedata=$request->validate()
 
-        $request->validate([
-            'chassisno' => ['required', 'regex:/^[^IO]*$/']
-        ], [
-            'chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
-        ]);
+        $request->validate(
+            ['chassisno' => ['required', 'regex:/^[^IO]*$/']], ['chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
+        ],
+        ['niipusecode'=>'required|integer'],
+        ['address'=>'required|string|max:250'],
+        ['lgas'=>'required|integer'],
+        ['state'=>'required|integer'],
+        ['vehicletype'=>'required|string|max:50'],
+        ['producttype'=>'required|string|max:100'],
+        ['contribution'=>'required|numeric|min:0'],
+        ['engineno'=>'required|string|max:50'],
+        ['regno'=>'required|string|max:20'],
+        ['vehiclemake'=>'required|integer'],
+        ['vmodel'=>'required|integer'],
+        ['yearofmake'=>'required|integer|min:1900|max:' . date('Y')],
+        ['vehiclecolor'=>'required|integer'],
+        ['fname'=>'required|string|max:100'],
+        ['lname'=>'required|string|max:100'],
+        ['phone'=>'required|string|max:15'],
+        ['email'=>'required|email|max:150'],
+        ['dob'=>'required|date'],
+     );
         //validate chassis number to exclude I and O
 
 
@@ -163,9 +180,9 @@ class PolicyController extends Controller
                 # code...
                 break;
             case 'agent':
-                # The User is registered as an agent first create new user account if email is unique
+        # The User is registered as an agent first create new user account if phone number is unique
 
-                $insured = User::where('email', $request->email)->first();
+                $insured = User::where('telno', $request->phone)->first();
                 if (empty($insured)) {
 
                     $genpassword = 'Password';
