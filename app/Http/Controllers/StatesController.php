@@ -44,33 +44,35 @@ class StatesController extends Controller
                         [
                             'statename' => $item['name'],
                             // Add other fields as necessary
-                        ]);
-                        
-                        //update or create the LGA record for each state
-                        $responselga = Http::get('https://niip.ng/api/getState/'.$item['code']); // Make the API request
-                        if ($responselga->successful()) {
-                            $datalga = json_decode($responselga->body(), true);
-            
-                            foreach ($datalga as $lgaitem) {
-                                // Assuming the structure of each item in the response
-                                if ($lgaitem['code'] != '0') {
-                                    lga::updateOrCreate(
-                                        ['lgaid' => $lgaitem['code']], // Unique identifier
-                                        [
-                                            'lganame' => $lgaitem['name'],
-                                            'stateid' => $item['code'],
-                                            // Add other fields as necessary
-                                        ]);
-                                }
+                        ]
+                    );
+
+                    //update or create the LGA record for each state
+                    $responselga = Http::get('https://niip.ng/api/getState/' . $item['code']); // Make the API request
+                    if ($responselga->successful()) {
+                        $datalga = json_decode($responselga->body(), true);
+
+                        foreach ($datalga as $lgaitem) {
+                            // Assuming the structure of each item in the response
+                            if ($lgaitem['code'] != '0') {
+                                lga::updateOrCreate(
+                                    ['lgaid' => $lgaitem['code']], // Unique identifier
+                                    [
+                                        'lganame' => $lgaitem['name'],
+                                        'stateid' => $item['code'],
+                                        // Add other fields as necessary
+                                    ]
+                                );
                             }
+                        }
+                    }
                 }
             }
+
+
+            return back()->with('success', 'States updated successfully.');
         }
-
-
-        return back()->with('success', 'States updated successfully.');
     }
-}
 
     /**
      * Display a listing of the resource.

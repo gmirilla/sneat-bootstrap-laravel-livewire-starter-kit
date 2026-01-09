@@ -62,9 +62,7 @@ Route::middleware('auth')->group(function () {
 
 });
 Route::middleware('auth')->group(function () {
-    Route::get('niip_code_mgmt', function () {
-  return view('niip.niipcodemgmt');
-})->name('niip_code_mgmt'); 
+    Route::get('niip_code_mgmt', [DashboardController::class, 'niipmgtdashboard'])->name('niip_code_mgmt'); 
 
 
 });

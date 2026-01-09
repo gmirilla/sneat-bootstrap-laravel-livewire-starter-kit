@@ -86,6 +86,12 @@ class VehicleMakeController extends Controller
         $modelData = [];
 
         foreach ($modelResponses as $makeId => $res) {
+            
+                // Skip failed HTTP connections
+    if ($res instanceof \Illuminate\Http\Client\ConnectionException) {
+        continue;
+    }
+
             if ($res->successful()) {
                 foreach ($res->json() as $model) {
                     if ($model['code'] != '0') {
