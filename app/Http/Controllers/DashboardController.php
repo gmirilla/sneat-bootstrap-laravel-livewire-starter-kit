@@ -8,7 +8,7 @@ use App\Models\policy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\vehicleMake;
-use App\Models\vehicleColor;
+use App\Models\vehiclecolor;
 use App\Models\States;
 
 class DashboardController extends Controller
