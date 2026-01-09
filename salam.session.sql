@@ -1,1 +1,1 @@
-drop
+delete from vehicle_models where niipvmid = 109

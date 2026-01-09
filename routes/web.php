@@ -61,10 +61,19 @@ Route::middleware('auth')->group(function () {
     Route::get('generate-api-token',[UserController::class, 'generateeapitoken'])->name('generateeapitoken');
 
 });
+Route::middleware('auth')->group(function () {
+    Route::get('niip_code_mgmt', function () {
+  return view('niip.niipcodemgmt');
+})->name('niip_code_mgmt'); 
+
+
+});
+
 
 Route::middleware('auth')->group(function () {
     Route::get('list_state',[StatesController::class, 'index'])->name('list_states'); 
-    Route::post('import_states',[StatesController::class, 'importstates'])->name('importstates');   
+    Route::post('import_states',[StatesController::class, 'importstates'])->name('importstates');
+    Route::get('/update-states', [StatesController::class, 'updatestates'])->name('updatestates');   
 
 });
 
@@ -72,6 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::get('list_color',[VehiclecolorController::class, 'index'])->name('list_colors'); 
     Route::post('import_color',[VehiclecolorController::class, 'importvcolor'])->name('importcolor'); 
     Route::get('/get-colors', [VehiclecolorController::class, 'getColors']);  
+    Route::get('/update-colors', [VehiclecolorController::class, 'updateColors'])->name('updatecolors'); 
 
 });
 
@@ -84,15 +94,15 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('list_lga',[LgaController::class, 'index'])->name('list_lga'); 
     Route::post('import_lga',[LgaController::class, 'importlga'])->name('importlga');  
-     Route::get('/get-lga/{state}', [LgaController::class, 'getlgas']);  
+    Route::get('/get-lga/{state}', [LgaController::class, 'getlgas']);
+    Route::get('/update-lgas', [LgaController::class, 'updatelgas'])->name('updatelgas');    
 
 });
-
-
 Route::middleware('auth')->group(function () {
     Route::get('list_vmake',[VehicleMakeController::class, 'index'])->name('list_vmake'); 
     Route::post('import_vmakes',[VehicleMakeController::class, 'importvmake'])->name('importvmake');  
-    Route::get('/get-vehicle-models/{make}', [VehicleMakeController::class, 'getModels']);   
+    Route::get('/get-vehicle-models/{make}', [VehicleMakeController::class, 'getModels']);  
+    Route::get('/update-vmake', [VehicleMakeController::class, 'updatevmake'])->name('updatevmake');   
 
 });
 

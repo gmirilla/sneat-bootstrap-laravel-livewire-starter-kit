@@ -23,6 +23,43 @@ class VehiclecolorController extends Controller
 
         return back()->with('success', 'Vehicle Colors imported successfully.');
     }
+        public function updateColors()
+    {
+
+
+
+        $response = Http::get('https://niip.ng/api/getColor/'); // Make the API request
+$data = $response->json(); // Decode JSON response
+
+
+
+if ($response->successful()) {
+    $data = json_decode($response->body(), true);
+
+    foreach ($data as $item) {
+        // Assuming the structure of each item in the response
+        if ($item['code']!='0'){
+                    vehiclecolor::updateOrCreate(
+            ['colorid' => $item['code']], // Unique identifier
+            [
+                'color' => $item['name'],
+                // Add other fields as necessary
+            ]
+        );
+
+        }
+
+    }
+
+} else {
+    dd([
+        'status' => $response->status(),
+        'body'   => $response->body(),
+    ]);
+}
+
+        return redirect()->route('niip_code_mgmt')->with('success', 'Vehicle Colors updated successfully from NIIP API.');
+    }
 
     public function getColors()
     {

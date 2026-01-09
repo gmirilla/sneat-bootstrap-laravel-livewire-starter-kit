@@ -43,6 +43,12 @@
         <i class="menu-icon fa fa-address-card"></i>{{ __('Agent Mgmt') }}
       </a>
     </li>
+    <!-- NIIP CODE MANAGEMENT -->
+    <li class="menu-item {{ request()->is('niip_code_mgmt') ? 'active' : '' }}">
+      <a class="menu-link" href="{{ route('niip_code_mgmt') }}" wire:navigate>
+        <i class="menu-icon fa fa-address-card"></i>{{ __('NIIP Code Mgmt') }}
+      </a>
+    </li>
      @endif
 
     <!-- Settings -->
