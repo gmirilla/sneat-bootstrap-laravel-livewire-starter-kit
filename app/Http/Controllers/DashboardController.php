@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\vehicleMake;
 use App\Models\vehiclecolor;
-use App\Models\States;
+use App\Models\states;
 
 class DashboardController extends Controller
 {
@@ -237,7 +237,7 @@ class DashboardController extends Controller
         return view('niip.niipcodemgmt', [
             'totalMakes' => vehicleMake::count(),
             'totalColors' => vehicleColor::count(),
-            'totalStates' => States::count(),
+            'totalStates' => states::count(),
         ]);
     }
 }
