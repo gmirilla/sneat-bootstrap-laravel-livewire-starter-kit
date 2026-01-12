@@ -59,9 +59,9 @@ class PolicyController extends Controller
                 # code...
                 break;
         }
-        $products=policy::select('producttype')->distinct()->pluck('producttype');
+        $products = policy::select('producttype')->distinct()->pluck('producttype');
 
-        return view('policy.policylist', compact('policies','products'));
+        return view('policy.policylist', compact('policies', 'products'));
     }
 
     /**
@@ -135,27 +135,29 @@ class PolicyController extends Controller
         //$validatedata=$request->validate()
 
         $request->validate(
-            ['chassisno' => ['required', 'regex:/^[^IO]*$/']], ['chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
-        ],
-        ['niipusecode'=>'required|integer'],
-        ['address'=>'required|string|max:250'],
-        ['lgas'=>'required|integer'],
-        ['state'=>'required|integer'],
-        ['vehicletype'=>'required|string|max:50'],
-        ['producttype'=>'required|string|max:100'],
-        ['contribution'=>'required|numeric|min:0'],
-        ['engineno'=>'required|string|max:50'],
-        ['regno'=>'required|string|max:20'],
-        ['vehiclemake'=>'required|integer'],
-        ['vmodel'=>'required|integer'],
-        ['yearofmake'=>'required|integer|min:1900|max:' . date('Y')],
-        ['vehiclecolor'=>'required|integer'],
-        ['fname'=>'required|string|max:100'],
-        ['lname'=>'required|string|max:100'],
-        ['phone'=>'required|string|max:15'],
-        ['email'=>'required|email|max:150'],
-        ['dob'=>'required|date'],
-     );
+            ['chassisno' => ['required', 'regex:/^[^IO]*$/']],
+            [
+                'chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
+            ],
+            ['niipusecode' => 'required|integer'],
+            ['address' => 'required|string|max:250'],
+            ['lgas' => 'required|integer'],
+            ['state' => 'required|integer'],
+            ['vehicletype' => 'required|string|max:50'],
+            ['producttype' => 'required|string|max:100'],
+            ['contribution' => 'required|numeric|min:0'],
+            ['engineno' => 'required|string|max:50'],
+            ['regno' => 'required|string|max:20'],
+            ['vehiclemake' => 'required|integer'],
+            ['vmodel' => 'required|integer'],
+            ['yearofmake' => 'required|integer|min:1900|max:' . date('Y')],
+            ['vehiclecolor' => 'required|integer'],
+            ['fname' => 'required|string|max:100'],
+            ['lname' => 'required|string|max:100'],
+            ['phone' => 'required|string|max:15'],
+            ['email' => 'required|email|max:150'],
+            ['dob' => 'required|date'],
+        );
         //validate chassis number to exclude I and O
 
 
@@ -180,7 +182,7 @@ class PolicyController extends Controller
                 # code...
                 break;
             case 'agent':
-        # If the User is registered as an agent first create new user account if phone number is unique
+                # If the User is registered as an agent first create new user account if phone number is unique
 
                 $insured = User::where('telno', $request->phone)->first();
                 if (empty($insured)) {
@@ -193,13 +195,13 @@ class PolicyController extends Controller
                     $insured->firstname = $request->fname;
                     $insured->lastname = $request->lname;
                     $insured->name = $fullname;
-                        if (User::where('email', $request->email)->exists()) {
-                        
+                    if (User::where('email', $request->email)->exists()) {
+
                         # email already exists replace email with phone number
-                        $insured->email=$request->phone."@noemail.com";
-                                        } else{
+                        $insured->email = $request->phone . "@noemail.com";
+                    } else {
                         $insured->email = $request->email;
-                                        }
+                    }
                     $insured->gender = $request->gender;
                     $insured->dob = $request->dob;
                     $insured->telno = $request->phone;
@@ -210,8 +212,7 @@ class PolicyController extends Controller
                     $insured->password = Hash::make($genpassword);
 
                     $insured->save();
-                }
-                 else {
+                } else {
                     # Map policy to existing user...
 
                 }
@@ -332,7 +333,7 @@ class PolicyController extends Controller
         $policy = policy::where('id', $request->policyid)->first();
         $policyrisk = policyrisk::where('policyid', $request->policyid)->first();
         $insured = User::where('id', $policy->insured_id)->first();
-        $transaction=null;
+        $transaction = null;
         #Validation of mandatory Field with default values
         $gsm = $insured->telno;
         if (empty($gsm)) {
@@ -364,7 +365,7 @@ class PolicyController extends Controller
                 break;
 
             case $request->has('paystack'):
-                $token=env('PAYSTACK_ELITE_TOKEN'); //No agency token used for Direct payments 
+                $token = env('PAYSTACK_ELITE_TOKEN'); //No agency token used for Direct payments 
                 // Handle Paystack Pament Menthod
                 //First initiate payment and get access code
                 $paystackData = json_decode($request->paystack);
@@ -673,34 +674,35 @@ class PolicyController extends Controller
         return redirect()->route('view_policy', compact('retrymessage', 'id'));
     }
 
-    public function filterreport(Request $request){
+    public function filterreport(Request $request)
+    {
         Auth::check();
         $user = Auth::user();
 
-            $query = Policy::query();
-            $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto']);
+        $query = Policy::query();
+        $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto']);
 
 
-    if ($request->filled('policytype')) {
-        $query->where('producttype', $request->policytype);
-    }
+        if ($request->filled('policytype')) {
+            $query->where('producttype', $request->policytype);
+        }
 
-    if ($request->filled('status')) {
-        $query->where('status', $request->status);
-    }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
 
-    if ($request->filled('datefrom')) {
-        $query->whereDate('created_at', '>=', $request->datefrom);
-    }
+        if ($request->filled('datefrom')) {
+            $query->whereDate('created_at', '>=', $request->datefrom);
+        }
 
-    if ($request->filled('dateto')) {
-        $query->whereDate('created_at', '<=', $request->dateto);
-    }
+        if ($request->filled('dateto')) {
+            $query->whereDate('created_at', '<=', $request->dateto);
+        }
 
-    $policies = $query->get();
-    $products=policy::select('producttype')->distinct()->pluck('producttype');
+        $policies = $query->get();
+        $products = policy::select('producttype')->distinct()->pluck('producttype');
 
-    return view('policy.policylist', compact('policies','products','searchParams'));
+        return view('policy.policylist', compact('policies', 'products', 'searchParams'));
     }
     /**
      * Display a listing of upcoming renewals.
@@ -716,25 +718,25 @@ class PolicyController extends Controller
             case 'agent':
                 # RETRIEVE ALL POLICIES CREATED BY THIS AGENT
                 $policies = policy::where('agent_id', $user->id)->where('status', 'approved')
-                ->whereBetween('end_date', [now(), now()->addDays(30)])->orderBy('updated_at', 'desc')->get();
+                    ->whereBetween('end_date', [now(), now()->addDays(30)])->orderBy('updated_at', 'desc')->get();
 
                 break;
             case 'admin':
                 # Retreieve all policies
                 $policies = policy::whereBetween('end_date', [now(), now()->addDays(30)])->where('status', 'approved')
-                ->orderBy('updated_at', 'desc')->get();
+                    ->orderBy('updated_at', 'desc')->get();
                 break;
             case 'superadmin':
                 # Retreieve all policies
                 $policies = policy::whereBetween('end_date', [now(), now()->addDays(30)])->where('status', 'approved')
-                ->orderBy('updated_at', 'desc')->get();
+                    ->orderBy('updated_at', 'desc')->get();
                 break;
             case 'user':
                 # Retrieve policies created by and for this user this user
-              $policies = Policy::where('insured_id', $user->id)
-    ->whereBetween('end_date', [now(), now()->addDays(30)])->where('status', 'approved')
-    ->orderBy('updated_at', 'desc')
-    ->get();
+                $policies = Policy::where('insured_id', $user->id)
+                    ->whereBetween('end_date', [now(), now()->addDays(30)])->where('status', 'approved')
+                    ->orderBy('updated_at', 'desc')
+                    ->get();
 
                 break;
 
@@ -742,8 +744,8 @@ class PolicyController extends Controller
                 # code...
                 break;
         }
-        $products=policy::select('producttype')->distinct()->pluck('producttype');
-        return view('policy.renewpolicylist', compact('policies','products'));
+        $products = policy::select('producttype')->distinct()->pluck('producttype');
+        return view('policy.renewpolicylist', compact('policies', 'products'));
     }
 
     public function renewpolicy(Request $request)
