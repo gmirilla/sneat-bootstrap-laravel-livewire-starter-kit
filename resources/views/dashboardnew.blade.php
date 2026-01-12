@@ -30,7 +30,7 @@
             <div class="card-body">
               <div style="font-size: 30px"><i class="fa fa-file-text" aria-hidden="true"></i></div>
               <h4 class="text-center">{{$totalpolcount}}</h4></div>
-            <div class="card-footer"><h4 class="text-center">Total Policy Count</h4></div>
+            <div class="card-footer"><h4 class="text-center">Active Policy Count</h4></div>
           </div>
         </div>
 
@@ -60,11 +60,13 @@
           </div>
         </div>
              <div class="col-lg-4">
-          <div class="card">            
+          <div class="card"> 
+            <a href="{{ route('renewalslist') }}">           
             <div class="card-body">
               <div style="font-size: 30px"><i class="fa fa-repeat" aria-hidden="true"></i></div>
               <h4 class="text-center">{{$approachingrenewal}}</h4></div>
             <div class="card-footer"><h4 class="text-center">Upcoming Renewals</h4></div>
+            </a>
           </div>
         </div>
       </div>

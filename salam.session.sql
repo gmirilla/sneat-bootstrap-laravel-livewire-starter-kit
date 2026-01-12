@@ -1,1 +1,1 @@
-delete from vehicle_models where niipvmid = 109
+update policies set end_date ='2026-01-30' where id >= 234;

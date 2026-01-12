@@ -114,7 +114,7 @@ class PolicyController extends Controller
     }
 
     /**
-     * Begin the Process of Purchasing a  resource.
+     * Begin the Process of Purchasing a  policy.
      */
     public function newpolicy()
     {
@@ -180,10 +180,11 @@ class PolicyController extends Controller
                 # code...
                 break;
             case 'agent':
-        # The User is registered as an agent first create new user account if phone number is unique
+        # If the User is registered as an agent first create new user account if phone number is unique
 
                 $insured = User::where('telno', $request->phone)->first();
                 if (empty($insured)) {
+
 
                     $genpassword = 'Password';
 
@@ -192,7 +193,13 @@ class PolicyController extends Controller
                     $insured->firstname = $request->fname;
                     $insured->lastname = $request->lname;
                     $insured->name = $fullname;
-                    $insured->email = $request->email;
+                        if (User::where('email', $request->email)->exists()) {
+                        
+                        # email already exists replace email with phone number
+                        $insured->email=$request->phone."@noemail.com";
+                                        } else{
+                        $insured->email = $request->email;
+                                        }
                     $insured->gender = $request->gender;
                     $insured->dob = $request->dob;
                     $insured->telno = $request->phone;
@@ -203,7 +210,8 @@ class PolicyController extends Controller
                     $insured->password = Hash::make($genpassword);
 
                     $insured->save();
-                } else {
+                }
+                 else {
                     # Map policy to existing user...
 
                 }
@@ -693,10 +701,57 @@ class PolicyController extends Controller
     $products=policy::select('producttype')->distinct()->pluck('producttype');
 
     return view('policy.policylist', compact('policies','products','searchParams'));
+    }
+    /**
+     * Display a listing of upcoming renewals.
+     */
+    public function renewalslist()
+    {
+        //
 
+        Auth::check();
+        $user = Auth::user();
+        //filter based on role
+        switch ($user->role) {
+            case 'agent':
+                # RETRIEVE ALL POLICIES CREATED BY THIS AGENT
+                $policies = policy::where('agent_id', $user->id)->where('status', 'approved')
+                ->whereBetween('end_date', [now(), now()->addDays(30)])->orderBy('updated_at', 'desc')->get();
 
+                break;
+            case 'admin':
+                # Retreieve all policies
+                $policies = policy::whereBetween('end_date', [now(), now()->addDays(30)])->where('status', 'approved')
+                ->orderBy('updated_at', 'desc')->get();
+                break;
+            case 'superadmin':
+                # Retreieve all policies
+                $policies = policy::whereBetween('end_date', [now(), now()->addDays(30)])->where('status', 'approved')
+                ->orderBy('updated_at', 'desc')->get();
+                break;
+            case 'user':
+                # Retrieve policies created by and for this user this user
+              $policies = Policy::where('insured_id', $user->id)
+    ->whereBetween('end_date', [now(), now()->addDays(30)])->where('status', 'approved')
+    ->orderBy('updated_at', 'desc')
+    ->get();
 
+                break;
 
+            default:
+                # code...
+                break;
+        }
+        $products=policy::select('producttype')->distinct()->pluck('producttype');
+        return view('policy.renewpolicylist', compact('policies','products'));
+    }
 
+    public function renewpolicy(Request $request)
+    {
+        //
+
+        $policy = policy::where('id', $request->policy_id)->first();
+        dd($policy);
+        return redirect()->route('view_policy', compact('id'));
     }
 }

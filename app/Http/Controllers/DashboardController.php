@@ -30,7 +30,7 @@ class DashboardController extends Controller
                 $creditleft = $agent->noallocated - $agent->noused;
 
                 #get No of Policies
-                $totalpolcount = policy::where('agent_id', $usercheck->id)->count();
+                $totalpolcount = policy::where('agent_id', $usercheck->id)->where('end_date', '>', now())->count();
                 $totalpoldraft = policy::where('agent_id', $usercheck->id)->where('status', 'draft')->count();
                 $totalpolfailed = policy::where('agent_id', $usercheck->id)->where('status', 'failed')->count();
                 $totalpolapproved = policy::where('agent_id', $usercheck->id)->where('status', 'approved')->count();
@@ -40,10 +40,9 @@ class DashboardController extends Controller
 
                 #get policies approaching renewal
                 #first create a variable to hold the date 30 days from now
-                $approachingrenewaldate = now()->addDays(30);
                 #then get the policies that are approaching renewal
                 $approachingrenewal = policy::where('agent_id', $usercheck->id)
-                    ->where('end_date', '<=', $approachingrenewaldate)
+                    ->whereBetween('end_date', [now(), now()->addDays(30)])
                     ->where('status', 'approved')
                     ->count();
 
@@ -64,9 +63,8 @@ class DashboardController extends Controller
 
                 #get policies approaching renewal
                 #first create a variable to hold the date 30 days from now
-                $approachingrenewaldate = now()->addDays(30);
                 #then get the policies that are approaching renewal
-                $approachingrenewal = policy::where('end_date', '<=', $approachingrenewaldate)
+                $approachingrenewal = policy::whereBetween('end_date', [now(), now()->addDays(30)])
                     ->where('status', 'approved')
                     ->count();
 
@@ -87,9 +85,8 @@ class DashboardController extends Controller
 
                 #get policies approaching renewal
                 #first create a variable to hold the date 30 days from now
-                $approachingrenewaldate = now()->addDays(30);
                 #then get the policies that are approaching renewal
-                $approachingrenewal = policy::where('end_date', '<=', $approachingrenewaldate)
+                $approachingrenewal = policy::whereBetween('end_date', [now(), now()->addDays(30)])
                     ->where('status', 'approved')
                     ->count();
 
@@ -110,15 +107,11 @@ class DashboardController extends Controller
 
                 #get policies approaching renewal
                 #first create a variable to hold the date 30 days from now
-                $approachingrenewaldate = now()->addDays(30);
+
                 #then get the policies that are approaching renewal
-                $approachingrenewal = policy::where('end_date', '<=', $approachingrenewaldate)->where('insured_id', $usercheck->id)
+                $approachingrenewal = policy::whereBetween('end_date', [now(), now()->addDays(30)])->where('insured_id', $usercheck->id)
                     ->where('status', 'approved')
                     ->count();
-
-
-
-
                 break;
             default:
                 # code...
