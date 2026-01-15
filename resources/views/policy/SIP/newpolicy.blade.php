@@ -23,7 +23,7 @@
             <div class="row gy-2 gx-3 align-items-center mb-3">
                 <div class="col-auto">
                     <label for="" class="form-label">PRODUCT</label>
-                    <input class="form-control form-control-lg" type="text" disabled value="MOTOR THIRD PARTY">
+                    <input class="form-control form-control-lg" type="text" disabled value="{{$producttype}}">
                 </div>
                 <div class="col-auto">
                     <label for="" class="form-label">PRODUCT TYPE</label>
@@ -68,11 +68,15 @@
 
                 <div class="col-auto">
                     <label class='form-label' for="email">Email</label>
-                    <input class='form-control form-control-lg' type="email" name="email" id="email" required placeholder="Enter Valid email Address">
+                    <input class='form-control form-control-lg' type="email" name="email" id="email" placeholder="Enter Valid email Address">
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="phone">Tel. No.</label>
                     <input class='form-control form-control-lg' type="tel" name="phone"  required id="phone" placeholder="Phone no.">
+                </div>
+                <div class="col-auto">
+                    <label class='form-label' for="nin">NIN/RC Number</label>
+                    <input class='form-control form-control-lg' type="text" name="nin" id="nin" placeholder="National Identification Number.">
                 </div>
                 <div class="col-auto">
                     <label class='form-label' for="state">State of Residence</label>
@@ -103,63 +107,53 @@
         </div>
     </div>
     <div class="card mb-3">
-        <div class="card-header"><h4>VEHICLE DETAILS</h4></div>
+        <div class="card-header"><h4>POLICY DETAILS</h4></div>
         <div class="card-body">
             <div class="row gy-2 gx-3 align-items-center mb-3">
-                <div class="col-auto">
-                    <label class='form-label' for="regno">Registeration No.</label>
-                    <input class='form-control form-control-lg' type="text" name="regno"  required id="regno" placeholder="Registeration Number">
-
-                </div>
-                <div class="col-auto">
-                    <label class='form-label' for="chassisno">Chassis No.</label>
-                    <input class='form-control form-control-lg' type="text" name="chassisno" required id="chassisno" placeholder="Chassis Number">
-                </div>
-                <div class="col-auto">
-                    <label class='form-label' for="engineno">Engine No.</label>
-                    <input class='form-control form-control-lg' type="text" name="engineno" required id="engineno" placeholder="Engine Number">
-                </div>
-                <div class="col-auto">
-                    <label class='form-label' for="vehiclemake">Vehicle Make</label>
-                    <select name="vehiclemake" required class="form-select form-control-lg" id="vehiclemake" onchange="test()">
-                         <option value="">Select Make</option>
-                            @foreach($vmakes as $vmake)
-                             <option value="{{ $vmake->niipvmid }}">{{ $vmake->vmake + $vmake->id}}</option>
-                            @endforeach
-                    </select >
-
-                </div>
-                <div class="col-auto">
-                    <label class='form-label' for="vehiclemake">Vehicle Model</label>
-                      <select id="vehiclemodel" required class="form-select form-control-lg" name="vmodel">
-    <option value="">Select Model</option>
-</select>
-
-</div>
-
-                <div class="col-auto">
-                    <label class='form-label' for="yearofmake">Year of Make</label>
-                    <input type="number" class="form-control form-control-lg" id="yearofmake" 
-                    placeholder="Enter Year of Make" required
-                    name="yearofmake" 
-                    min="1970" max="{{date('Y')}}">
-
-                </div>
-                <div class="col-auto">
-                    <label class='form-label' for="vehiclecolor">Vehicle Color</label>
-                    
-                    <select name="vehiclecolor" id="colors" class="form-select form-control-lg" required >
-                        <option value="">Select Color</option>
-                        @foreach($colors as $color)
-                        <option value="{{ $color->colorid }}">{{ $color->color }}</option>
-                        @endforeach
-
+                <div class="col">
+                    <label class='form-label' for="frequency">Contribution Frequency</label>
+                    <select name="frequency" id="frequency" class="form-select form-control-lg">
+                        <option value="Daily">Daily</option>
+                        <option value="Weekly">Weekly</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Quarterly">Quarterly</option>
+                        <option value="Bi-Annual">Bi-Annual</option>
+                        <option value="Annual">Annual</option>
                     </select>
                 </div>
-                <div class="col-auto">
-                    <input type="text"  name="vehicletype" id="vehicletype"  hidden value="{{$usekey}}">
+                <div class="col">
+                    <label class='form-label' for="contribution">Contribution Amount</label>
+                    <input class='form-control form-control-lg' type="number" name="contribution" required id="contribution" placeholder="Contribution Amount">
                 </div>
             </div>
+            <div class="col-auto">
+                Beneficiary Details: <i>(add up to 3 Benefeciaries) </i><br>
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Relationship</th>
+                            <th>Contact Number</th>
+                            <th>Address</th>
+                            <th>Percentage (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for ($i = 1; $i <= 3; $i++)
+                        <tr>
+                            <td><input class='form-control form-control-lg' type="text" name="beneficiary_name_{{ $i }}" placeholder="Beneficiary Name"></td>
+                            <td><input class='form-control form-control-lg' type="text" name="beneficiary_relationship_{{ $i }}" placeholder="Relationship"></td>
+                            <td><input class='form-control form-control-lg' type="text" name="beneficiary_contactnumber_{{ $i }}" placeholder="Contact Number"></td>
+                            <td><input class='form-control form-control-lg' type="text" name="beneficiary_address_{{ $i }}" placeholder="Address"></td>
+                            <td><input class='form-control form-control-lg' type="number" name="beneficiary_percentage_{{ $i }}" placeholder="Percentage"></td>
+                        </tr>
+                        @endfor
+                    </tbody>
+                </table>
+                    <input type="text"  name="vehicletype" id="vehicletype"  hidden value="{{$usekey}}">
+                    <input type="text"  name="insurancetype" id="insurancetype"  hidden value="{{$insurancetype}}">
+                    <input type="text"  name="vehicleuse" id="vehicleuse"  hidden value="{{$vehicleuse}}">
+                </div>
 
         </div>
     </div>
@@ -172,7 +166,7 @@
 
                     <label class="form-check-label" for="declaration">
                 I declare that I have read the privacy information on the use of personal data and confirm that the information above is correct to the best of my knowledge
-I also consent to the processing of my personal data in accordance with the Company's Privacy Policy
+I also consent to the processing of my personal data in accordance with the Company's <a href="https://www.salamtakaful.online/blank-6" target="_blank"> PrivacyPolicy </a>
                 </div>
 
             </div>

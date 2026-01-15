@@ -70,10 +70,13 @@ class PolicyController extends Controller
     public function buypolicy(Request $request)
     {
         //
+        $vmakes = vehicleMake::orderBy('vmake')->get();
+        $states = states::all();
+        $colors = vehiclecolor::all();
 
         switch ($request) {
             case ($request->has('btnprivatemotor')):
-                # began the purchase of a private motor policy
+                # begin the purchase of a private motor policy
                 $producttype = 'Private Motor Third Party';
                 $contribution = 15000;
                 $usekey = 'private';
@@ -83,7 +86,7 @@ class PolicyController extends Controller
                 break;
 
             case ($request->has('btncommercialmotor')):
-                # began the purchase of a Commercial  motor policy
+                # begin the purchase of a Commercial  motor policy
                 $producttype = 'Commercial Motor Third Party';
                 $contribution = 20000;
                 $usekey = 'commercial';
@@ -92,7 +95,7 @@ class PolicyController extends Controller
                 $niipusecode = 8; // Commercial Motor
                 break;
             case ($request->has('btnmotorcycle')):
-                # began the purchase of a Motorcycle policy
+                # begin the purchase of a Motorcycle policy
                 $producttype = 'Motorcycle Third Party';
                 $contribution = 5000;
                 $usekey = 'commercial';
@@ -100,14 +103,34 @@ class PolicyController extends Controller
                 $vehicleuse = "motorcycle";
                 $niipusecode = 4;  // Motorcycle
                 break;
+
+            case ($request->has('btnsipp')):
+                # begin the purchase of a SIP policy
+                $producttype = 'Salam Investment Plan';
+                $contribution = 0;
+                $usekey = 'sip5000';
+                $insurancetype = 'sip';
+                $vehicleuse = "motorcycle"; //placeholder to be corrected on bitlect updates thier API
+                $niipusecode = 'NA';  // SIP  not  applicable
+                return view('policy.SIP.newpolicy', compact(
+                    'vmakes',
+                    'producttype',
+                    'contribution',
+                    'usekey',
+                    'insurancetype',
+                    'vehicleuse',
+                    'states',
+                    'colors',
+                    'niipusecode'
+                ));
+                break;
+
             default:
                 # To Do  create a default 
-                return back()->with('Error', 'Product not Configured imported successfully.');
+                return back()->with('Error', 'Product not Configured or imported successfully.');
                 break;
         }
-        $vmakes = vehicleMake::orderBy('vmake')->get();
-        $states = states::all();
-        $colors = vehiclecolor::all();
+
 
 
         return view('policy.newpolicy', compact('vmakes', 'producttype', 'contribution', 'usekey', 'insurancetype', 'vehicleuse', 'states', 'colors', 'niipusecode'));
@@ -126,39 +149,62 @@ class PolicyController extends Controller
 
 
     /**
-     * USER HAS SUBMITTED A MOTOR POLICY FOR PURCHASE.
+     * USER HAS SUBMITTED A POLICY FOR PURCHASE.
      */
     public function submitmpolicy(Request $request)
     {
 
+        // Validation request for different policy types
 
-        //$validatedata=$request->validate()
+        switch ($request) {
+            case ($request->producttype == 'Salam Investment Plan'):
+                # SIP Policy Validation Rules
+                $request->validate(
+                    ['contribution' => 'required|numeric|min:5000'],
+                    ['frequency' => 'required|string']
+                );
+                # Modify regno for SIP policy to be the insured Name and Plan
+                $regno = str_replace(' ', '', $request->fname . $request->lname) . '-' . $request->producttype;
+                $year=date('Y');
+                $request->merge([
+                    'regno' => $regno,
+                    'engineno' =>'N/A',
+                    'chassisno' => 'SIP',
+                    'yearofmake'=> $year
+                ]);
 
-        $request->validate(
-            ['chassisno' => ['required', 'regex:/^[^IO]*$/']],
-            [
-                'chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
-            ],
-            ['niipusecode' => 'required|integer'],
-            ['address' => 'required|string|max:250'],
-            ['lgas' => 'required|integer'],
-            ['state' => 'required|integer'],
-            ['vehicletype' => 'required|string|max:50'],
-            ['producttype' => 'required|string|max:100'],
-            ['contribution' => 'required|numeric|min:0'],
-            ['engineno' => 'required|string|max:50'],
-            ['regno' => 'required|string|max:20'],
-            ['vehiclemake' => 'required|integer'],
-            ['vmodel' => 'required|integer'],
-            ['yearofmake' => 'required|integer|min:1900|max:' . date('Y')],
-            ['vehiclecolor' => 'required|integer'],
-            ['fname' => 'required|string|max:100'],
-            ['lname' => 'required|string|max:100'],
-            ['phone' => 'required|string|max:15'],
-            ['email' => 'required|email|max:150'],
-            ['dob' => 'required|date'],
-        );
-        //validate chassis number to exclude I and O
+                break;
+
+            default:
+                #Motor Policy Validation rules
+                $request->validate(
+                    ['chassisno' => ['required', 'regex:/^[^IO]*$/']],
+                    [
+                        'chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
+                    ],
+                    ['niipusecode' => 'required|integer'],
+                    ['address' => 'required|string|max:250'],
+                    ['lgas' => 'required|integer'],
+                    ['state' => 'required|integer'],
+                    ['vehicletype' => 'required|string|max:50'],
+                    ['producttype' => 'required|string|max:100'],
+                    ['contribution' => 'required|numeric|min:0'],
+                    ['engineno' => 'required|string|max:50'],
+                    ['regno' => 'required|string|max:20'],
+                    ['vehiclemake' => 'required|integer'],
+                    ['vmodel' => 'required|integer'],
+                    ['yearofmake' => 'required|integer|min:1900|max:' . date('Y')],
+                    ['vehiclecolor' => 'required|integer'],
+                    ['fname' => 'required|string|max:100'],
+                    ['lname' => 'required|string|max:100'],
+                    ['phone' => 'required|string|max:15'],
+                    ['email' => 'required|email|max:150'],
+                    ['dob' => 'required|date'],
+                );
+                //validate chassis number to exclude I and O
+
+                break;
+        }
 
 
 
@@ -254,7 +300,6 @@ class PolicyController extends Controller
                 $policy->niipvehicleuse = $request->niipusecode;
 
                 $policy->save();
-
                 #Create New Policy Risk Object
                 $policyrisk = new policyrisk();
                 #TO DO product ID
@@ -263,11 +308,24 @@ class PolicyController extends Controller
                 $policyrisk->policyid = $policy->id;
                 $policyrisk->engineno = $request->engineno;
                 $policyrisk->chassisno = $request->chassisno;
-                $policyrisk->vehiclemake = $vmake->vmake;
-                $policyrisk->vehiclemodel = $vmodel->vmodelname;
+                if (isset($vmake)) {
+                    $policyrisk->vehiclemake = $vmake->vmake;
+                }else{
+                    $policyrisk->vehiclemake = '0';
+                }
+                if (isset($vmodel)) {
+                    $policyrisk->vehiclemodel = $vmodel->vmodelname;
+                }else{
+                    $policyrisk->vehiclemodel = '0';
+                }
                 $policyrisk->yearofmake = $request->yearofmake;
                 $policyrisk->vechiclecolorid = $request->vehiclecolor;
-                $policyrisk->vehiclecolor = vehiclecolor::where('colorid', $request->vehiclecolor)->first()->color;
+                if (isset($request->vehiclecolor)) {
+                    $policyrisk->vehiclecolor = vehiclecolor::where('colorid', $request->vehiclecolor)->first()->color;
+                }else{
+                    $policyrisk->vehiclecolor = '0';
+                    $policyrisk->vechiclecolorid = '0';
+                }
 
                 if ($policy->producttype == 'Private Motor Third Party') {
                     # code...
@@ -284,6 +342,11 @@ class PolicyController extends Controller
                     $policy->vehicleuse = 'motorcycle';
                     $policy->insurancetype = 'Motorcycle';
                     $policyrisk->contribution = 5000;
+                }else{
+                    $policyrisk->contribution = $request->contribution;
+                    $policy->vehicleuse = 'n/a';
+                    $policy->insurancetype = $request->producttype;
+
                 }
 
                 $policyrisk->save();

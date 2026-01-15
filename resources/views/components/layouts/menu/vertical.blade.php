@@ -21,8 +21,19 @@
         <!-- Policy Management -->
     <li class="menu-item {{ request()->is('list_policy') ? 'active' : '' }}">
       <a class="menu-link" href="{{ route('list_policy') }}" wire:navigate>
-        <i class="menu-icon fa fa-pencil"></i>{{ __('Policy Mgmt') }}</a>
+        <i class="menu-icon fa fa-pencil"></i>{{ __('Motor Policy Mgmt') }}</a>
     </li>
+            <!-- SIPP Policy Management -->
+    <li class="menu-item {{ request()->is('list_policy') ? 'active' : '' }}">
+      <a class="menu-link" href="{{ route('list_policy') }}" wire:navigate>
+        <i class="menu-icon fa fa-line-chart"></i>{{ __('SIPP Policy Mgmt') }}</a>
+    </li>
+    <!-- Occupiers Liability Policy Management -->
+    <li class="menu-item {{ request()->is('list_policy') ? 'active' : '' }}">
+      <a class="menu-link" href="{{ route('list_policy') }}" wire:navigate>
+        <i class="menu-icon fa fa-building"></i>{{ __('Occupiers Liability Policy Mgmt') }}</a>
+    </li>
+
 
     @if ($user->role=='admin' or $user->role=='superadmin')
       <!-- User Management -->

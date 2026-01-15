@@ -33,7 +33,7 @@ class policy extends Model
         'producttype',
         'usekey','vehicleuse','insurancetype',
         'niidresponse',
-        'niipvehicleuse','lgaid','stateid'
+        'niipvehicleuse','lgaid','stateid','address','policytype' 
     ];
 
     public function getrisk()

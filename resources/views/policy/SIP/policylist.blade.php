@@ -62,14 +62,14 @@
     <div class="col-md col-xl col-sm py-md-3 pl-md-5t  fs-6, fs-md-5, fs-lg-5, fs-xl-1">
 
         <div class="card row gy-2 gx-3 align-items-center mb-3 mt-3 " style="font-size: 1rem;">
-            <div class="card-header">BUY A SALAM POLICY</div>
+            <div class="card-header">BUY A MOTOR POLICY</div>
             <div class="text-danger text-center">PURCHASE OF THIRD PARTY INSURANCE FOR TRUCKS, LORRIES AND ARTICULATED
                 VEHICLES IS NOT ALLOWED VIA THIS APP</div>
 
             <form action="{{ route('buy_policy') }}" method="get">
                 <div class="card-body">
-                    <div class="flex row gy-2 gx-3 align-items-center mb-3">
-                        <div class="card-body col-lg-3">
+                    <div class="d-flex flex-row">
+                        <div class="card-body">
                             <div>
                                 <icon class="fa fa-car" style="font-size: 4rem;"></icon>
                                 <p>Private Vehicles </p>
@@ -77,7 +77,7 @@
                             <button class="btn btn-primary mb-3" name="btnprivatemotor"style="font-size:0.8rem">Private
                                 Motor Third Party</button>
                         </div>
-                        <div class="card-body col-lg-3">
+                        <div class="card-body">
                             <div>
                                 <icon class="fa fa-truck" style="font-size: 4rem;"></icon>
                                 <p>Taxis,Staff Bus, Mini Bus </p>
@@ -85,7 +85,7 @@
                             <button class="btn btn-primary mb-3" name="btncommercialmotor"
                                 style="font-size:0.8rem">Commercial Motor Third Party</button>
                         </div>
-                        <div class="card-body col-lg-3">
+                        <div class="card-body">
                             <div>
                                 <div>
                                     <icon class="fa fa-motorcycle" style="font-size: 4rem;"></icon>
@@ -97,13 +97,6 @@
                             </div>
                             <button class="btn btn-primary mb-3" name="btnmotorcycle"
                                 style="font-size:0.8rem">Motorcycle/Tricycle Third Party</button>
-                        </div>
-                        <div class="card-body col-lg-3">
-                            <div>
-                                <icon class="fa fa-line-chart" style="font-size: 4rem;"></icon>
-                                <p style="color: red">Salam Savings Policy **</p>
-                            </div>
-                            <button class="btn btn-primary mb-3" name="btnsipp"style="font-size:0.8rem" disabled>Salam Investment Plan</button>
                         </div>
                     </div>
                 </div>
