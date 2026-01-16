@@ -33,7 +33,7 @@ class policy extends Model
         'producttype',
         'usekey','vehicleuse','insurancetype',
         'niidresponse',
-        'niipvehicleuse','lgaid','stateid','address','policytype' 
+        'niipvehicleuse','lgaid','stateid','address','policytype', 'frequency'
     ];
 
     public function getrisk()
@@ -84,6 +84,22 @@ public function getNiipStatus()
     return $data;
 
 }
+
+    public function getpayments()
+    {
+        return paystacktransaction::where('policy_id',$this->id)->get();
+    }
+
+    public function getsuccesspayments()
+    {
+        return paystacktransaction::where('policy_id',$this->id)->where('status', 'Payment Sucessful')->get();
+    }
+
+    
+    public function getbeneficiaries()
+    {
+        return paystacktransaction::where('policy_id',$this->id)->get();
+    }
 
 
 

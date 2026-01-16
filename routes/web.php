@@ -43,7 +43,7 @@ Route::middleware('auth')->group(function () {
 
     
     Route::get('retry_niip',[PolicyController::class, 'retryniip'])->name('retry_niip');
-    Route::get('init_paystack',[PolicyController::class, 'init_paystack'])->name('init_paystack');
+    Route::get('init_paystack/{policy}',[PolicyController::class, 'init_paystack'])->name('init_paystack');
 
 
 });

@@ -70,9 +70,7 @@ class PolicyController extends Controller
     public function buypolicy(Request $request)
     {
         //
-        $vmakes = vehicleMake::orderBy('vmake')->get();
-        $states = states::all();
-        $colors = vehiclecolor::all();
+
 
         switch ($request) {
             case ($request->has('btnprivatemotor')):
@@ -130,7 +128,9 @@ class PolicyController extends Controller
                 return back()->with('Error', 'Product not Configured or imported successfully.');
                 break;
         }
-
+        $vmakes = vehicleMake::orderBy('vmake')->get();
+        $states = states::all();
+        $colors = vehiclecolor::all();
 
 
         return view('policy.newpolicy', compact('vmakes', 'producttype', 'contribution', 'usekey', 'insurancetype', 'vehicleuse', 'states', 'colors', 'niipusecode'));
@@ -310,22 +310,18 @@ class PolicyController extends Controller
                 $policyrisk->chassisno = $request->chassisno;
                 if (isset($vmake)) {
                     $policyrisk->vehiclemake = $vmake->vmake;
-                }else{
-                    $policyrisk->vehiclemake = '0';
-                }
-                if (isset($vmodel)) {
                     $policyrisk->vehiclemodel = $vmodel->vmodelname;
-                }else{
-                    $policyrisk->vehiclemodel = '0';
-                }
-                $policyrisk->yearofmake = $request->yearofmake;
-                $policyrisk->vechiclecolorid = $request->vehiclecolor;
-                if (isset($request->vehiclecolor)) {
                     $policyrisk->vehiclecolor = vehiclecolor::where('colorid', $request->vehiclecolor)->first()->color;
                 }else{
+                    $policyrisk->vehiclemake = '0';
+                    $policyrisk->vehiclemodel = '0';
                     $policyrisk->vehiclecolor = '0';
                     $policyrisk->vechiclecolorid = '0';
                 }
+
+                $policyrisk->yearofmake = $request->yearofmake;
+                $policyrisk->vechiclecolorid = $request->vehiclecolor;
+
 
                 if ($policy->producttype == 'Private Motor Third Party') {
                     # code...
@@ -346,10 +342,12 @@ class PolicyController extends Controller
                     $policyrisk->contribution = $request->contribution;
                     $policy->vehicleuse = 'n/a';
                     $policy->insurancetype = $request->producttype;
+                    $policy->frequency=$request->frequency;
 
                 }
 
                 $policyrisk->save();
+                $policy->save();
 
 
                 break;
@@ -372,8 +370,26 @@ class PolicyController extends Controller
         $paystack = $paystackcontroller->create_paystack_transaction($pdetails);
         $accesscode = $paystack->getContent();
         // End Paystack initialization
+        if ($policy->producttype == 'Salam Investment Plan') {
+            return view('policy.SIP.confirmpolicy', compact('policy', 'policyrisk', 'user', 'accesscode'));
+        }
 
         return view('policy.confirmpolicy', compact('policy', 'policyrisk', 'user', 'accesscode'));
+    }
+    public function init_paystack(policy $policy){
+        dd($policy);
+
+    // Prepare Paystack Data for Online processing if selected later
+        $paystackcontroller = new PaystacktransactionController();
+        $pdetails = new Request([
+            'email' => $policy->email,
+            'amount' => $policy->contribution,
+            'policy_id' => $policy->id
+        ]);
+        $paystack = $paystackcontroller->create_paystack_transaction($pdetails);
+        $accesscode = $paystack->getContent();
+        // End Paystack initialization
+
     }
 
     /**
@@ -591,6 +607,8 @@ class PolicyController extends Controller
     {
         //
 
+        
+
         $producttype = 'TO DO';
         $policy = policy::where('id', $request->id)->first();
         $insured = User::where('id', $policy->insured_id)->first();
@@ -602,6 +620,20 @@ class PolicyController extends Controller
         $retrymessage = $request->retrymessage;
 
         //dd($policy);
+        switch ($policy->producttype) {
+            case 'Salam Investment Plan':
+                # SIP Policy View
+                return view('policy.SIP.viewpolicy', compact('policy', 'insured', 'policyrisk', 'producttype', 
+                'states','errors', 'retrymessage'));
+                break;
+            case 'Liability Policy':
+                # Liability Policy View
+                break;
+
+            default:
+                # Motor Policy View
+                break;
+        }
 
         return view('policy.viewpolicy', compact('policy', 'insured', 'policyrisk', 'vmakes', 'producttype', 'states', 'colors', 'retrymessage'));
     }

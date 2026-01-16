@@ -258,7 +258,7 @@
                                         <button class="mt-4 p-1 btn btn-danger" data-bs-toggle="modal"
                                             data-bs-target="#dynamicModal" data-bs-toDelete="{{ $policy->id }}"
 
-                                            data-bs-message=" for Policy No: {{ $policy->policyno }}"                                            title="Confirm Renewal">Renew Policy</button>
+                                            data-bs-message=" for Policy No: {{ $policy->policyno }}"> Renew </button>                                        title="Confirm Renewal">Renew Policy</button>
                                     @endif
                                 </td>
                             </tr>

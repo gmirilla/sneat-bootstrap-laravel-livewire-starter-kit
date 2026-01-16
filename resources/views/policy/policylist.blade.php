@@ -101,9 +101,10 @@
                         <div class="card-body col-lg-3">
                             <div>
                                 <icon class="fa fa-line-chart" style="font-size: 4rem;"></icon>
-                                <p style="color: red">Salam Savings Policy **</p>
+                                <p style="color: red">Salam Savings Policy  **</p>
                             </div>
-                            <button class="btn btn-primary mb-3" name="btnsipp"style="font-size:0.8rem" disabled>Salam Investment Plan</button>
+                            <button class="btn btn-primary mb-3" name="btnsipp"style="font-size:0.8rem" disabled>Salam Investment
+                                Plan</button>
                         </div>
                     </div>
                 </div>
@@ -209,11 +210,13 @@
                                 <th colspan="8" style="font-size:1.2 rem" class="text-center"><b>Filtered Results
                                         : </b>
                                     @if (!empty($searchParams['policytype']))
-                                        <b>Policy Type: </b><i style="color:red">{{ ucwords($searchParams['policytype']) }}</i> ;
+                                        <b>Policy Type: </b><i
+                                            style="color:red">{{ ucwords($searchParams['policytype']) }}</i> ;
                                     @endif
 
                                     @if (!empty($searchParams['status']))
-                                        <b>Status: </b> <i style="color:red">{{ ucwords($searchParams['status']) }}</i> ;
+                                        <b>Status: </b> <i
+                                            style="color:red">{{ ucwords($searchParams['status']) }}</i> ;
                                     @endif
 
                                     @if (!empty($searchParams['datefrom']))
@@ -238,29 +241,31 @@
                         </thead>
                     @endif
 
-                                                <tfoot>
-                                                    <tr>
+                    <tfoot>
+                        <tr>
 
-                                <td colspan="8" style="font-size:1.2 rem" class="text-center"><b>Filtered Results
-                                        : </b>
-                                    @if (!empty($searchParams['policytype']))
-                                        <b>Policy Type: </b><i style="color:red">{{ ucwords($searchParams['policytype']) }}</i> ;
-                                    @endif
+                            <td colspan="8" style="font-size:1.2 rem" class="text-center"><b>Filtered Results
+                                    : </b>
+                                @if (!empty($searchParams['policytype']))
+                                    <b>Policy Type: </b><i
+                                        style="color:red">{{ ucwords($searchParams['policytype']) }}</i> ;
+                                @endif
 
-                                    @if (!empty($searchParams['status']))
-                                        <b>Status: </b> <i style="color:red">{{ ucwords($searchParams['status']) }}</i> ;
-                                    @endif
+                                @if (!empty($searchParams['status']))
+                                    <b>Status: </b> <i style="color:red">{{ ucwords($searchParams['status']) }}</i> ;
+                                @endif
 
-                                    @if (!empty($searchParams['datefrom']))
-                                        <b>Date From:</b> <i style="color:red">{{ $searchParams['datefrom'] }}</i>
-                                    @endif
+                                @if (!empty($searchParams['datefrom']))
+                                    <b>Date From:</b> <i style="color:red">{{ $searchParams['datefrom'] }}</i>
+                                @endif
 
-                                    @if (!empty($searchParams['dateto']))
-                                        <b>To:</b> <i style="color:red">{{ $searchParams['dateto'] }}</i>
-                                    @endif
-                                </td></tr>
+                                @if (!empty($searchParams['dateto']))
+                                    <b>To:</b> <i style="color:red">{{ $searchParams['dateto'] }}</i>
+                                @endif
+                            </td>
+                        </tr>
 
-                            </tfoot>
+                    </tfoot>
 
                     <tbody>
                         @forelse ($policies as $policy )
@@ -286,23 +291,25 @@
                                     @switch($policy->status)
                                         @case('approved')
                                             <span class="pill pillgreen"> {{ $policy->status }} </span> <br>
-                                            @php $niip = $policy->getniipstatus(); @endphp
+                                            @if (Str::contains(strtolower($policy->producttype), 'motor'))
+                                                @php $niip = $policy->getniipstatus(); @endphp
 
-                                            @if (is_array($niip) && ($niip['isSuccess'] ?? false) === true)
-                                                <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal"
-                                                    data-message="{{ $policy->niip_status }}">
-                                                    <span class="pill pillgreen">NIIP Success</span>
-                                                </a><br>
-                                            @elseif (is_array($niip) && ($niip['statusCode'] ?? '') === '11')
-                                                <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal"
-                                                    data-message="{{ $policy->niip_status }}">
-                                                    <span class="pill pillyellow">Possible Issue</span>
-                                                </a><br>
-                                            @else
-                                                <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal"
-                                                    data-message="{{ $policy->niip_status }}">
-                                                    <span class="pill pillinfo">NIIP Issue</span>
-                                                </a><br>
+                                                @if (is_array($niip) && ($niip['isSuccess'] ?? false) === true)
+                                                    <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal"
+                                                        data-message="{{ $policy->niip_status }}">
+                                                        <span class="pill pillgreen">NIIP Success</span>
+                                                    </a><br>
+                                                @elseif (is_array($niip) && ($niip['statusCode'] ?? '') === '11')
+                                                    <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal"
+                                                        data-message="{{ $policy->niip_status }}">
+                                                        <span class="pill pillyellow">Possible Issue</span>
+                                                    </a><br>
+                                                @else
+                                                    <a href="#" data-bs-toggle="modal" data-bs-target="#dynamicModal"
+                                                        data-message="{{ $policy->niip_status }}">
+                                                        <span class="pill pillinfo">NIIP Issue</span>
+                                                    </a><br>
+                                                @endif
                                             @endif
                                         @break
 

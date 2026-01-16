@@ -124,7 +124,7 @@
                     <select name="vehiclemake" required class="form-select form-control-lg" id="vehiclemake" onchange="test()">
                          <option value="">Select Make</option>
                             @foreach($vmakes as $vmake)
-                             <option value="{{ $vmake->niipvmid }}">{{ $vmake->vmake + $vmake->id}}</option>
+                             <option value="{{ $vmake->niipvmid }}">{{ $vmake->vmake}}</option>
                             @endforeach
                     </select >
 
