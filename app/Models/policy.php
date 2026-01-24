@@ -98,7 +98,7 @@ public function getNiipStatus()
     
     public function getbeneficiaries()
     {
-        return paystacktransaction::where('policy_id',$this->id)->get();
+        return beneficiary::where('policy_id',$this->id)->get();
     }
 
 

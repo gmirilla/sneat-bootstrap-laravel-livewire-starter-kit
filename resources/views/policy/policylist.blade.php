@@ -50,6 +50,7 @@
 </style>
 <x-layouts.app>
 
+
     @if ($errors->any())
         <div class="alert alert-danger">
             <ul>
@@ -59,6 +60,7 @@
             </ul>
         </div>
     @endif
+
     <div class="col-md col-xl col-sm py-md-3 pl-md-5t  fs-6, fs-md-5, fs-lg-5, fs-xl-1">
 
         <div class="card row gy-2 gx-3 align-items-center mb-3 mt-3 " style="font-size: 1rem;">
@@ -179,6 +181,23 @@
 
                         </div>
                     </div>
+                    @if ($user->role=='admin'||$user->role=='superadmin')
+                    <div class="card-body">
+                        <div>
+                            <label for="agent" class="form-label">Agent</label>
+                            <select name="agentcode" id="agentcode" class="form-select">
+
+                                    <option value="">--Select Agent--</option>
+
+                                    @forelse ($agentslist as $agent)
+                                        <option value="{{ $agent->uid }}">{{ $agent->getuserinfo()->name }}</option>
+                                    @empty
+                                    @endforelse
+                                    </select>
+                        </div>
+                    </div>
+                        
+                    @endif
                     <div class="card-body align-self-end">
                         <div>
                             <button class="btn btn-primary mb-3" type="submit" style="font-size:0.8rem">Apply
@@ -202,6 +221,11 @@
                             <th class="col">Contribution</th>
                             <th class="col">Created At</th>
                             <th class="col">Status</th>
+                            
+                            @if ($user->role=='admin'||$user->role=='superadmin')   
+                            <th class="col">Agent</th>
+                                
+                            @endif
                             <th class="col">Action</th>
                         </thead>
                     @else
@@ -236,6 +260,10 @@
                                 <th class="col">Contribution</th>
                                 <th class="col">Created At</th>
                                 <th class="col">Status</th>
+                                @if ($user->role=='admin'||$user->role=='superadmin')  
+                                   <th class="col">Agent</th> 
+                                @endif
+                                
                                 <th class="col">Action</th>
                             </tr>
                         </thead>
@@ -326,6 +354,10 @@
                                     @endswitch
 
                                 </td>
+                                @if ($user->role=='admin'||$user->role=='superadmin')  
+                                   <td>{{ $policy->getagentname() }}</td>
+
+                                @endif
                                 <td>
                                     <form action="{{ route('view_policy') }}" method="get">
                                         <input type="number" value="{{ $policy->id }}" hidden name='id'>

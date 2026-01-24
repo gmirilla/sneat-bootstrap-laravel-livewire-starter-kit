@@ -28,7 +28,7 @@
     border-radius: 5px;
 }
                 </style>
-<script src="https://js.paystack.co/v2/inline.js"> 
+<script src="https://js.paystack.co/v2/inline.js"> </script>
 <x-layouts.app>
      
         @if ($errors->any())

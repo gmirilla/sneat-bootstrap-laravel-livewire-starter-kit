@@ -141,8 +141,8 @@
                     <tbody>
                         @for ($i = 1; $i <= 3; $i++)
                         <tr>
-                            <td><input class='form-control form-control-lg' type="text" name="beneficiary_name_{{ $i }}" placeholder="Beneficiary Name"></td>
-                            <td><input class='form-control form-control-lg' type="text" name="beneficiary_relationship_{{ $i }}" placeholder="Relationship"></td>
+                            <td><input class='form-control form-control-lg' type="text" name="beneficiary_name{{ $i }}" placeholder="Beneficiary Name"></td>
+                            <td><input class='form-control form-control-lg' type="text" name="beneficiary_relationship{{ $i }}" placeholder="Relationship"></td>
                             <td><input class='form-control form-control-lg' type="text" name="beneficiary_contactnumber_{{ $i }}" placeholder="Contact Number"></td>
                             <td><input class='form-control form-control-lg' type="text" name="beneficiary_address_{{ $i }}" placeholder="Address"></td>
                             <td><input class='form-control form-control-lg' type="number" name="beneficiary_percentage_{{ $i }}" placeholder="Percentage"></td>

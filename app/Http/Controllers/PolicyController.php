@@ -33,6 +33,7 @@ class PolicyController extends Controller
 
         Auth::check();
         $user = Auth::user();
+        $agentslist = agentsdetailsModel::all();
 
         //filter based on role
         switch ($user->role) {
@@ -44,6 +45,7 @@ class PolicyController extends Controller
             case 'admin':
                 # Retreieve all policies
                 $policies = policy::all();
+                    
                 break;
             case 'superadmin':
                 # Retreieve all policies
@@ -61,7 +63,7 @@ class PolicyController extends Controller
         }
         $products = policy::select('producttype')->distinct()->pluck('producttype');
 
-        return view('policy.policylist', compact('policies', 'products'));
+        return view('policy.policylist', compact('policies', 'products','user','agentslist'));
     }
 
     /**
@@ -70,6 +72,9 @@ class PolicyController extends Controller
     public function buypolicy(Request $request)
     {
         //
+        $vmakes = vehicleMake::orderBy('vmake')->get();
+        $states = states::all();
+        $colors = vehiclecolor::all();
 
 
         switch ($request) {
@@ -343,6 +348,21 @@ class PolicyController extends Controller
                     $policy->vehicleuse = 'n/a';
                     $policy->insurancetype = $request->producttype;
                     $policy->frequency=$request->frequency;
+                    #HANDLE INPUT OF sip BENEFICIARIES
+                    if ($request->prodducttype=='sip'){
+                        $beneficiaries = $request->input('beneficiaries', []);
+                        foreach ($beneficiaries as $beneficiaryData) {
+                            dd($beneficiaryData);
+
+                            // Create and save the beneficiary
+                            $beneficiary = new \App\Models\beneficiary();
+                            $beneficiary->policy_id = $policy->id;
+                            $beneficiary->name = $validatedData['name'];
+                            $beneficiary->relationship = $validatedData['relationship'];
+                            $beneficiary->percentage = $validatedData['percentage'];
+                            $beneficiary->save();
+                        }
+                    }
 
                 }
 
@@ -376,8 +396,9 @@ class PolicyController extends Controller
 
         return view('policy.confirmpolicy', compact('policy', 'policyrisk', 'user', 'accesscode'));
     }
+
+    # INITIATE THE PAYSTACK PAYMENT PROCESSING
     public function init_paystack(policy $policy){
-        dd($policy);
 
     // Prepare Paystack Data for Online processing if selected later
         $paystackcontroller = new PaystacktransactionController();
@@ -388,7 +409,14 @@ class PolicyController extends Controller
         ]);
         $paystack = $paystackcontroller->create_paystack_transaction($pdetails);
         $accesscode = $paystack->getContent();
+        $policyid = $policy->id;
+        $policyno = $policy->policyno;
+        $contribution = $policy->contribution;
+        $response=compact('accesscode','policyid','policyno','contribution');
+
         // End Paystack initialization
+
+        return response()->json($response);
 
     }
 
@@ -773,9 +801,10 @@ class PolicyController extends Controller
     {
         Auth::check();
         $user = Auth::user();
+        $agentslist = agentsdetailsModel::all();
 
         $query = Policy::query();
-        $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto']);
+        $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
 
 
         if ($request->filled('policytype')) {
@@ -793,11 +822,14 @@ class PolicyController extends Controller
         if ($request->filled('dateto')) {
             $query->whereDate('created_at', '<=', $request->dateto);
         }
+        if ($request->filled('agentcode')) {
+            $query->where('agent_id', $request->agentcode);
+        }
 
         $policies = $query->get();
         $products = policy::select('producttype')->distinct()->pluck('producttype');
 
-        return view('policy.policylist', compact('policies', 'products', 'searchParams'));
+        return view('policy.policylist', compact('policies', 'products', 'searchParams','user','agentslist'));
     }
     /**
      * Display a listing of upcoming renewals.
