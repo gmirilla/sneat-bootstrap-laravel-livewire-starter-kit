@@ -47,7 +47,7 @@
    
 
   
-      @if ($user->role=='admin' or $user->role=='superadmin')
+      @if ( $user->role=='superadmin')
         <!-- Agent Management -->
     <li class="menu-item {{ request()->is('list_agents') ? 'active' : '' }}">
       <a class="menu-link" href="{{ route('list_agents') }}" wire:navigate>
