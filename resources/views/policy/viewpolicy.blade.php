@@ -25,7 +25,7 @@
   </div>
 @endif
   <div class="card card-body">
-    @if ($policy->status=='approved'  and $user->role=='admin')
+    @if ($policy->status == 'approved' && in_array($user->role, ['admin', 'superadmin']))
 
         <p>
             <b>NIIP RESPONSE: </b><br> {{$policy->niip_status}}

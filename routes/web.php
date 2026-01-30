@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AgentsdetailsModelController;
+use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LgaController;
 use App\Http\Controllers\NiipvehicleuseController;
@@ -66,9 +67,14 @@ Route::middleware('auth')->group(function () {
 });
 Route::middleware('auth')->group(function () {
     Route::get('niip_code_mgmt', [DashboardController::class, 'niipmgtdashboard'])->name('niip_code_mgmt'); 
-
-
 });
+
+#CLAIM ROUTES STILL TESTING
+
+    Route::post('claim_check', [ClaimController::class, 'claimcheck'])->name('claim_check'); 
+
+
+
 
 
 Route::middleware('auth')->group(function () {

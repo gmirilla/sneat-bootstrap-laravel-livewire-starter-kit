@@ -36,6 +36,15 @@
           
                     </form>
                    </div>
+                                      <div id="claimcheck">
+                    <p>You can easily check the status of your claim:</p>
+                    <form action="{{ route('claim_check') }}" method="post">
+                      @csrf
+                      <input type="text" class="form-control mb-3" placeholder="Enter Policy Number" name="claimnumber" id="claimnumber" style="color:white; background-color: grey;" required>
+                      <button type="submit" class="btn btn-primary">Get Claim Status</button>
+          
+                    </form>
+                   </div>
               
               </div>
             </div>
