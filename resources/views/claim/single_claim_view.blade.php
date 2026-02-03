@@ -4,18 +4,21 @@
     
 
     <h3 class="mb-3">Claim Check Result</h3>
-
     @if (isset($response))
 
         {{-- Error or Not Found --}}
-        @if ($response['status'] !== 'success')
+        @if ($response['status'] !== 'success' || empty($data))
             <div class="alert alert-warning">
                 {{ $response['message'] }}
             </div>
+                {{-- NO RESULTS FOUND --}}
+    <div class="alert alert-warning">
+        No claims found for the provided Policy Number.
+    </div>
+
 
         @else
             @php
-            @dd($data)
 
                 // States grouped as processing
                 $processingStates = ['draft', 'reserved', 'submitted'];

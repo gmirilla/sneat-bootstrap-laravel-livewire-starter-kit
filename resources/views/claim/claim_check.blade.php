@@ -9,7 +9,7 @@
 
     {{-- MULTIPLE RESULTS --}}
     <div class="alert alert-info">
-        Multiple claims found. Select a claim to view details.
+        Multiple claims found for Policy. Select a claim to view details.
     </div>
 
     <table class="table table-bordered table-striped mt-3">
@@ -34,6 +34,7 @@
             @endforeach
         </tbody>
     </table>
+
 
 @else
 
