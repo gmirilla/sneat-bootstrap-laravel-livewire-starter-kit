@@ -120,7 +120,7 @@ $result = DB::connection('Elite')
 
         $response = [
             'status'  => 'error',
-            'message' => 'Unable to process claim check at this time'.$e->getMessage(),
+            'message' => 'Unable to process claim check at this time',
             'data'    => []
         ];
     }
