@@ -64,11 +64,22 @@ class PaystacktransactionController extends Controller
 
          //test to convert result to jsonbjec
         $paystackresponse=json_decode($result);
+        
+    if ($paystackresponse->status == true) {
         $transaction->access_code=$paystackresponse->data->access_code;
         $transaction->reference_code=$paystackresponse->data->reference;
         $transaction->save();
-
         return response($transaction->access_code,201);
+    }
+    else{
+                $transaction->access_code="N/A";
+        $transaction->reference_code="N/A";
+        $transaction->save();
+        return response("Error initializing transaction",500);
+        
+    }
+
+
     }
       /**
      * Verify & Update the payment status for resource.

@@ -18,6 +18,8 @@ use App\Models\vehiclecolor;
 use App\Models\vehicleModel;
 use App\Models\paystacktransaction;
 use App\Jobs\PostNIIPDataSlow; // Import the job class
+use Illuminate\Support\Facades\Log;
+use Exception;
 
 use App\Http\Controllers\PaystacktransactionController; //import the paystack controller. Not ideal but works for now. To do convert to service class later.
 
@@ -45,7 +47,7 @@ class PolicyController extends Controller
             case 'admin':
                 # Retreieve all policies
                 $policies = policy::all();
-                    
+
                 break;
             case 'superadmin':
                 # Retreieve all policies
@@ -63,7 +65,7 @@ class PolicyController extends Controller
         }
         $products = policy::select('producttype')->distinct()->pluck('producttype');
 
-        return view('policy.policylist', compact('policies', 'products','user','agentslist'));
+        return view('policy.policylist', compact('policies', 'products', 'user', 'agentslist'));
     }
 
     /**
@@ -158,249 +160,237 @@ class PolicyController extends Controller
      */
     public function submitmpolicy(Request $request)
     {
+        /*
+    |--------------------------------------------------------------------------
+    | 1. VALIDATION BASED ON PRODUCT TYPE
+    |--------------------------------------------------------------------------
+    */
 
-        // Validation request for different policy types
+        if ($request->producttype == 'Salam Investment Plan') {
 
-        switch ($request) {
-            case ($request->producttype == 'Salam Investment Plan'):
-                # SIP Policy Validation Rules
-                $request->validate(
-                    ['contribution' => 'required|numeric|min:5000'],
-                    ['frequency' => 'required|string']
-                );
-                # Modify regno for SIP policy to be the insured Name and Plan
-                $regno = str_replace(' ', '', $request->fname . $request->lname) . '-' . $request->producttype;
-                $year=date('Y');
-                $request->merge([
-                    'regno' => $regno,
-                    'engineno' =>'N/A',
-                    'chassisno' => 'SIP',
-                    'yearofmake'=> $year
-                ]);
+            $request->validate([
+                'contribution' => 'required|numeric|min:5000',
+                'frequency'    => 'required|string',
+                'fname'        => 'required|string|max:100',
+                'lname'        => 'required|string|max:100',
+                'phone'        => 'required|string|max:15',
+                'email'        => 'required|email|max:150',
+                'dob'          => 'required|date',
+            ]);
 
-                break;
+            // Auto‑fill SIP‑specific fields
+            $regno = str_replace(' ', '', $request->fname . $request->lname) . '-' . $request->producttype;
 
-            default:
-                #Motor Policy Validation rules
-                $request->validate(
-                    ['chassisno' => ['required', 'regex:/^[^IO]*$/']],
-                    [
-                        'chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
-                    ],
-                    ['niipusecode' => 'required|integer'],
-                    ['address' => 'required|string|max:250'],
-                    ['lgas' => 'required|integer'],
-                    ['state' => 'required|integer'],
-                    ['vehicletype' => 'required|string|max:50'],
-                    ['producttype' => 'required|string|max:100'],
-                    ['contribution' => 'required|numeric|min:0'],
-                    ['engineno' => 'required|string|max:50'],
-                    ['regno' => 'required|string|max:20'],
-                    ['vehiclemake' => 'required|integer'],
-                    ['vmodel' => 'required|integer'],
-                    ['yearofmake' => 'required|integer|min:1900|max:' . date('Y')],
-                    ['vehiclecolor' => 'required|integer'],
-                    ['fname' => 'required|string|max:100'],
-                    ['lname' => 'required|string|max:100'],
-                    ['phone' => 'required|string|max:15'],
-                    ['email' => 'required|email|max:150'],
-                    ['dob' => 'required|date'],
-                );
-                //validate chassis number to exclude I and O
+            $request->merge([
+                'regno'      => $regno,
+                'engineno'   => 'N/A',
+                'chassisno'  => 'SIP',
+                'yearofmake' => date('Y'),
+            ]);
+        } else {
 
-                break;
+            // MOTOR POLICY VALIDATION
+            $request->validate([
+                'chassisno'     => ['required', 'regex:/^[^IO]*$/'],
+                'niipusecode'   => 'required|integer',
+                'address'       => 'required|string|max:250',
+                'lgas'          => 'required|integer',
+                'state'         => 'required|integer',
+                'vehicletype'   => 'required|string|max:50',
+                'producttype'   => 'required|string|max:100',
+                'contribution'  => 'required|numeric|min:0',
+                'engineno'      => 'required|string|max:50',
+                'regno'         => 'required|string|max:20',
+                'vehiclemake'   => 'required|integer',
+                'vmodel'        => 'required|integer',
+                'yearofmake'    => 'required|integer|min:1900|max:' . date('Y'),
+                'vehiclecolor'  => 'required|integer',
+                'fname'         => 'required|string|max:100',
+                'lname'         => 'required|string|max:100',
+                'phone'         => 'required|string|max:15',
+                'email'         => 'required|email|max:150',
+                'dob'           => 'required|date',
+            ], [
+                'chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
+            ]);
         }
 
 
+        /*
+    |--------------------------------------------------------------------------
+    | 2. USER ROLE HANDLING (AGENT CREATES INSURED)
+    |--------------------------------------------------------------------------
+    */
 
-
-        /**Check the User Authentication and Roles. 
-         * If a new direct User Create a user profile
-         * If an User is an Agent Create a User Profile for the Insured
-         *  
-         * 
-         */
-
-        Auth::check();
         $user = Auth::user();
+        $fullname = $request->fname . " " . $request->lname;
 
-        $fullname = $request->fname . "  " . $request->lname;
-        switch ($user->role) {
-            case 'admin':
-                # code...
-                break;
-            case 'superadmin':
-                # code...
-                break;
-            case 'agent':
-                # If the User is registered as an agent first create new user account if phone number is unique
+        $insured = null;
 
-                $insured = User::where('telno', $request->phone)->first();
-                if (empty($insured)) {
+        if ($user->role === 'agent') {
 
+            // Check if insured exists
+            $insured = User::where('telno', $request->phone)->first();
 
-                    $genpassword = 'Password';
+            if (!$insured) {
 
-                    # create new insured user profile
-                    $insured = new User();
-                    $insured->firstname = $request->fname;
-                    $insured->lastname = $request->lname;
-                    $insured->name = $fullname;
-                    if (User::where('email', $request->email)->exists()) {
+                $insured = new User();
+                $insured->firstname = $request->fname;
+                $insured->lastname  = $request->lname;
+                $insured->name      = $fullname;
+                $insured->email     = User::where('email', $request->email)->exists()
+                    ? $request->phone . "@noemail.com"
+                    : $request->email;
 
-                        # email already exists replace email with phone number
-                        $insured->email = $request->phone . "@noemail.com";
-                    } else {
-                        $insured->email = $request->email;
-                    }
-                    $insured->gender = $request->gender;
-                    $insured->dob = $request->dob;
-                    $insured->telno = $request->phone;
-                    $insured->state = $request->state;
-                    $insured->address = $request->address;
-                    $insured->stateid = $request->state;
-                    $insured->lgaid = $request->lgas;
-                    $insured->password = Hash::make($genpassword);
+                $insured->gender    = $request->gender;
+                $insured->dob       = $request->dob;
+                $insured->telno     = $request->phone;
+                $insured->state     = $request->state;
+                $insured->address   = $request->address;
+                $insured->stateid   = $request->state;
+                $insured->lgaid     = $request->lgas;
+                $insured->password  = Hash::make('Password');
 
-                    $insured->save();
-                } else {
-                    # Map policy to existing user...
-
-                }
-                #Create Motor Policy 
-                $start_date = date_create();
-                $end_date = date_add(date_create(), date_interval_create_from_date_string("1 year"));
-
-                #GET Vehicle Make and Model To BE USED with NIIP integration
-                $vmake = vehicleMake::where('niipvmid', $request->vehiclemake)->first();
-                $vmodel = vehicleModel::where('vmodelid', $request->vmodel)->first();
-
-                #check if policy exists
-                if ($request->has('policyid')) {
-                    $policy = policy::where('id', $request->policyid)->first();
-                } else {
-                    $policy = new policy();
-                }
-                $policy->firstname = $request->fname;
-                $policy->lastname = $request->lname;
-                $policy->telno = $request->phone;
-                $policy->email = $request->email;
-                $policy->insured_id = $insured->id;
-                $policy->producttype = $request->producttype;
-                $policy->insured_name = $fullname;
-                $policy->agent_id = $user->id;
-                $policy->status = 'draft';
-                $policy->start_date = date_format($start_date, 'Y/m/d');
-                $policy->end_date = date_format($end_date, 'Y/m/d');
-                $policy->create_uid = $user->id;
-                $policy->update_uid = $user->id;
-                $policy->usekey = $request->vehicletype;
-                ##TO DO Create Method to Calc Agents Commission and Contribution
-                $policy->contribution = $request->contribution;
-                $policy->commission = 0;
-                $policy->insurancetype = $request->insurancetype;
-                $policy->vehicleuse = $request->vehicleuse;
-                $policy->stateid = $request->state;
-                $policy->lgaid = $request->lgas;
-                $policy->niipvehicleuse = $request->niipusecode;
-
-                $policy->save();
-                #Create New Policy Risk Object
-                $policyrisk = new policyrisk();
-                #TO DO product ID
-                $policyrisk->product_id = 1;
-                $policyrisk->regno = $request->regno;
-                $policyrisk->policyid = $policy->id;
-                $policyrisk->engineno = $request->engineno;
-                $policyrisk->chassisno = $request->chassisno;
-                if (isset($vmake)) {
-                    $policyrisk->vehiclemake = $vmake->vmake;
-                    $policyrisk->vehiclemodel = $vmodel->vmodelname;
-                    $policyrisk->vehiclecolor = vehiclecolor::where('colorid', $request->vehiclecolor)->first()->color;
-                }else{
-                    $policyrisk->vehiclemake = '0';
-                    $policyrisk->vehiclemodel = '0';
-                    $policyrisk->vehiclecolor = '0';
-                    $policyrisk->vechiclecolorid = '0';
-                }
-
-                $policyrisk->yearofmake = $request->yearofmake;
-                $policyrisk->vechiclecolorid = $request->vehiclecolor;
-
-
-                if ($policy->producttype == 'Private Motor Third Party') {
-                    # code...
-                    $policy->vehicleuse = 'car';
-                    $policy->insurancetype = 'Private';
-                    $policyrisk->contribution = 15000;
-                } else if ($policy->producttype == 'Commercial Motor Third Party') {
-                    # code...
-                    $policy->vehicleuse = 'car';
-                    $policy->insurancetype = 'Commercial';
-                    $policyrisk->contribution = 20000;
-                } elseif ($policy->producttype == 'Motorcycle Third Party') {
-                    # code...
-                    $policy->vehicleuse = 'motorcycle';
-                    $policy->insurancetype = 'Motorcycle';
-                    $policyrisk->contribution = 5000;
-                }else{
-                    $policyrisk->contribution = $request->contribution;
-                    $policy->vehicleuse = 'n/a';
-                    $policy->insurancetype = $request->producttype;
-                    $policy->frequency=$request->frequency;
-                    #HANDLE INPUT OF sip BENEFICIARIES
-                    if ($request->prodducttype=='sip'){
-                        $beneficiaries = $request->input('beneficiaries', []);
-                        foreach ($beneficiaries as $beneficiaryData) {
-                            dd($beneficiaryData);
-
-                            // Create and save the beneficiary
-                            $beneficiary = new \App\Models\beneficiary();
-                            $beneficiary->policy_id = $policy->id;
-                            $beneficiary->name = $validatedData['name'];
-                            $beneficiary->relationship = $validatedData['relationship'];
-                            $beneficiary->percentage = $validatedData['percentage'];
-                            $beneficiary->save();
-                        }
-                    }
-
-                }
-
-                $policyrisk->save();
-                $policy->save();
-
-
-                break;
-            case 'direct':
-                # code...
-                break;
-
-            default:
-                # code...
-                break;
+                $insured->save();
+            }
+        } else {
+            // Direct or admin users insure themselves
+            $insured = $user;
         }
 
-        // Prepare Paystack Data for Online processing if selected later
-        $paystackcontroller = new PaystacktransactionController();
-        $pdetails = new Request([
-            'email' => $policy->email,
-            'amount' => $policy->contribution,
-            'policy_id' => $policy->id
-        ]);
-        $paystack = $paystackcontroller->create_paystack_transaction($pdetails);
-        $accesscode = $paystack->getContent();
-        // End Paystack initialization
-        if ($policy->producttype == 'Salam Investment Plan') {
+
+        /*
+    |--------------------------------------------------------------------------
+    | 3. CREATE OR UPDATE POLICY
+    |--------------------------------------------------------------------------
+    */
+
+        $policy = $request->has('policyid')
+            ? policy::find($request->policyid)
+            : new policy();
+
+        $start_date = now();
+        $end_date   = now()->addYear();
+
+        $policy->firstname      = $request->fname;
+        $policy->lastname       = $request->lname;
+        $policy->telno          = $request->phone;
+        $policy->email          = $request->email;
+        $policy->insured_id     = $insured->id;
+        $policy->producttype    = $request->producttype;
+        $policy->insured_name   = $fullname;
+        $policy->agent_id       = $user->id;
+        $policy->status         = 'draft';
+        $policy->start_date     = $start_date->format('Y/m/d');
+        $policy->end_date       = $end_date->format('Y/m/d');
+        $policy->create_uid     = $user->id;
+        $policy->update_uid     = $user->id;
+        $policy->usekey         = $request->vehicletype;
+        $policy->contribution   = $request->contribution;
+        $policy->commission     = 0;
+        $policy->insurancetype  = $request->insurancetype ?? $request->producttype;
+        $policy->vehicleuse     = $request->vehicleuse ?? 'n/a';
+        $policy->stateid        = $request->state;
+        $policy->lgaid          = $request->lgas;
+        $policy->niipvehicleuse = $request->niipusecode;
+
+        $policy->save();
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | 4. CREATE POLICY RISK
+    |--------------------------------------------------------------------------
+    */
+
+        $vmake  = vehicleMake::where('niipvmid', $request->vehiclemake)->first();
+        $vmodel = vehicleModel::where('vmodelid', $request->vmodel)->first();
+
+        $policyrisk = new policyrisk();
+        $policyrisk->product_id       = 1;
+        $policyrisk->policyid         = $policy->id;
+        $policyrisk->regno            = $request->regno;
+        $policyrisk->engineno         = $request->engineno;
+        $policyrisk->chassisno        = $request->chassisno;
+        $policyrisk->yearofmake       = $request->yearofmake;
+        $policyrisk->vechiclecolorid  = $request->vehiclecolor;
+
+        if ($vmake) {
+            $policyrisk->vehiclemake  = $vmake->vmake;
+            $policyrisk->vehiclemodel = $vmodel->vmodelname;
+            $policyrisk->vehiclecolor = vehiclecolor::where('colorid', $request->vehiclecolor)->first()->color;
+        } else {
+            $policyrisk->vehiclemake  = '0';
+            $policyrisk->vehiclemodel = '0';
+            $policyrisk->vehiclecolor = '0';
+        }
+
+        // Third‑party auto‑pricing
+        if ($policy->producttype === 'Private Motor Third Party') {
+            $policyrisk->contribution = 15000;
+            $policy->vehicleuse = 'car';
+            $policy->insurancetype = 'Private';
+        } elseif ($policy->producttype === 'Commercial Motor Third Party') {
+            $policyrisk->contribution = 20000;
+            $policy->vehicleuse = 'car';
+            $policy->insurancetype = 'Commercial';
+        } elseif ($policy->producttype === 'Motorcycle Third Party') {
+            $policyrisk->contribution = 5000;
+            $policy->vehicleuse = 'motorcycle';
+            $policy->insurancetype = 'Motorcycle';
+        } else {
+            // SIP or other custom products
+            $policyrisk->contribution = $request->contribution;
+            $policy->frequency = $request->frequency;
+        }
+
+        $policyrisk->save();
+        $policy->save();
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | 5. PAYSTACK INITIALIZATION
+    |--------------------------------------------------------------------------
+    */
+
+        try {
+            $paystackcontroller = new PaystacktransactionController();
+            $pdetails = new Request([
+                'email'     => $policy->email,
+                'amount'    => $policy->contribution,
+                'policy_id' => $policy->id
+            ]);
+
+            $paystack   = $paystackcontroller->create_paystack_transaction($pdetails);
+            $accesscode = $paystack->getContent();
+        } catch (\Exception $e) {
+            Log::error('Paystack Initialization Error: ' . $e->getMessage());
+            $accesscode = null;
+        }
+
+
+        /*
+    |--------------------------------------------------------------------------
+    | 6. RETURN VIEW
+    |--------------------------------------------------------------------------
+    */
+
+        if ($policy->producttype === 'Salam Investment Plan') {
             return view('policy.SIP.confirmpolicy', compact('policy', 'policyrisk', 'user', 'accesscode'));
         }
 
         return view('policy.confirmpolicy', compact('policy', 'policyrisk', 'user', 'accesscode'));
     }
 
-    # INITIATE THE PAYSTACK PAYMENT PROCESSING
-    public function init_paystack(policy $policy){
 
-    // Prepare Paystack Data for Online processing if selected later
+
+
+    # INITIATE THE PAYSTACK PAYMENT PROCESSING
+    public function init_paystack(policy $policy)
+    {
+
+        // Prepare Paystack Data for Online processing if selected later
         $paystackcontroller = new PaystacktransactionController();
         $pdetails = new Request([
             'email' => $policy->email,
@@ -412,12 +402,11 @@ class PolicyController extends Controller
         $policyid = $policy->id;
         $policyno = $policy->policyno;
         $contribution = $policy->contribution;
-        $response=compact('accesscode','policyid','policyno','contribution');
+        $response = compact('accesscode', 'policyid', 'policyno', 'contribution');
 
         // End Paystack initialization
 
         return response()->json($response);
-
     }
 
     /**
@@ -635,7 +624,7 @@ class PolicyController extends Controller
     {
         //
 
-        
+
 
         $producttype = 'TO DO';
         $policy = policy::where('id', $request->id)->first();
@@ -651,8 +640,15 @@ class PolicyController extends Controller
         switch ($policy->producttype) {
             case 'Salam Investment Plan':
                 # SIP Policy View
-                return view('policy.SIP.viewpolicy', compact('policy', 'insured', 'policyrisk', 'producttype', 
-                'states','errors', 'retrymessage'));
+                return view('policy.SIP.viewpolicy', compact(
+                    'policy',
+                    'insured',
+                    'policyrisk',
+                    'producttype',
+                    'states',
+                    'errors',
+                    'retrymessage'
+                ));
                 break;
             case 'Liability Policy':
                 # Liability Policy View
@@ -829,7 +825,7 @@ class PolicyController extends Controller
         $policies = $query->get();
         $products = policy::select('producttype')->distinct()->pluck('producttype');
 
-        return view('policy.policylist', compact('policies', 'products', 'searchParams','user','agentslist'));
+        return view('policy.policylist', compact('policies', 'products', 'searchParams', 'user', 'agentslist'));
     }
     /**
      * Display a listing of upcoming renewals.
