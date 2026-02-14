@@ -4,6 +4,11 @@
                     $usercheck = Auth::user();
                     $agent=agentsdetailsModel::where('uid',$usercheck->id)->first();
                     $creditleft=$agent->noallocated - $agent->noused;
+
+                    if ($usercheck->role=='subagent') {
+                        # code...
+                        $creditleft=$agent->subcreditassigned - $agent->subcreditused;
+                    }
             
                 @endphp
                 <style>
@@ -44,7 +49,7 @@
      <div class="card col-9 mb-3">
         <div class="card-header"><h4>CONFIRM POLICY DETAILS BELOW</h4></div>
         </div>
-<form id="submitPolicy" action="{{route('pay_policy')}}" method="post">
+<form id="paymentForm" action="{{route('pay_policy_old')}}" method="post">
     @csrf
     <div class="card col-9 mb-3">
         <div class="card-header"><h4>PRODUCT DETAILS</h4></div>
@@ -136,9 +141,13 @@
             <div class="p-2 bd-highlight" style="margin-right: 5px">
                 <button class="btn btn-primary" type="submit" disabled name="moniepoint" data-toggle="tooltip" data-placement="right"title="Coming Soon">Moniepoint</button>
             </div>
-            @if ($user->role=='agent' && ($agent->allowcredit==true) && ($creditleft>=0))
+            @if (in_array($user->role, ['agent', 'subagent', 'user']) && ($agent->allowcredit==true) && ($creditleft>=0))
             <div class="p-2 bd-highlight" style="margin-right: 5px">  
-                <button class="btn btn-primary" type="submit" name="agencycredit" onclick="disableButton()" id="acredtbtn">Agency Credit</button>
+                <button class="btn btn-primary"
+        type="button"
+        onclick="showProcessingAndSubmit(this)"
+        id="acreditbtn">
+Agency Credit</button>
             </div>
              <div class="p-2 bd-highlight" style="margin-right: 5px"><h5>You Have {{$creditleft}} Upload Credit(s) left: </h5>  
                
@@ -157,10 +166,23 @@
 
      
 <script>
-function disableButton() {
-    var button = document.getElementById("acreditbtn");
-    button.disabled = true;
-    button.innerText = "Processing...";
+function showProcessingAndSubmit(btn) {
+    // Show overlay
+    document.getElementById("processingOverlay").style.display = "flex";
+
+    // Optional: change button text
+    btn.innerText = "Processing...";
+        let input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "agencycredit";
+    input.value = "1";
+
+    btn.form.appendChild(input);
+    btn.form.submit();
+
+
+    // Submit the form
+    btn.form.submit();
 }
 
 function paywithpaystack(event) {
@@ -209,6 +231,28 @@ formData.append('paystackreference', transaction);
 console.log("Form data to be Sent: ", ...formData.entries());
 }
 </script>
+<style>
+    #processingOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+</style>
+
+<div id="processingOverlay">
+    Processing...
+</div>
+
 </x-layouts.app>
 
 

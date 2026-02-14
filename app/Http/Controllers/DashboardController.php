@@ -48,6 +48,31 @@ class DashboardController extends Controller
 
 
                 break;
+                    case 'subagent':
+                # code...
+                # get credit left
+                $agent = agentsdetailsModel::where('uid', $usercheck->id)->first();
+                $creditleft = $agent->subcreditassigned - $agent->subcreditused;
+
+                #get No of Policies
+                $totalpolcount = policy::where('agent_id', $usercheck->id)->where('end_date', '>', now())->count();
+                $totalpoldraft = policy::where('agent_id', $usercheck->id)->where('status', 'draft')->count();
+                $totalpolfailed = policy::where('agent_id', $usercheck->id)->where('status', 'failed')->count();
+                $totalpolapproved = policy::where('agent_id', $usercheck->id)->where('status', 'approved')->count();
+                $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')->where('agent_id', $usercheck->id)
+                    ->groupBy('producttype')->get();
+
+
+                #get policies approaching renewal
+                #first create a variable to hold the date 30 days from now
+                #then get the policies that are approaching renewal
+                $approachingrenewal = policy::where('agent_id', $usercheck->id)
+                    ->whereBetween('end_date', [now(), now()->addDays(30)])
+                    ->where('status', 'approved')
+                    ->count();
+
+
+                break;
             case 'admin':
                 # code...
                 # get credit lef
@@ -165,11 +190,7 @@ class DashboardController extends Controller
                     
                     */
 
-
-
-
-
-        return view('dashboardnew', compact(
+     return view('dashboardnew', compact(
             'creditleft',
             'totalpolcount',
             'totalpoldraft',

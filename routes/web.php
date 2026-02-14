@@ -11,6 +11,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VehiclecolorController;
 use App\Http\Controllers\VehicleMakeController;
 use App\Http\Controllers\VehicleModelController;
+use App\Http\Controllers\PolicyPaymentController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -30,22 +31,36 @@ Route::middleware('auth')->group(function () {
   });
   
 Route::middleware('auth')->group(function () {
-    Route::get('list_policy',[PolicyController::class, 'index'])->name('list_policy'); 
-    Route::get('buypolicy',[PolicyController::class, 'buypolicy'])->name('buy_policy');
-    Route::get('new_policy',[PolicyController::class, 'newpolicy'])->name('new_policy');
-    Route::get('view_policy',[PolicyController::class, 'viewpolicy'])->name('view_policy');
-    Route::post('submit_mpolicy',[PolicyController::class, 'submitmpolicy'])->name('submit_mpolicy');
-    Route::post('confirm_mpolicy',[PolicyController::class, 'confirmmpolicy'])->name('confirm_mpolicy');
-    Route::post('pay_policy',[PolicyController::class, 'paypolicy'])->name('pay_policy');
-    Route::post('renew_policy',[PolicyController::class, 'renewpolicy'])->name('renew_policy');
-    Route::get('test_async',[PolicyController::class, 'testasync'])->name('test_async');
-    Route::post('/filter_report',[PolicyController::class, 'filterreport'])->name('filterreport');
-    Route::get('/upcoming_renewals',[PolicyController::class, 'renewalslist'])->name('renewalslist');
 
-    
-    Route::get('retry_niip',[PolicyController::class, 'retryniip'])->name('retry_niip');
-    Route::get('init_paystack/{policy}',[PolicyController::class, 'init_paystack'])->name('init_paystack');
+    // Policy listing & views
+    Route::get('list_policy', [PolicyController::class, 'index'])->name('list_policy');
+    Route::get('buypolicy', [PolicyController::class, 'buypolicy'])->name('buy_policy');
+    Route::get('new_policy', [PolicyController::class, 'newpolicy'])->name('new_policy');
+    Route::get('view_policy', [PolicyController::class, 'viewpolicy'])->name('view_policy');
+    Route::get('list_policy_subagents', [PolicyController::class, 'listpolicySubagents'])->name('list_policy_subagents');
 
+    // Policy actions
+    Route::post('policy/submit_mpolicy', [PolicyController::class, 'submitmpolicy'])->name('submit_mpolicy');
+    Route::post('policy/confirm_mpolicy', [PolicyController::class, 'confirmmpolicy'])->name('confirm_mpolicy');
+    Route::post('policy/pay_policy', [PolicyController::class, 'paypolicy'])->name('pay_policy_old');
+    Route::post('policy/renew_policy', [PolicyController::class, 'renewpolicy'])->name('renew_policy');
+
+    // Reports & renewals
+    Route::post('filter_report', [PolicyController::class, 'filterreport'])->name('filterreport');
+    Route::get('upcoming_renewals', [PolicyController::class, 'renewalslist'])->name('renewalslist');
+
+    // Misc
+    Route::get('test_async', [PolicyController::class, 'testasync'])->name('test_async');
+    Route::get('retry_niip', [PolicyController::class, 'retryniip'])->name('retry_niip');
+
+    // Paystack
+    Route::get('init_paystack/{policy}', [PolicyController::class, 'init_paystack'])->name('init_paystack');
+
+    // Payment confirmation (fixed: removed leading slash)
+    Route::get('policy/{id}/confirm', [PolicyPaymentController::class, 'confirm'])->name('policy.confirm');
+
+    // Payment processing
+    Route::post('policy/pay', [PolicyPaymentController::class, 'pay'])->name('pay_policy');
 
 });
 
@@ -63,6 +78,10 @@ Route::middleware('auth')->group(function () {
     Route::get('agent_profile',[AgentsdetailsModelController::class, 'agentprofile'])->name('agentprofile');  
     Route::post('agent_update',[AgentsdetailsModelController::class, 'agentupdate'])->name('agentupdate'); 
     Route::get('generate-api-token',[UserController::class, 'generateeapitoken'])->name('generateeapitoken');
+    Route::get('sub_agents',[AgentsdetailsModelController::class, 'subagentsList'])->name('list_sub_agents');
+    Route::post('sub_agents/register_new/{agent}',[AgentsdetailsModelController::class, 'registerSubAgent'])->name('register_sub_agent');
+    Route::post('sub_agents/update_credit/add',[AgentsdetailsModelController::class, 'subAgentCreditAdd'])->name('subagent.credit.add');
+    Route::post('sub_agents/update_credit/remove',[AgentsdetailsModelController::class, 'subAgentCreditRemove'])->name('subagent.credit.remove');
 
 });
 Route::middleware('auth')->group(function () {
@@ -126,6 +145,8 @@ Route::middleware(['auth'])->group(function () {
   Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
   Volt::route('settings/password', 'settings.password')->name('settings.password');
 });
+
+
 
 
 

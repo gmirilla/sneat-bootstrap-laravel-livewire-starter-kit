@@ -44,6 +44,12 @@ class PolicyController extends Controller
                 $policies = policy::where('agent_id', $user->id)->orderBy('updated_at', 'desc')->get();
 
                 break;
+
+            case 'subagent':
+                # RETRIEVE ALL POLICIES CREATED BY THISSUBAGENT
+                $policies = policy::where('agent_id', $user->id)->orderBy('updated_at', 'desc')->get();
+
+                break;
             case 'admin':
                 # Retreieve all policies
                 $policies = policy::all();
@@ -227,7 +233,7 @@ class PolicyController extends Controller
 
         $insured = null;
 
-        if ($user->role === 'agent') {
+        if ($user->role === 'agent' or $user->role === 'subagent') {
 
             // Check if insured exists
             $insured = User::where('telno', $request->phone)->first();
@@ -381,6 +387,12 @@ class PolicyController extends Controller
         }
 
         return view('policy.confirmpolicy', compact('policy', 'policyrisk', 'user', 'accesscode'));
+       
+
+                //  not yet ready. Plan change the architecture to a more modern archiecture and refactor entire codebase
+                // $id=$policy->id;
+       // return redirect()->route('policy.confirm',compact('id'));
+
     }
 
 
@@ -423,7 +435,6 @@ class PolicyController extends Controller
     public function paypolicy(Request $request)
     {
         //
-
         Auth::check();
         $user = Auth::user();
         $policy = policy::where('id', $request->policyid)->first();
@@ -443,12 +454,22 @@ class PolicyController extends Controller
             case $request->has('agencycredit'):
                 #TO DO Get How Much Credit the Agent has and pay using assinged credit
                 // Get Current Agency Credit
+                // New logic to handle Sub Agents  with their own credits
                 $agent = agentsdetailsModel::where('uid', $user->id)->first();
+                if ($user->role=='agent'){
                 $creditleft = $agent->noallocated - $agent->noused;
                 #To Get individual AUTH TOKEN
                 #1.  Check if the Agent has an Access Token From Elite
-                #2.  IF no AUTH TOKEN USE default users TOKEN
                 $token = $agent->auth_token;
+                }
+                elseif ($user->role=='subagent') {
+                    $subagentdetails = agentsdetailsModel::where('uid', $user->id)->first();
+                    
+                    $creditleft = $subagentdetails->subcreditassigned - $subagentdetails->subcreditused;
+                     //to get Auth token from Parent
+                    $parentagent= agentsdetailsModel::where('id',$subagentdetails->puid)->first();
+                    $token=$parentagent->auth_token;
+                }
 
                 // Secondary check for Agency credit 
                 if ($creditleft <= 0) {
@@ -556,6 +577,12 @@ class PolicyController extends Controller
             if ($request->has('agencycredit')) {
                 $agent->noused = $agent->noused + 1;
                 $agent->save();
+            }
+            if ($user->role=='subagent') {
+                
+                $subagentdetails->subcreditused = $subagentdetails->subcreditused + 1;
+                $subagentdetails->noused = $subagentdetails->noused - 1;
+                $subagentdetails->save();
             }
             $policy->save();
 
@@ -876,7 +903,6 @@ class PolicyController extends Controller
         //
 
         $policy = policy::where('id', $request->policy_id)->first();
-        dd($policy);
         return redirect()->route('view_policy', compact('id'));
     }
 }

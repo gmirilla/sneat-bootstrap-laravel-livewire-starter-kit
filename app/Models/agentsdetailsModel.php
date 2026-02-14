@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class agentsdetailsModel extends Model
 {
     //
-    protected $fillable=['uid', 'allowcredit','noallocated', 'noused', 'status','access_token' ];
+    protected $fillable=['uid', 'allowcredit','noallocated', 'noused', 'status','access_token', 'puid', 
+    'subcreditassigned', 'subcreditused', 'issubagent', 'canregistersubagent'];
 
 
     public function getuserinfo()

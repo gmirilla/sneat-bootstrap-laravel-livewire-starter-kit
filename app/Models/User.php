@@ -26,7 +26,7 @@ class User extends Authenticatable implements CanResetPassword
     protected $fillable = [
         'name',
         'email',
-        'password','role', 'firstname','lastname','telno','state','address', 'gender','dob',
+        'password','role', 'firstname','lastname','telno','state','address', 'gender','dob', 'apitoken', 'parentid'
     ];
 
     /**
@@ -73,6 +73,34 @@ class User extends Authenticatable implements CanResetPassword
         $this->save();
         return $this->apitoken;
     }
+
+    public function revokeApitoken() 
+    {
+         $this->tokens()->delete(); 
+         $this->apitoken = null; 
+         $this->save(); 
+    }  
+
+    public function getagentdetails() 
+    { 
+        return agentsdetailsModel::where('uid', $this->id)->first();
+    }
+
+    //Check if User is a Sub Agent and return details if true
+    public function subagentchecker()
+    {
+        $isSubagent = agentsdetailsModel::where('uid', $this->id)->where('issubagent', true)->exists();
+        return $isSubagent;
+    }
+
+    //Get all Sub Agents under and Agent and their Details
+    public function getsubagentdetails() 
+    { 
+        return agentsdetailsModel::where('puid', $this->id)->first();
+    }
+
+    
+
 
 
 }

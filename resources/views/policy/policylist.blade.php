@@ -190,7 +190,7 @@
                                     <option value="">--Select Agent--</option>
 
                                     @forelse ($agentslist as $agent)
-                                        <option value="{{ $agent->uid }}">{{ $agent->getuserinfo()->name }}</option>
+                                        <option value="{{ $agent->uid }}">{{ $agent->getuserinfo()->name ?? 'Unknown'}}</option>
                                     @empty
                                     @endforelse
                                     </select>

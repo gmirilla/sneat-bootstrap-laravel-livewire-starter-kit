@@ -2,9 +2,14 @@
                 use App\Models\agentsdetailsModel;
                     Auth::check();
                     $usercheck = Auth::user();
+                    $agent=agentsdetailsModel::where('uid',$usercheck->id)->first();
                     if ($usercheck->role=='agent'){
-                      $agent=agentsdetailsModel::where('uid',$usercheck->id)->first();
+                      
                     $creditleft=$agent->noallocated - $agent->noused;
+                    }
+                    if ($usercheck->role=='subagent') {
+                        # code...
+                        $creditleft=$agent->subcreditassigned - $agent->subcreditused;
                     }
                     
                 @endphp
@@ -18,7 +23,8 @@
 
 
     <ul class="navbar-nav flex-row align-items-center ms-md-auto">
-      @if ($usercheck->role=='agent')
+      @if (in_array($usercheck->role, ['agent', 'subagent'
+      ]))
             <li class="nav-item lh-1 me-4">
         <a
           class="github-button"
