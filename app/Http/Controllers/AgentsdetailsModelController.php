@@ -146,7 +146,7 @@ class AgentsdetailsModelController extends Controller
         $agentdetails->noused += $validatedData['subcredit']; $agentdetails->save();
         $availableCredits = $agentdetails->noallocated - $agentdetails->noused ;
 
-        $subagents = User::where('issubagent', true)->where('parentid', $agent->id)->get();
+        //$subagents = User::where('issubagent', true)->where('parentid', $agent->id)->get();
         return redirect()->route('list_sub_agents')->with('success', 'Sub agent registered successfully.');
     }
 
