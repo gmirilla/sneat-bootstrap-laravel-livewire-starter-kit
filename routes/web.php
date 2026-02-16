@@ -47,6 +47,7 @@ Route::middleware('auth')->group(function () {
 
     // Reports & renewals
     Route::post('filter_report', [PolicyController::class, 'filterreport'])->name('filterreport');
+     Route::post('subagent/filter_report', [PolicyController::class, 'subagentfilterreport'])->name('subagent.filterreport');
     Route::get('upcoming_renewals', [PolicyController::class, 'renewalslist'])->name('renewalslist');
 
     // Misc
@@ -79,9 +80,12 @@ Route::middleware('auth')->group(function () {
     Route::post('agent_update',[AgentsdetailsModelController::class, 'agentupdate'])->name('agentupdate'); 
     Route::get('generate-api-token',[UserController::class, 'generateeapitoken'])->name('generateeapitoken');
     Route::get('sub_agents',[AgentsdetailsModelController::class, 'subagentsList'])->name('list_sub_agents');
+    Route::get('sub_agent/profile/{sid}',[AgentsdetailsModelController::class, 'subagentsprofile'])->name('subagent.profile');
     Route::post('sub_agents/register_new/{agent}',[AgentsdetailsModelController::class, 'registerSubAgent'])->name('register_sub_agent');
     Route::post('sub_agents/update_credit/add',[AgentsdetailsModelController::class, 'subAgentCreditAdd'])->name('subagent.credit.add');
     Route::post('sub_agents/update_credit/remove',[AgentsdetailsModelController::class, 'subAgentCreditRemove'])->name('subagent.credit.remove');
+    Route::post('/subagent/{id}/reset-password', [UserController::class, 'resetPassword'])->name('subagent.resetpassword');
+
 
 });
 Route::middleware('auth')->group(function () {

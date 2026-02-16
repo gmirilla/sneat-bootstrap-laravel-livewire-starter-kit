@@ -46,6 +46,16 @@ class AgentsdetailsModelController extends Controller
         return view('usermgmgt.agentdetails', compact('user', 'agent'));
     }
 
+        public function subagentsprofile(User $sid)
+    {
+        //
+        $user = $sid;
+        $agent = agentsdetailsModel::where('uid', $sid->id)->first();
+
+        return view('subagents.profile', compact('user', 'agent'));
+    }
+
+
     public function agentupdate(Request $request)
     {
         //

@@ -22,6 +22,12 @@ class agentsdetailsModel extends Model
         return policy::where('agent_id',$this->uid)->get();
     }
 
+        //Get all Parent  Agent  and their Details
+    public function getparentdetails() 
+    { 
+        return User::where('id', $this->puid)->first();
+    }
+
 
     
 

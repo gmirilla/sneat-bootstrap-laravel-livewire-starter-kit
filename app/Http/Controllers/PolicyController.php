@@ -387,11 +387,11 @@ class PolicyController extends Controller
         }
 
         return view('policy.confirmpolicy', compact('policy', 'policyrisk', 'user', 'accesscode'));
-       
 
-                //  not yet ready. Plan change the architecture to a more modern archiecture and refactor entire codebase
-                // $id=$policy->id;
-       // return redirect()->route('policy.confirm',compact('id'));
+
+        //  not yet ready. Plan change the architecture to a more modern archiecture and refactor entire codebase
+        // $id=$policy->id;
+        // return redirect()->route('policy.confirm',compact('id'));
 
     }
 
@@ -456,19 +456,18 @@ class PolicyController extends Controller
                 // Get Current Agency Credit
                 // New logic to handle Sub Agents  with their own credits
                 $agent = agentsdetailsModel::where('uid', $user->id)->first();
-                if ($user->role=='agent'){
-                $creditleft = $agent->noallocated - $agent->noused;
-                #To Get individual AUTH TOKEN
-                #1.  Check if the Agent has an Access Token From Elite
-                $token = $agent->auth_token;
-                }
-                elseif ($user->role=='subagent') {
+                if ($user->role == 'agent') {
+                    $creditleft = $agent->noallocated - $agent->noused;
+                    #To Get individual AUTH TOKEN
+                    #1.  Check if the Agent has an Access Token From Elite
+                    $token = $agent->auth_token;
+                } elseif ($user->role == 'subagent') {
                     $subagentdetails = agentsdetailsModel::where('uid', $user->id)->first();
-                    
+
                     $creditleft = $subagentdetails->subcreditassigned - $subagentdetails->subcreditused;
-                     //to get Auth token from Parent
-                    $parentagent= agentsdetailsModel::where('id',$subagentdetails->puid)->first();
-                    $token=$parentagent->auth_token;
+                    //to get Auth token from Parent
+                    $parentagent = agentsdetailsModel::where('id', $subagentdetails->puid)->first();
+                    $token = $parentagent->auth_token;
                 }
 
                 // Secondary check for Agency credit 
@@ -578,8 +577,8 @@ class PolicyController extends Controller
                 $agent->noused = $agent->noused + 1;
                 $agent->save();
             }
-            if ($user->role=='subagent') {
-                
+            if ($user->role == 'subagent') {
+
                 $subagentdetails->subcreditused = $subagentdetails->subcreditused + 1;
                 $subagentdetails->noused = $subagentdetails->noused - 1;
                 $subagentdetails->save();
@@ -825,35 +824,111 @@ class PolicyController extends Controller
         Auth::check();
         $user = Auth::user();
         $agentslist = agentsdetailsModel::all();
+        $query = Policy::query();
+        $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
+
+        switch ($user->role) {
+            case 'agent' || 'subagent':
+                # code...
+                if ($request->filled('policytype')) {
+                    $query->where('producttype', $request->policytype)->where('agent_id', $user->id);
+                }
+
+                if ($request->filled('status')) {
+                    $query->where('status', $request->status)->where('agent_id', $user->id);
+                }
+
+                if ($request->filled('datefrom')) {
+                    $query->whereDate('created_at', '>=', $request->datefrom)->where('agent_id', $user->id);
+                }
+
+                if ($request->filled('dateto')) {
+                    $query->whereDate('created_at', '<=', $request->dateto)->where('agent_id', $user->id);
+                }
+                if ($request->filled('agentcode')) {
+                    $query->where('agent_id', $request->agentcode)->where('agent_id', $user->id);
+                }
+
+                $policies = $query->get();
+                $products = policy::select('producttype')->distinct()->pluck('producttype');
+
+                break;
+
+            default:
+                # code...
+                if ($request->filled('policytype')) {
+                    $query->where('producttype', $request->policytype);
+                }
+
+                if ($request->filled('status')) {
+                    $query->where('status', $request->status);
+                }
+
+                if ($request->filled('datefrom')) {
+                    $query->whereDate('created_at', '>=', $request->datefrom);
+                }
+
+                if ($request->filled('dateto')) {
+                    $query->whereDate('created_at', '<=', $request->dateto);
+                }
+                if ($request->filled('agentcode')) {
+                    $query->where('agent_id', $request->agentcode);
+                }
+
+                $policies = $query->get();
+                $products = policy::select('producttype')->distinct()->pluck('producttype');
+                break;
+        }
+
+
+
+
+
+
+        return view('policy.policylist', compact('policies', 'products', 'searchParams', 'user', 'agentslist'));
+    }
+
+
+ public function subagentfilterreport(Request $request)
+    {
+        Auth::check();
+        $user = Auth::user();
+        $agentslist = agentsdetailsModel::where('puid', $user->id)->get();
+        $subagents = User::select('id')->where('parentid', $user->id)->distinct()->pluck('id');
 
         $query = Policy::query();
         $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
 
+                if ($request->filled('policytype')) {
+                    $query->where('producttype', $request->policytype)->whereIn('agent_id', $subagents);
+                }
 
-        if ($request->filled('policytype')) {
-            $query->where('producttype', $request->policytype);
-        }
+                if ($request->filled('status')) {
+                    $query->where('status', $request->status)->whereIn('agent_id', $subagents);
+                }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+                if ($request->filled('datefrom')) {
+                    $query->whereDate('created_at', '>=', $request->datefrom)->whereIn('agent_id', $subagents);
+                }
 
-        if ($request->filled('datefrom')) {
-            $query->whereDate('created_at', '>=', $request->datefrom);
-        }
+                if ($request->filled('dateto')) {
+                    $query->whereDate('created_at', '<=', $request->dateto)->whereIn('agent_id', $subagents);
+                }
+                if ($request->filled('agentcode')) {
+                    $query->where('agent_id', $request->agentcode)->whereIn('agent_id', $subagents);
+                }
 
-        if ($request->filled('dateto')) {
-            $query->whereDate('created_at', '<=', $request->dateto);
-        }
-        if ($request->filled('agentcode')) {
-            $query->where('agent_id', $request->agentcode);
-        }
+                $policies = $query->get();
+                $products = policy::select('producttype')->distinct()->pluck('producttype');
 
-        $policies = $query->get();
-        $products = policy::select('producttype')->distinct()->pluck('producttype');
+        $totalsubagents=$subagents->count();
+        $totalpolcount=$policies->count();
 
-        return view('policy.policylist', compact('policies', 'products', 'searchParams', 'user', 'agentslist'));
+
+        return view('subagents.policylist', 
+        compact('policies', 'products', 'searchParams', 'user', 'agentslist', 'totalpolcount','totalsubagents'));
     }
+
     /**
      * Display a listing of upcoming renewals.
      */
@@ -904,5 +979,33 @@ class PolicyController extends Controller
 
         $policy = policy::where('id', $request->policy_id)->first();
         return redirect()->route('view_policy', compact('id'));
+    }
+
+    /**
+     * Display a listing of the subagent resource.
+     */
+    public function listpolicySubagents(Request $request)
+    {
+        //
+
+        Auth::check();
+        $user = Auth::user();
+        $agentslist = agentsdetailsModel::where('puid', $user->id)->orderBy('updated_at', 'desc')->get();
+
+        //retrieve all products, policies created by users subagent
+
+        $products = policy::select('producttype')->distinct()->pluck('producttype');
+        $subagents = User::select('id')->where('parentid', $user->id)->distinct()->pluck('id');
+        $policies = Policy::whereIn('agent_id', $subagents)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+
+        $searchParams = '';
+        $totalsubagents=$subagents->count();
+        $totalpolcount=$policies->count();
+
+        return view('subagents.policylist', 
+        compact('policies', 'products', 'user', 'agentslist', 'searchParams', 'totalsubagents', 'totalpolcount'));
     }
 }

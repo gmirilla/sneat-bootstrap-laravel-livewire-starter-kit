@@ -18,45 +18,33 @@
                                 <i class="menu-icon fa fa-tachometer"></i>
                                 {{ __('Dashboard') }}</a>
                         </li>
-                        @if ($user->getAgentDetails()?->canregistersubagent)
-                            <li
-                                class="nav-item dropdown menu-item {{ request()->routeIs('list_sub_agents') || request()->routeIs('list_policy_subagents') ? 'active' : '' }}">
-                                <a class="nav-link menu-link dropdown-toggle" href="#" id="subAgentDropdown" role="button"
-                                    data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fa fa-users"></i> {{ __('Sub Agent Mgmt') }}
-                                </a>
+        @if ($user->getAgentDetails()?->canregistersubagent)
+            <!-- Sub Agent Mgmt -->
+                          <!-- Settings -->
+                        <li class="menu-item {{ request()->routeIs('list_sub_agents') || request()->routeIs('list_policy_subagents') ? 'active' : '' }}">
+                            <a href="javascript:void(0);" class="menu-link menu-toggle">
+                                <i class="menu-icon fa fa-users"></i>
+                                <div class="text-truncate">{{ __('Subagent Mgmt') }}</div>
+                            </a>
+                            <ul class="menu-sub">
+                                <li class="menu-item {{ request()->routeIs('list_sub_agents') ? 'active' : '' }}">
+                                    <a class="menu-link" href="{{ route('list_sub_agents') }}"
+                                        wire:navigate>{{ __('List of Sub Agents') }}</a>
+                                </li>
+                                <li class="menu-item {{ request()->routeIs('list_policy_subagents') ? 'active' : '' }}">
+                                    <a class="menu-link" href="{{ route('list_policy_subagents') }}"
+                                        wire:navigate>{{ __('Sub Agent Policies') }}</a>
+                                </li>
+                            </ul>
+                        </li>
+        @endif
 
-                                <ul class="dropdown-menu" aria-labelledby="subAgentDropdown">
-                                    <li class="{{ request()->routeIs('list_sub_agents') ? 'active' : '' }}">
-                                        <a class="dropdown-item" href="{{ route('list_sub_agents') }}" wire:navigate>
-                                            {{ __('List Sub Agents') }}
-                                        </a>
-                                    </li>
-                                    <li class="{{ request()->routeIs('list_policy_subagents') ? 'active' : '' }}">
-                                        <a class="dropdown-item" href="{{ route('list_policy_subagents') }}"
-                                            wire:navigate>
-                                            {{ __('Sub Agents Policies') }}
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                        @endif
 
                         
                         <!-- Policy Management -->
                         <li class="menu-item {{ request()->is('list_policy') ? 'active' : '' }}">
                             <a class="menu-link" href="{{ route('list_policy') }}" wire:navigate>
                                 <i class="menu-icon fa fa-pencil"></i>{{ __('Motor Policy Mgmt') }}</a>
-                        </li>
-                        <!-- SIPP Policy Management -->
-                        <li class="menu-item {{ request()->is('list_policy') ? 'active' : '' }}">
-                            <a class="menu-link" href="{{ route('list_policy') }}" wire:navigate>
-                                <i class="menu-icon fa fa-line-chart"></i>{{ __('SIPP Policy Mgmt') }}</a>
-                        </li>
-                        <!-- Occupiers Liability Policy Management -->
-                        <li class="menu-item {{ request()->is('list_policy') ? 'active' : '' }}">
-                            <a class="menu-link" href="{{ route('list_policy') }}" wire:navigate>
-                                <i class="menu-icon fa fa-building"></i>{{ __('Occupiers Liability Policy Mgmt') }}</a>
                         </li>
 
 

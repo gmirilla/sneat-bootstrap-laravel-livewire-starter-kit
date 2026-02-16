@@ -49,7 +49,7 @@
                         <td>
                             <div class="d-flex gap-2 flex-wrap">
 
-                                <a href="{{ route('agentprofile', ['uid' => $sub->id]) }}"
+                                <a href="{{ route('subagent.profile', ['sid' => $sub->id]) }}"
                                    class="btn btn-sm btn-primary">
                                     View
                                 </a>
