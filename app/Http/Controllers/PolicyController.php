@@ -828,8 +828,10 @@ class PolicyController extends Controller
         $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
 
         switch ($user->role) {
-            case 'agent' || 'subagent':
+            case in_array($user->role, ['agent', 'subagent']):
+
                 # code...
+
                 if ($request->filled('policytype')) {
                     $query->where('producttype', $request->policytype)->where('agent_id', $user->id);
                 }
@@ -853,9 +855,10 @@ class PolicyController extends Controller
                 $products = policy::select('producttype')->distinct()->pluck('producttype');
 
                 break;
+                            # code...
+            case in_array($user->role, ['admin', 'superadmin']):
 
-            default:
-                # code...
+
                 if ($request->filled('policytype')) {
                     $query->where('producttype', $request->policytype);
                 }
@@ -877,6 +880,9 @@ class PolicyController extends Controller
 
                 $policies = $query->get();
                 $products = policy::select('producttype')->distinct()->pluck('producttype');
+
+            default:
+
                 break;
         }
 
