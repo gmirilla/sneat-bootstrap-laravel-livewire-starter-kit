@@ -70,6 +70,7 @@
                 <div class="modal-body">
                     <p>Are you sure you want to reset the password for:</p>
                     <h6 class="fw-bold">{{ $user->firstname }} {{ $user->lastname }}</h6>
+                    <p class="text-danger"> Minimum Password Length is 6 Characters</p>
 
                     <div class="mb-3">
                         <label class="form-label">New Password</label>

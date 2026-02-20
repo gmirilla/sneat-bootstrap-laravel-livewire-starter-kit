@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\agentsdetailsModel;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -74,6 +75,26 @@ class UserController extends Controller
         $token=$user->setApiToken();
         return response()->json(['token' => $token]);
     }
+
+        /**
+     * Reset the User password     */
+    public function resetPassword(User $id, Request $request)
+    {
+        //
+        $request->validate([
+    'password' => 'required|string|min:6|max:16',
+    'password_confirmation' => 'required|same:password',
+]);
+
+
+        $id->password=Hash::make($request->password);
+
+
+        $id->save();
+
+        return back()->with('Success', 'Password updated');
+    }
+
 
 
     /**
