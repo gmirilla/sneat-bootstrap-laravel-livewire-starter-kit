@@ -5,6 +5,7 @@ use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LgaController;
 use App\Http\Controllers\NiipvehicleuseController;
+use App\Http\Controllers\NinController;
 use App\Http\Controllers\PolicyController;
 use App\Http\Controllers\StatesController;
 use App\Http\Controllers\UserController;
@@ -29,6 +30,9 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
   Route::get('/dashboard',[DashboardController::class, 'index'])->name('dashboard');
   });
+
+
+  Route::get('/ninverification',[NinController::class, 'index'])->name('ninverification.start');
   
 Route::middleware('auth')->group(function () {
 

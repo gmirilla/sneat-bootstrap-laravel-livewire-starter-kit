@@ -466,7 +466,7 @@ class PolicyController extends Controller
 
                     $creditleft = $subagentdetails->subcreditassigned - $subagentdetails->subcreditused;
                     //to get Auth token from Parent
-                    $parentagent = agentsdetailsModel::where('id', $subagentdetails->puid)->first();
+                    $parentagent = agentsdetailsModel::where('uid', $subagentdetails->puid)->first();
                     $token = $parentagent->auth_token;
                 }
 
