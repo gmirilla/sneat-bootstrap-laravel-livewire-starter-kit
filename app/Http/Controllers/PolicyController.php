@@ -182,6 +182,7 @@ class PolicyController extends Controller
                 'phone'        => 'required|string|max:15',
                 'email'        => 'required|email|max:150',
                 'dob'          => 'required|date',
+                
             ]);
 
             // Auto‑fill SIP‑specific fields
@@ -216,6 +217,7 @@ class PolicyController extends Controller
                 'phone'         => 'required|string|max:15',
                 'email'         => 'required|email|max:150',
                 'dob'           => 'required|date',
+                'start_date'    => 'required|date|after_or_equal:today',
             ], [
                 'chassisno.regex' => 'The chassis number must not contain the letters "I" or "O".'
             ]);
@@ -275,8 +277,9 @@ class PolicyController extends Controller
             ? policy::find($request->policyid)
             : new policy();
 
-        $start_date = now();
-        $end_date   = now()->addYear();
+        $start_date = $request->start_date ? \Carbon\Carbon::parse($request->start_date) : now();
+        $end_date = $start_date->copy()->addYear()->subDay();
+
 
         $policy->firstname      = $request->fname;
         $policy->lastname       = $request->lname;
@@ -299,6 +302,7 @@ class PolicyController extends Controller
         $policy->stateid        = $request->state;
         $policy->lgaid          = $request->lgas;
         $policy->niipvehicleuse = $request->niipusecode;
+        $policy->nin              = $request->nin ?? 'n/a';
 
         $policy->save();
 
@@ -591,7 +595,8 @@ class PolicyController extends Controller
 
             $niipdata =
                 [
-                    "APIKey" => config('variables.NIIP_API_KEY'),
+                    #"APIKey" => config('variables.NIIP_API_KEY'),
+                    "APIKey" => 'TESTING_API_KEY',
                     "Purpose" => $policy->niipvehicleuse,
                     "VehicleColor" => $policyrisk->vechiclecolorid,
                     "VehicleMake" => $policyrisk->getvmakeid(),

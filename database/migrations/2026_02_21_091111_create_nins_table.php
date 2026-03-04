@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('mobile')->nullable();
             $table->string('nin')->nullable();
             $table->boolean('ninverified')->default(false);
-            $table->string('ninphone')->nullable();
+            $table->string('ninmobilephone')->nullable();
             $table->date('nindob')->nullable();
             $table->string('ningender')->nullable();
             $table->string('ninphone')->nullable();
