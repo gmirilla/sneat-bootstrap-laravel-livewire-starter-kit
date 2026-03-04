@@ -595,8 +595,7 @@ class PolicyController extends Controller
 
             $niipdata =
                 [
-                    #"APIKey" => config('variables.NIIP_API_KEY'),
-                    "APIKey" => 'TESTING_API_KEY',
+                    "APIKey" => config('variables.NIIP_API_KEY'),
                     "Purpose" => $policy->niipvehicleuse,
                     "VehicleColor" => $policyrisk->vechiclecolorid,
                     "VehicleMake" => $policyrisk->getvmakeid(),
