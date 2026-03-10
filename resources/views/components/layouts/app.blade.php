@@ -2,9 +2,12 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="layout-menu-fixed" data-base-url="{{url('/')}}" data-framework="laravel">
   <head>
     @include('partials.head')
+    
 
 
   </head>
+  <link rel="stylesheet" href="{{ asset('css/mysalamcustom.css') }}">
+
 
   <body>
 

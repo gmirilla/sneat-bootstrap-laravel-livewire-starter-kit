@@ -247,8 +247,8 @@
                                         <b>Date From:</b> <i style="color:red">{{ $searchParams['datefrom'] }}</i>
                                     @endif
 
-                                    @if (!empty($searchParams['dateto']))
-                                        <b>To:</b> <i style="color:red">{{ $searchParams['dateto'] }}</i>
+                                    @if (!empty($searchParams['agentcode']))
+                                        <b>Agent:</b> <i style="color:red">{{ $searchParams['agentcode'] }}</i>
                                     @endif
                                 </th>
                             </tr>
