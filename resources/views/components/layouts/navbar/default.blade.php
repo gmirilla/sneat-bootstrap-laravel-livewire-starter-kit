@@ -78,6 +78,20 @@
               <a class="dropdown-item {{ request()->routeIs('lis') ? 'active' : '' }}" href="{{ route('list_policy') }}" wire:navigate>
         <i class="menu-icon fa fa-pencil"></i>{{ __('Policy Mgmt') }}</a>
             </li>
+                  @if ($usercheck->getAgentDetails()?->canregistersubagent)
+            <!-- Sub Agent Mgmt -->
+                          <!-- Settings -->
+
+                                      <li>
+              <a class="dropdown-item {{ request()->routeIs('list_sub_agents') ? 'active' : '' }}" wire:navigate>
+        <i class="menu-icon fa fa-users"></i>{{ __('List of Sub Agents') }}</a>
+            </li>
+              <li>
+              <a class="dropdown-item {{ request()->routeIs('list_policy_subagents') ? 'active' : '' }}" wire:navigate>
+        <i class="menu-icon fa fa-check"></i>{{ __('Sub Agents Policies') }}</a>
+            </li>
+
+        @endif
             @if ($usercheck->role=='admin' or $usercheck->role=='superadmin')
       <!-- User Management -->
     <li>
