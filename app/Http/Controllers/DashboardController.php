@@ -152,7 +152,7 @@ class DashboardController extends Controller
                 break;
         }
 
-        if (!$policies){
+        if ($usercheck->role == 'user') {
                 $totalpolcount = policy::where('insured_id', $usercheck->id)->count();
                 $totalpoldraft = policy::where('insured_id', $usercheck->id)->where('status', 'draft')->count();
                 $totalpolfailed = policy::where('insured_id', $usercheck->id)->where('status', 'failed')->count();
