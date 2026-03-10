@@ -2,8 +2,12 @@
     use App\Models\agentsdetailsModel;
     Auth::check();
     $usercheck = Auth::user();
+
     $agent = agentsdetailsModel::where('uid', $usercheck->id)->first();
+
+    if($usercheck->role == 'agent') {
     $creditleft = $agent->noallocated - $agent->noused;
+    }
 
     if ($usercheck->role == 'subagent') {
         $creditleft = $agent->subcreditassigned - $agent->subcreditused;

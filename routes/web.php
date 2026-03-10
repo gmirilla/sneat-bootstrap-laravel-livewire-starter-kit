@@ -4,6 +4,7 @@ use App\Http\Controllers\AgentsdetailsModelController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LgaController;
+use App\Http\Controllers\NiipManualController;
 use App\Http\Controllers\NiipvehicleuseController;
 use App\Http\Controllers\NinController;
 use App\Http\Controllers\PolicyController;
@@ -143,6 +144,8 @@ Route::middleware('auth')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('list_vmodel',[VehicleModelController::class, 'index'])->name('list_vmodel'); 
     Route::post('import_vmodel',[VehicleModelController::class, 'importvmodel'])->name('importvmodel'); 
+    Route::post('/niip-manual-import/import', [NiipManualController::class, 'uploadExcel'])->name('niipmanual.import');
+    Route::get('/niip-manual', [NiipManualController::class, 'show'])->name('niipmanual.show');
     
 
 });
