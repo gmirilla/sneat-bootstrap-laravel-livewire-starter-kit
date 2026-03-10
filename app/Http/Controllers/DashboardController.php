@@ -35,9 +35,14 @@ class DashboardController extends Controller
                 $agent = agentsdetailsModel::where('uid', $usercheck->id)->first();
                 if ($usercheck->role == 'agent') {
                     $creditleft = $agent->noallocated - $agent->noused;
+                    $creditassigned = $agent->noallocated;
+                    $creditused = $agent->noused;
                 } else {
                     $creditleft = $agent->subcreditassigned - $agent->subcreditused;
+                    $creditassigned = $agent->subcreditassigned;
+                    $creditused = $agent->subcreditused;
                 }
+
 
                 if ($request->filled('policytype')) {
                     $query->where('producttype', $request->policytype)->where('agent_id', $user->id);
@@ -78,6 +83,9 @@ class DashboardController extends Controller
                 # code...
                 # get credit left
                 $creditleft = 0;
+                $creditleft = 0;
+                $creditassigned = 0;
+                $creditused = 0;
                 if ($request->filled('policytype')) {
                     $query->where('producttype', $request->policytype);
                 }
@@ -95,6 +103,18 @@ class DashboardController extends Controller
                 }
                 if ($request->filled('agentcode')) {
                     $query->where('agent_id', $request->agentcode);
+                    $agent = agentsdetailsModel::where('uid', $request->agentcode)->first();
+                    $agentcheck = User::find($request->agentcode);
+                    if ($agentcheck->role == 'agent') {
+                        $creditleft = $agent->noallocated - $agent->noused;
+                        $creditassigned = $agent->noallocated;
+                        $creditused = $agent->noused;
+                    } else {
+                        $creditleft = $agent->subcreditassigned - $agent->subcreditused;
+                        $creditassigned = $agent->subcreditassigned;
+                        $creditused = $agent->subcreditused;
+                    }
+
                     $searchParams['agentname'] = User::find($request->agentcode)->name ?? 'Unknown';
                 }
 
@@ -111,6 +131,8 @@ class DashboardController extends Controller
             case 'user':
                 # code...
                 $creditleft = 0;
+                $creditassigned = 0;
+                $creditused = 0;
 
                 #get No of Policies
                 $totalpolcount = policy::where('insured_id', $usercheck->id)->count();
@@ -197,7 +219,9 @@ class DashboardController extends Controller
             'products',
             'user',
             'agentslist',
-            'searchParams'
+            'searchParams',
+            'creditassigned',
+            'creditused'
         ));
     }
 
