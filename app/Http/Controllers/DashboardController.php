@@ -138,10 +138,6 @@ class DashboardController extends Controller
                 $creditused = 0;
 
                 #get No of Policies
-                $totalpolcount = policy::where('insured_id', $usercheck->id)->count();
-                $totalpoldraft = policy::where('insured_id', $usercheck->id)->where('status', 'draft')->count();
-                $totalpolfailed = policy::where('insured_id', $usercheck->id)->where('status', 'failed')->count();
-                $totalpolapproved = policy::where('insured_id', $usercheck->id)->where('status', 'approved')->count();
                 $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')->where('insured_id', $usercheck->id)
                     ->groupBy('producttype')->get();
 
@@ -155,10 +151,20 @@ class DashboardController extends Controller
                 # code...
                 break;
         }
-        $totalpolcount = $policies->count();
+
+        if (!$policies){
+                $totalpolcount = policy::where('insured_id', $usercheck->id)->count();
+                $totalpoldraft = policy::where('insured_id', $usercheck->id)->where('status', 'draft')->count();
+                $totalpolfailed = policy::where('insured_id', $usercheck->id)->where('status', 'failed')->count();
+                $totalpolapproved = policy::where('insured_id', $usercheck->id)->where('status', 'approved')->count();
+        }else{
+                    $totalpolcount = $policies->count();
         $totalpoldraft = $policies->where('status', 'draft')->count();
         $totalpolfailed = $policies->where('status', 'failed')->count();
         $totalpolapproved = $policies->where('status', 'approved')->count();
+
+        }
+
 
 
 

@@ -10,16 +10,29 @@ new #[Layout('components.layouts.auth')] class extends Component {
     /**
      * Send a password reset link to the provided email address.
      */
-    public function sendPasswordResetLink(): void
-    {
-        $this->validate([
-            'email' => ['required', 'string', 'email'],
+public function sendPasswordResetLink(): void
+{
+    $this->validate([
+        'email' => ['required', 'string', 'email'],
+    ]);
+
+    $status = Password::sendResetLink($this->only('email'));
+
+    if ($status === Password::RESET_LINK_SENT) {
+        Log::info('Password reset link sent', [
+            'email' => $this->email,
+            'ip' => request()->ip(),
         ]);
-
-        Password::sendResetLink($this->only('email'));
-
-        session()->flash('status', __('A reset link will be sent if the account exists.'));
+    } else {
+        Log::warning('Password reset attempt blocked (email not found)', [
+            'email' => $this->email,
+            'ip' => request()->ip(),
+        ]);
     }
+
+    session()->flash('status', __('A reset link will be sent if the account exists.'));
+}
+
 }; ?>
 
 @section('title', 'Forgot Password')
