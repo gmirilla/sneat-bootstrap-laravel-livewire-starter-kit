@@ -157,46 +157,47 @@
         {{-- ── Stat cards ── --}}
         <div class="stats-grid">
             <div class="stat-card" style="animation-delay:.05s">
-                @if (in_array($user->role, ['admin', 'superadmin']))
+
+                <div class="stat-card-body">
+                    <div class="stat-icon stat-icon-blue">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                        </svg>
+                    </div>
+                    <div class="stat-value stat-value-blue">{{ $creditassigned }}</div>
+                </div>
+                <div class="stat-card-footer">Total Credits Assigned</div>
+            </div>
+            @if (in_array($user->role, ['admin', 'superadmin']))
+                <div class="stat-card" style="animation-delay:.05s">
                     <div class="stat-card-body">
-                        <div class="stat-icon stat-icon-blue">
+                        <div class="stat-icon stat-icon-red">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
                                     d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
                             </svg>
                         </div>
-                        <div class="stat-value stat-value-blue">{{ $creditassigned }}</div>
+                        <div class="stat-value stat-value-red">{{ $creditused }}</div>
                     </div>
-                    <div class="stat-card-footer">Total Credits Assigned</div>
-            </div>
-            <div class="stat-card" style="animation-delay:.05s">
-                <div class="stat-card-body">
-                    <div class="stat-icon stat-icon-red">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                        </svg>
-                    </div>
-                    <div class="stat-value stat-value-red">{{ $creditused }}</div>
+                    <div class="stat-card-footer">Total Credits Used</div>
                 </div>
-                <div class="stat-card-footer">Total Credits Used</div>
-            </div>
 
-            <div class="stat-card" style="animation-delay:.05s">
-                <div class="stat-card-body">
-                    <div class="stat-icon stat-icon-green">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                        </svg>
+                <div class="stat-card" style="animation-delay:.05s">
+                    <div class="stat-card-body">
+                        <div class="stat-icon stat-icon-green">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                            </svg>
+                        </div>
+                        <div class="stat-value stat-value-green">{{ $creditleft }}</div>
                     </div>
-                    <div class="stat-value stat-value-green">{{ $creditleft }}</div>
+                    <div class="stat-card-footer">Upload Credits Left</div>
                 </div>
-                <div class="stat-card-footer">Upload Credits Left</div>
-            </div>
             @endif
 
             <div class="stat-card" style="animation-delay:.08s">

@@ -69,6 +69,7 @@ class DashboardController extends Controller
                 #get No of Policies
                 $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')->where('agent_id', $usercheck->id)
                     ->groupBy('producttype')->get();
+                    //dd($policygroup);//
 
 
                 #get policies approaching renewal
@@ -119,6 +120,8 @@ class DashboardController extends Controller
                 }
 
                 $policies = $query->get();
+             $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')
+            ->groupBy('producttype')->get();
 
                 #get No of Policies
 
@@ -156,8 +159,7 @@ class DashboardController extends Controller
         $totalpoldraft = $policies->where('status', 'draft')->count();
         $totalpolfailed = $policies->where('status', 'failed')->count();
         $totalpolapproved = $policies->where('status', 'approved')->count();
-        $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')
-            ->groupBy('producttype')->get();
+
 
 
 
