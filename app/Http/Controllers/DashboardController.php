@@ -64,7 +64,8 @@ class DashboardController extends Controller
                     $searchParams['agentname'] = User::find($request->agentcode)->name ?? 'Unknown';
                 }
 
-                $policies = $query->get();
+                $policies = $query->where('agent_id', $user->id)->get();
+
 
                 #get No of Policies
                 $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')->where('agent_id', $usercheck->id)
@@ -213,7 +214,8 @@ class DashboardController extends Controller
 
                     
                     */
-
+                        //dd($totalpolcount)
+;
         return view('dashboardnew', compact(
             'creditleft',
             'totalpolcount',

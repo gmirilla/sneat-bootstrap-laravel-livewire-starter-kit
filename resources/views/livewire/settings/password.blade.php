@@ -14,27 +14,27 @@ new class extends Component {
     /**
      * Update the password for the currently authenticated user.
      */
-    public function updatePassword(): void
-    {
-        try {
-            $validated = $this->validate([
-                'current_password' => ['required', 'string', 'current_password'],
-                'password' => ['required', 'string', Password::defaults(), 'confirmed'],
-            ]);
-        } catch (ValidationException $e) {
-            $this->reset('current_password', 'password', 'password_confirmation');
-
-            throw $e;
-        }
-
-        Auth::user()->update([
-            'password' => Hash::make($validated['password']),
+   public function updatePassword(): void
+{
+    try {
+        $validated = $this->validate([
+            'current_password' => ['required', 'string', 'current_password'],
+            'password' => ['required', 'string', Password::defaults(), 'confirmed'],
         ]);
-
+    } catch (ValidationException $e) {
         $this->reset('current_password', 'password', 'password_confirmation');
-
-        $this->dispatch('password-updated');
+        throw $e;
     }
+
+    $user = auth()->user();
+    $user->password = Hash::make($validated['password']);
+    $user->save();
+
+    $this->reset('current_password', 'password', 'password_confirmation');
+
+    $this->dispatch('password-updated');
+}
+
 }; ?>
 
 @section('title', 'Update password')
