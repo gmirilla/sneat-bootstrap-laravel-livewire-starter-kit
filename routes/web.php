@@ -165,19 +165,5 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-Route::get('/db-port-test', function () {
-    $host = "elitepolicy.salamtakafulinsurance.com";
-    $port = 5432;
-
-    $fp = @fsockopen($host, $port, $errno, $errstr, 5);
-
-    if (!$fp) {
-        return "❌ ERROR: $errstr ($errno)";
-    }
-
-    fclose($fp);
-    return "✅ CONNECTED";
-});
-
 
 require __DIR__ . '/auth.php';
