@@ -14,6 +14,7 @@ use App\Http\Controllers\VehiclecolorController;
 use App\Http\Controllers\VehicleMakeController;
 use App\Http\Controllers\VehicleModelController;
 use App\Http\Controllers\PolicyPaymentController;
+use App\Http\Controllers\EcmrController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -77,6 +78,12 @@ Route::get('error', function () {
 Route::middleware('auth')->group(function () {
     Route::get('list_users',[UserController::class, 'index'])->name('list_users'); 
     Route::post('update_user',[UserController::class, 'updateuser'])->name('update_user');    
+});
+
+
+Route::middleware('auth')->group(function () {
+    Route::get('ecmr_index',[ECMRController::class, 'index'])->name('ecmrs.index'); 
+
 });
 
 Route::middleware('auth')->group(function () {
@@ -158,7 +165,19 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
+Route::get('/db-port-test', function () {
+    $host = "elitepolicy.salamtakafulinsurance.com";
+    $port = 5432;
 
+    $fp = @fsockopen($host, $port, $errno, $errstr, 5);
+
+    if (!$fp) {
+        return "❌ ERROR: $errstr ($errno)";
+    }
+
+    fclose($fp);
+    return "✅ CONNECTED";
+});
 
 
 require __DIR__ . '/auth.php';

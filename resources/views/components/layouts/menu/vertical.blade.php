@@ -49,6 +49,15 @@
 
 
                         @if ($user->role == 'admin' or $user->role == 'superadmin')
+                                                    <!-- Policy eCMR -->
+                            <li class="menu-item {{ request()->is('ecmr_index') ? 'active' : '' }}">
+                                <a class="menu-link" href="{{ route('ecmrs.index') }}" wire:navigate>
+                                    <i class="menu-icon fa fa-id-card-o"></i>{{ __('Police eCMR') }}
+                                </a>
+                            </li>
+
+
+
                             <!-- User Management -->
                             <li class="menu-item {{ request()->is('list_users') ? 'active' : '' }}">
                                 <a class="menu-link" href="{{ route('list_users') }}" wire:navigate>

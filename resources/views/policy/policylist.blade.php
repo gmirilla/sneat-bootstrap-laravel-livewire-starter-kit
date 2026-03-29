@@ -100,6 +100,13 @@
                             <button class="btn btn-primary mb-3" name="btnmotorcycle"
                                 style="font-size:0.8rem">Motorcycle/Tricycle Third Party</button>
                         </div>
+                                                <div class="card-body col-lg-3">
+                            <div>
+                                <icon class="fa fa-line-chart" style="font-size: 4rem;"></icon>
+                                <p style="color: red">Occupier's Liability Policy**</p>
+                            </div>
+                            <button class="btn btn-primary mb-3" name="btnoccupier"style="font-size:0.8rem">Occupier's Liability</button>
+                        </div>
                         <div class="card-body col-lg-3">
                             <div>
                                 <icon class="fa fa-line-chart" style="font-size: 4rem;"></icon>

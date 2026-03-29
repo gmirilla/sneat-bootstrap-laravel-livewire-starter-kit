@@ -136,6 +136,27 @@ class PolicyController extends Controller
                 ));
                 break;
 
+                case ($request->has('btnoccupier')):
+                # begin the purchase of a SIP policy
+                $producttype = 'Occupier Liability Policy';
+                $contribution = 0;
+                $usekey = 'olp';
+                $insurancetype = 'olp';
+                $vehicleuse = "motorcycle"; //placeholder to be corrected on bitlect updates thier API
+                $niipusecode = 'NA';  // SIP  not  applicable
+                return view('policy.SIP.newpolicy', compact(
+                    'vmakes',
+                    'producttype',
+                    'contribution',
+                    'usekey',
+                    'insurancetype',
+                    'vehicleuse',
+                    'states',
+                    'colors',
+                    'niipusecode'
+                ));
+                break;
+
             default:
                 # To Do  create a default 
                 return back()->with('Error', 'Product not Configured or imported successfully.');
