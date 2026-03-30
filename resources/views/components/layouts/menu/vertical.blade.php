@@ -1,11 +1,36 @@
+                <style>
+                    .menu-item.active > .menu-link {
+                        background-color: #B18752;
+                        color: #161616;
+                    }
+
+                    .menu-item.active > .menu-link:hover {
+                        background-color: #B18752;
+                        color: #161616;
+                    }
+
+                    .menu-item.active.open > .menu-link {
+                        background-color: #B18752;
+                        color: #161616;
+                    }
+
+                    .menu-item.active.open > .menu-link:hover {
+                        background-color: #B18752;
+                        color: #161616;
+                    }
+                    .menu-link {
+
+                        color: #B18752 !important;
+                    }
+                    </style>
                 @php
 
                     Auth::check();
                     $user = Auth::user();
                 @endphp
                 <!-- Menu -->
-                <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
-                    <div class="app-brand demo" style ="background: #161616; color :#B18752; font-weight: bold; font-size: 1.2rem; padding: 0.5rem 1rem;">
+                <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme" style ="background: #161616; color :#B18752; font-weight: bold; font-size: 1.2rem; padding: 0.5rem 1rem;">
+                    <div class="app-brand demo" style ="background: #161616; font-weight: bold; font-size: 1.2rem; padding: 0.5rem 1rem;">
                         <a href="{{ url('/') }}" class="app-brand-link"><x-app-logo /></a>
                     </div>
 
