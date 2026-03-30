@@ -2,7 +2,7 @@
   <div class="authentication-inner row m-0">
     <!-- /Left Text -->
     <div class="d-none d-lg-flex col-lg-7 col-xl-8 align-items-center p-5" 
-    style="background-image:url({{asset('assets/img/illustrations/salamlogo.png')}}) ; background-repeat: no-repeat; background-size: cover;  ">
+    style="background-image:url({{asset('assets/img/illustrations/salamlogo.webp')}}) ; background-repeat: no-repeat; background-size: cover;  ">
       <div class="w-100 d-flex justify-content-center">
         <div>
 
