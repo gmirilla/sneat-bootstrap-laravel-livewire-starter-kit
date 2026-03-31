@@ -464,11 +464,11 @@
                         <div class="sl-product-tile">
                             <span class="tile-icon"><i class="fa-solid fa-building-shield"></i></span>
                             <p class="text-alert">Occupier's Liability Policy**</p>
-                            <button class="btn-tile" name="btnoccupier">Occupier's Liability</button>
+                            <button class="btn-tile" name="btnoccupier" disabled>Occupier's Liability</button>
                         </div>
 
                         <div class="sl-product-tile">
-                            <span class="tile-icon"><i class="fa-solid fa-piggy-bank"></i></span>
+                            <span class="tile-icon"><i class="fa-solid fa-money"></i></span>
                             <p class="text-alert">Salam Savings Policy**</p>
                             <button class="btn-tile" name="btnsipp" disabled>Salam Investment Plan</button>
                         </div>
