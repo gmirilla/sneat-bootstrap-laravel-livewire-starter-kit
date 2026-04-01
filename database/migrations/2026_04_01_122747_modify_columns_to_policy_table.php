@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::table('policies', function (Blueprint $table) {
             //
             $table->string('paymenttype')->nullable();
-            $table->boolean('cancelled')->default('false');
+            $table->boolean('cancelled')->default(false);
             $table->string('cancellation_reason')->nullable();
             $table->date('cancellation_date')->nullable();
             $table->string('cancellation_uid')->nullable();
