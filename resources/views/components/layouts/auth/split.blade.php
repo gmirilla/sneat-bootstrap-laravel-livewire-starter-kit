@@ -1,8 +1,16 @@
+<style>
+  a {
+    color: #ffffff;
+  }
+    a:hover {
+    color: #B18752;
+  }
+</style>
 <div class="authentication-wrapper authentication-cover">
   <div class="authentication-inner row m-0">
     <!-- /Left Text -->
     <div class="d-none d-lg-flex col-lg-7 col-xl-8 align-items-center p-5" 
-    style="background-image:url({{asset('assets/img/illustrations/salamlogo.webp')}}) ; background-repeat: no-repeat; background-size: cover;  ">
+    style="background-image:url({{asset('assets/img/illustrations/mysalam.webp')}}) ; background-repeat: no-repeat; background-size: cover;  ">
       <div class="w-100 d-flex justify-content-center">
         <div>
 
@@ -13,7 +21,7 @@
     <!-- /Left Text -->
 
     <!-- Right Text -->
-    <div class="card col-12 col-lg-5 col-xl-4">
+    <div class="card col-12 col-lg-5 col-xl-4" style="background: #161616; color: #B18752">
       <div class="d-flex align-items-center authentication-bg p-sm-12 p-6 h-100">
         <div class="w-px-400 mx-auto mt-sm-12 mt-8">
           {{ $slot }}

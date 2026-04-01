@@ -65,7 +65,7 @@
                 <h5 class="card-title">Search Vehicle Record</h5>
                 <form action="" method="post">
                     <label for="ecmr_regno">Registration Number</label>
-                    <input type="file" id="ecmr_regno" name="ecmr_regno" class="form-control mb-3" required>
+                    <input type="text" id="ecmr_regno" name="ecmr_regno" class="form-control mb-3" required>
                     <button type="submit" class="btn btn-primary update-btn">Search</button>
                 </form>
             </div>

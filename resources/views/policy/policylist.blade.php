@@ -17,7 +17,7 @@
     :root {
         --brand:       #B18752;
         --brand-light: #c6ac8b;
-        --brand-pale:  #e8f5f1;
+        --brand-pale:  #f6ede0; /* FIX #6: warm tint matching gold brand, was green #e8f5f1 */
         --accent:      #f0a500;
         --danger:      #d63d3d;
         --warning:     #d4a017;
@@ -27,7 +27,7 @@
         --text:        #1a2e28;
         --muted:       #6b8680;
         --radius:      10px;
-        --shadow:      0 2px 12px rgba(10,79,60,.08);
+        --shadow:      0 2px 12px rgba(10, 79, 60, .08);
         --font:        'DM Sans', sans-serif;
         --mono:        'DM Mono', monospace;
     }
@@ -37,13 +37,21 @@
     body, .page-wrap { font-family: var(--font); color: var(--text); }
 
     /* ── PAGE WRAPPER ─────────────────────────────── */
-    .sl-page { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+    .sl-page {
+        padding: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
 
     /* ── ALERT ────────────────────────────────────── */
     .sl-alert {
-        background: #fff0f0; border-left: 4px solid var(--danger);
-        border-radius: var(--radius); padding: .9rem 1.2rem;
-        margin-bottom: 1.25rem; font-size: .875rem; color: var(--danger);
+        background: #fff0f0;
+        border-left: 4px solid var(--danger);
+        border-radius: var(--radius);
+        padding: .9rem 1.2rem;
+        margin-bottom: 1.25rem;
+        font-size: .875rem;
+        color: var(--danger);
     }
     .sl-alert ul { margin: 0; padding-left: 1.2rem; }
 
@@ -102,7 +110,7 @@
     }
     .sl-product-tile:hover {
         border-color: var(--brand-light);
-        box-shadow: 0 4px 18px rgba(10,79,60,.12);
+        box-shadow: 0 4px 18px rgba(177, 135, 82, .15);
         transform: translateY(-2px);
     }
     .sl-product-tile .tile-icon {
@@ -134,7 +142,10 @@
     }
     .sl-product-tile .btn-tile:hover:not(:disabled) { background: var(--brand-light); }
     .sl-product-tile .btn-tile:disabled {
-        background: #c9d5d2; color: #fff; cursor: not-allowed; opacity: .75;
+        background: #c9d5d2;
+        color: #fff;
+        cursor: not-allowed;
+        opacity: .75;
     }
 
     /* ── FILTER BAR ───────────────────────────────── */
@@ -178,9 +189,14 @@
     .sl-filter-field input[type="date"]:focus {
         outline: none;
         border-color: var(--brand-light);
-        box-shadow: 0 0 0 3px rgba(15,122,90,.12);
+        box-shadow: 0 0 0 3px rgba(177, 135, 82, .15);
     }
-    .sl-filter-actions { display: flex; gap: .5rem; align-items: flex-end; flex-wrap: wrap; }
+    .sl-filter-actions {
+        display: flex;
+        gap: .5rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+    }
     .btn-apply {
         padding: .5rem 1.1rem;
         background: var(--brand);
@@ -228,7 +244,7 @@
         display: inline-flex;
         align-items: center;
         gap: .35rem;
-        background: var(--brand-pale);
+        background: var(--brand-pale); /* now correctly warm gold tint */
         color: var(--brand);
         border-radius: 20px;
         padding: .28rem .75rem;
@@ -248,13 +264,15 @@
         letter-spacing: .04em;
         margin-bottom: .3rem;
     }
-    .badge-approved  { background: #e6f4ee; color: #0a5c35; }
-    .badge-draft     { background: #e9eef7; color: #2d4a8a; }
-    .badge-failed    { background: #fde8e8; color: #b91c1c; }
-    .badge-default   { background: #f3f4f6; color: #4b5563; }
-    .badge-niip-ok   { background: #e6f4ee; color: #0a5c35; }
-    .badge-niip-warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-    .badge-niip-err  { background: #fde8e8; color: #b91c1c; }
+    .badge-approved   { background: #e6f4ee; color: #0a5c35; }
+    .badge-draft      { background: #e9eef7; color: #2d4a8a; }
+    .badge-failed     { background: #fde8e8; color: #b91c1c; }
+    /* FIX #5: dedicated cancelled badge — neutral grey/amber, distinct from failed */
+    .badge-cancelled  { background: #f3f0e8; color: #7a6030; border: 1px solid #e0ceaa; }
+    .badge-default    { background: #f3f4f6; color: #4b5563; }
+    .badge-niip-ok    { background: #e6f4ee; color: #0a5c35; }
+    .badge-niip-warn  { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .badge-niip-err   { background: #fde8e8; color: #b91c1c; }
 
     /* ── TABLE ────────────────────────────────────── */
     .sl-table-wrap { overflow-x: auto; }
@@ -276,7 +294,6 @@
         border: none;
         white-space: nowrap;
     }
-    #policylist thead th:first-child { border-radius: 0; }
     #policylist tbody tr { transition: background .15s; }
     #policylist tbody tr:nth-child(even) { background: var(--surface-2); }
     #policylist tbody tr:hover { background: var(--brand-pale); }
@@ -294,11 +311,10 @@
         background: var(--surface-2);
     }
 
-    /* policy number mono */
-    .policy-no { font-family: var(--mono); font-size: .78rem; color: var(--brand); font-weight: 500; }
+    .policy-no        { font-family: var(--mono); font-size: .78rem; color: var(--brand); font-weight: 500; }
     .policy-incomplete { color: var(--muted); font-style: italic; font-size: .75rem; }
 
-    /* action buttons */
+    /* ── ACTION BUTTONS ───────────────────────────── */
     .btn-view {
         padding: .35rem .8rem;
         background: var(--brand);
@@ -325,8 +341,130 @@
         transition: background .18s, color .18s;
     }
     .btn-cert:hover { background: var(--brand); color: #fff; }
+    .btn-cancel {
+        display: inline-block;
+        margin-top: .3rem;
+        padding: .35rem .8rem;
+        background: transparent;
+        color: var(--danger);
+        border: 1.5px solid var(--danger);
+        border-radius: 6px;
+        font-size: .75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .18s, color .18s;
+    }
+    .btn-cancel:hover { background: var(--danger); color: #fff; }
 
-    /* DataTables override */
+    /* ── MODAL ────────────────────────────────────── */
+    .sl-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 30, 25, .45);
+        backdrop-filter: blur(3px);
+        z-index: 1050;
+        align-items: center;
+        justify-content: center;
+    }
+    .sl-modal-overlay.active { display: flex; }
+    .sl-modal {
+        background: var(--surface);
+        border-radius: 12px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, .18);
+        width: 90%;
+        max-width: 500px;
+        animation: modalIn .22s ease;
+    }
+    @keyframes modalIn {
+        from { opacity: 0; transform: translateY(-14px) scale(.97); }
+        to   { opacity: 1; transform: none; }
+    }
+    .sl-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .sl-modal-header h5 { margin: 0; font-size: .95rem; font-weight: 700; color: var(--brand); }
+    .sl-modal-header.danger h5 { color: var(--danger); }
+    .sl-modal-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 1.1rem;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background .15s;
+    }
+    .sl-modal-close:hover { background: var(--surface-2); }
+    .sl-modal-body {
+        padding: 1.1rem 1.25rem;
+        font-size: .87rem;
+        line-height: 1.6;
+        color: var(--text);
+    }
+    .sl-modal-footer {
+        padding: .85rem 1.25rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: .5rem;
+    }
+    .btn-modal-close {
+        padding: .45rem 1.2rem;
+        background: var(--surface-2);
+        border: 1.5px solid var(--border);
+        border-radius: 7px;
+        font-size: .82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .15s;
+    }
+    .btn-modal-close:hover { background: var(--border); }
+
+    /* cancel modal textarea */
+    .sl-textarea {
+        width: 100%;
+        padding: .5rem .75rem;
+        border: 1.5px solid var(--border);
+        border-radius: 7px;
+        font-size: .83rem;
+        font-family: var(--font);
+        color: var(--text);
+        resize: vertical;
+        min-height: 80px;
+        margin-top: .75rem;
+        transition: border-color .2s;
+    }
+    .sl-textarea:focus {
+        outline: none;
+        border-color: var(--brand-light);
+        box-shadow: 0 0 0 3px rgba(177, 135, 82, .15);
+    }
+    .btn-confirm-cancel {
+        padding: .45rem 1.2rem;
+        background: var(--danger);
+        color: #fff;
+        border: none;
+        border-radius: 7px;
+        font-size: .82rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        transition: background .18s;
+    }
+    .btn-confirm-cancel:hover { background: #b52e2e; }
+
+    /* DataTables overrides */
     .dataTables_wrapper .dt-buttons .dt-button {
         background: var(--surface);
         border: 1.5px solid var(--border);
@@ -348,7 +486,7 @@
     .dataTables_wrapper .dataTables_filter input:focus {
         outline: none;
         border-color: var(--brand-light);
-        box-shadow: 0 0 0 3px rgba(15,122,90,.12);
+        box-shadow: 0 0 0 3px rgba(177, 135, 82, .15);
     }
     .dataTables_wrapper { font-family: var(--font); font-size: .82rem; }
     .dataTables_wrapper .dataTables_paginate .paginate_button.current,
@@ -364,55 +502,6 @@
         color: var(--brand) !important;
         border-radius: 6px;
     }
-
-    /* ── MODAL ────────────────────────────────────── */
-    .sl-modal-overlay {
-        display: none; position: fixed; inset: 0;
-        background: rgba(10,30,25,.45); backdrop-filter: blur(3px);
-        z-index: 1050; align-items: center; justify-content: center;
-    }
-    .sl-modal-overlay.active { display: flex; }
-    .sl-modal {
-        background: var(--surface);
-        border-radius: 12px;
-        box-shadow: 0 16px 48px rgba(0,0,0,.18);
-        width: 90%; max-width: 500px;
-        animation: modalIn .22s ease;
-    }
-    @keyframes modalIn {
-        from { opacity: 0; transform: translateY(-14px) scale(.97); }
-        to   { opacity: 1; transform: none; }
-    }
-    .sl-modal-header {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 1rem 1.25rem;
-        border-bottom: 1px solid var(--border);
-    }
-    .sl-modal-header h5 { margin: 0; font-size: .95rem; font-weight: 700; color: var(--brand); }
-    .sl-modal-close {
-        background: none; border: none; cursor: pointer;
-        color: var(--muted); font-size: 1.1rem;
-        width: 28px; height: 28px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        transition: background .15s;
-    }
-    .sl-modal-close:hover { background: var(--surface-2); }
-    .sl-modal-body { padding: 1.1rem 1.25rem; font-size: .87rem; line-height: 1.6; color: var(--text); }
-    .sl-modal-footer {
-        padding: .85rem 1.25rem;
-        border-top: 1px solid var(--border);
-        display: flex; justify-content: flex-end;
-    }
-    .btn-modal-close {
-        padding: .45rem 1.2rem;
-        background: var(--surface-2);
-        border: 1.5px solid var(--border);
-        border-radius: 7px;
-        font-size: .82rem; font-weight: 600;
-        cursor: pointer;
-        transition: background .15s;
-    }
-    .btn-modal-close:hover { background: var(--border); }
 </style>
 
 <x-layouts.app>
@@ -463,12 +552,14 @@
 
                         <div class="sl-product-tile">
                             <span class="tile-icon"><i class="fa-solid fa-building-shield"></i></span>
+                            {{-- FIX #8: Restored to enabled — was incorrectly disabled --}}
                             <p class="text-alert">Occupier's Liability Policy**</p>
-                            <button class="btn-tile" name="btnoccupier" disabled>Occupier's Liability</button>
+                            <button class="btn-tile" name="btnoccupier">Occupier's Liability</button>
                         </div>
 
                         <div class="sl-product-tile">
-                            <span class="tile-icon"><i class="fa-solid fa-money"></i></span>
+                            {{-- FIX #4: fa-money does not exist — corrected to fa-sack-dollar --}}
+                            <span class="tile-icon"><i class="fa-solid fa-sack-dollar"></i></span>
                             <p class="text-alert">Salam Savings Policy**</p>
                             <button class="btn-tile" name="btnsipp" disabled>Salam Investment Plan</button>
                         </div>
@@ -508,6 +599,7 @@
                         <div class="sl-filter-field">
                             <label for="status">Status</label>
                             <select name="status" id="status">
+                                {{-- FIX #9: Added 'Cancelled' as a filterable status option --}}
                                 @if ($searchParams['status'] ?? false)
                                     <option value="{{ $searchParams['status'] }}" selected>{{ ucwords($searchParams['status']) }}</option>
                                 @else
@@ -515,6 +607,7 @@
                                     <option value="approved">Approved</option>
                                     <option value="draft">Draft</option>
                                     <option value="failed">Failed</option>
+                                    <option value="cancelled">Cancelled</option>
                                 @endif
                             </select>
                         </div>
@@ -543,18 +636,18 @@
 
                         {{-- Agent (admin only) --}}
                         @if ($user->role == 'admin' || $user->role == 'superadmin')
-                        <div class="sl-filter-field">
-                            <label for="agentcode">Agent</label>
-                            <select name="agentcode" id="agentcode">
-                                <option value="">All Agents</option>
-                                @forelse ($agentslist as $agent)
-                                    <option value="{{ $agent->uid }}" @if(($searchParams['agentcode'] ?? '') == $agent->uid) selected @endif>
-                                        {{ $agent->getuserinfo()->name ?? 'Unknown' }}
-                                    </option>
-                                @empty
-                                @endforelse
-                            </select>
-                        </div>
+                            <div class="sl-filter-field">
+                                <label for="agentcode">Agent</label>
+                                <select name="agentcode" id="agentcode">
+                                    <option value="">All Agents</option>
+                                    @forelse ($agentslist as $agent)
+                                        <option value="{{ $agent->uid }}" @if(($searchParams['agentcode'] ?? '') == $agent->uid) selected @endif>
+                                            {{ $agent->getuserinfo()->name ?? 'Unknown' }}
+                                        </option>
+                                    @empty
+                                    @endforelse
+                                </select>
+                            </div>
                         @endif
 
                         {{-- Actions --}}
@@ -562,7 +655,7 @@
                             <button class="btn-apply" type="submit">
                                 <i class="fa-solid fa-magnifying-glass"></i> Apply Filters
                             </button>
-                            <a href="{{ route('filterreport') }}" class="btn-reset">
+                            <a href="{{ route('list_policy') }}" class="btn-reset">
                                 <i class="fa-solid fa-xmark"></i> Clear Filters
                             </a>
                         </div>
@@ -571,24 +664,24 @@
 
                     {{-- Active Filter Chips --}}
                     @if (!empty($searchParams))
-                    <div class="sl-filter-chips">
-                        <span class="sl-chip-label">Active filters:</span>
-                        @if (!empty($searchParams['policytype']))
-                            <span class="sl-chip"><i class="fa-solid fa-tag"></i> {{ ucwords($searchParams['policytype']) }}</span>
-                        @endif
-                        @if (!empty($searchParams['status']))
-                            <span class="sl-chip"><i class="fa-solid fa-circle-dot"></i> {{ ucwords($searchParams['status']) }}</span>
-                        @endif
-                        @if (!empty($searchParams['datefrom']))
-                            <span class="sl-chip"><i class="fa-regular fa-calendar"></i> From {{ $searchParams['datefrom'] }}</span>
-                        @endif
-                        @if (!empty($searchParams['dateto']))
-                            <span class="sl-chip"><i class="fa-regular fa-calendar"></i> To {{ $searchParams['dateto'] }}</span>
-                        @endif
-                        @if (!empty($searchParams['agentcode']))
-                            <span class="sl-chip"><i class="fa-solid fa-user"></i> Agent filtered</span>
-                        @endif
-                    </div>
+                        <div class="sl-filter-chips">
+                            <span class="sl-chip-label">Active filters:</span>
+                            @if (!empty($searchParams['policytype']))
+                                <span class="sl-chip"><i class="fa-solid fa-tag"></i> {{ ucwords($searchParams['policytype']) }}</span>
+                            @endif
+                            @if (!empty($searchParams['status']))
+                                <span class="sl-chip"><i class="fa-solid fa-circle-dot"></i> {{ ucwords($searchParams['status']) }}</span>
+                            @endif
+                            @if (!empty($searchParams['datefrom']))
+                                <span class="sl-chip"><i class="fa-regular fa-calendar"></i> From {{ $searchParams['datefrom'] }}</span>
+                            @endif
+                            @if (!empty($searchParams['dateto']))
+                                <span class="sl-chip"><i class="fa-regular fa-calendar"></i> To {{ $searchParams['dateto'] }}</span>
+                            @endif
+                            @if (!empty($searchParams['agentcode']))
+                                <span class="sl-chip"><i class="fa-solid fa-user"></i> Agent filtered</span>
+                            @endif
+                        </div>
                     @endif
 
                 </form>
@@ -675,12 +768,22 @@
                                                     @endif
                                                 @endif
                                             @break
+
                                             @case('draft')
                                                 <span class="sl-badge badge-draft"><i class="fa-regular fa-clock"></i> Draft</span>
                                             @break
+
                                             @case('failed')
                                                 <span class="sl-badge badge-failed"><i class="fa-solid fa-circle-xmark"></i> Failed</span>
                                             @break
+
+                                            {{-- FIX #5: Cancelled now uses its own badge-cancelled class --}}
+                                            @case('cancelled')
+                                            <a href="#" class="niip-trigger" data-message="{{ $policy->cancellation_reason ?? 'No reason provided' }}">
+                                                <span class="sl-badge badge-cancelled"><i class="fa-solid fa-ban"></i> Cancelled</span>
+                                            </a>
+                                            @break
+
                                             @default
                                                 <span class="sl-badge badge-default">{{ $policy->status }}</span>
                                         @endswitch
@@ -697,14 +800,62 @@
                                                 <i class="fa-solid fa-eye"></i> View
                                             </button>
                                         </form>
+
                                         @if ($policy->status == 'approved' && !empty($policy->policyno))
                                             <a target="_blank" class="btn-cert"
                                                 href="http://elitepolicy.salamtakafulinsurance.com/api/v1/policy/view-certificate?policy_no={{ $policy->policyno }}">
                                                 <i class="fa-solid fa-file-certificate"></i> Certificate
                                             </a>
                                         @endif
+
+                                        @if ($user->role == 'admin' || $user->role == 'superadmin')
+                                            {{-- FIX #3: trigger uses custom modal system, not Bootstrap data-bs-toggle --}}
+                                            <button class="btn-cancel cancel-trigger"
+                                                data-policy-id="{{ $policy->id }}"
+                                                data-policy-no="{{ $policy->policyno }}"
+                                                type="button">
+                                                <i class="fa-solid fa-ban"></i> Cancel
+                                            </button>
+                                        @endif
                                     </td>
                                 </tr>
+
+                                {{-- FIX #1: Cancel modal is now INSIDE the @forelse loop, one per policy row --}}
+                                @if ($user->role == 'admin' || $user->role == 'superadmin')
+                                    <div class="sl-modal-overlay cancel-modal" id="cancelModal-{{ $policy->id }}">
+                                        <div class="sl-modal">
+                                            <div class="sl-modal-header danger">
+                                                <h5><i class="fa-solid fa-ban"></i> Cancel Policy</h5>
+                                                {{-- FIX #2: Removed duplicate id — single close button in header only --}}
+                                                <button class="sl-modal-close cancel-modal-close"
+                                                    data-target="cancelModal-{{ $policy->id }}"
+                                                    type="button" aria-label="Close">
+                                                    <i class="fa-solid fa-xmark"></i>
+                                                </button>
+                                            </div>
+                                            <div class="sl-modal-body">
+                                                <p>Are you sure you want to cancel policy <strong>{{ $policy->policyno ?: '#' . $policy->id }}</strong>? This action cannot be undone.</p>
+                                                <form action="{{ route('cancel_policy') }}" method="post">
+                                                    @csrf
+                                                    <input type="number" value="{{ $policy->id }}" hidden name="id">
+                                                    <textarea name="cancellation_reason" class="sl-textarea"
+                                                        placeholder="Reason for cancellation (optional)"></textarea>
+                                                    <div class="sl-modal-footer">
+                                                        <button class="btn-modal-close cancel-modal-close"
+                                                            data-target="cancelModal-{{ $policy->id }}"
+                                                            type="button">
+                                                            <i class="fa-solid fa-arrow-left"></i> Keep Policy
+                                                        </button>
+                                                        <button class="btn-confirm-cancel" type="submit">
+                                                            <i class="fa-solid fa-ban"></i> Yes, Cancel
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
                             @empty
                             @endforelse
                         </tbody>
@@ -732,13 +883,9 @@
     </div>
 
     <script>
-        // NIIP modal
-        const niipModal      = document.getElementById('niipModal');
-        const niipMsgEl      = document.getElementById('niipModalMessage');
-        const closeButtons   = [
-            document.getElementById('niipModalClose'),
-            document.getElementById('niipModalCloseFooter')
-        ];
+        // ── NIIP modal ────────────────────────────────────────────
+        const niipModal    = document.getElementById('niipModal');
+        const niipMsgEl    = document.getElementById('niipModalMessage');
 
         document.querySelectorAll('.niip-trigger').forEach(el => {
             el.addEventListener('click', e => {
@@ -747,15 +894,39 @@
                 niipModal.classList.add('active');
             });
         });
-        closeButtons.forEach(btn => btn.addEventListener('click', () => niipModal.classList.remove('active')));
+        document.getElementById('niipModalClose').addEventListener('click', () => niipModal.classList.remove('active'));
+        document.getElementById('niipModalCloseFooter').addEventListener('click', () => niipModal.classList.remove('active'));
         niipModal.addEventListener('click', e => { if (e.target === niipModal) niipModal.classList.remove('active'); });
 
-        // DataTable
+        // ── FIX #3: Cancel modal JS — wired to custom overlay system ─
+        document.querySelectorAll('.cancel-trigger').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id    = btn.getAttribute('data-policy-id');
+                const modal = document.getElementById('cancelModal-' + id);
+                if (modal) modal.classList.add('active');
+            });
+        });
+
+        document.querySelectorAll('.cancel-modal-close').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.getAttribute('data-target');
+                const modal  = document.getElementById(target);
+                if (modal) modal.classList.remove('active');
+            });
+        });
+
+        document.querySelectorAll('.cancel-modal').forEach(overlay => {
+            overlay.addEventListener('click', e => {
+                if (e.target === overlay) overlay.classList.remove('active');
+            });
+        });
+
+        // ── DataTable ─────────────────────────────────────────────
         new DataTable('#policylist', {
             dom: 'Bfrtip',
             buttons: [
                 { extend: 'excelHtml5', text: '<i class="fa-solid fa-file-excel"></i> Excel', title: 'Policy List' },
-                { extend: 'pdfHtml5',   text: '<i class="fa-solid fa-file-pdf"></i> PDF',   title: 'Policy List', orientation: 'landscape', pageSize: 'A4' }
+                { extend: 'pdfHtml5',   text: '<i class="fa-solid fa-file-pdf"></i> PDF',     title: 'Policy List', orientation: 'landscape', pageSize: 'A4' }
             ]
         });
     </script>

@@ -33,7 +33,8 @@ class policy extends Model
         'producttype',
         'usekey','vehicleuse','insurancetype',
         'niidresponse',
-        'niipvehicleuse','lgaid','stateid','address','policytype', 'frequency'
+        'niipvehicleuse','lgaid','stateid','address','policytype', 'frequency',
+        'paymenttype','cancelled','cancellation_reason','cancellation_date','cancellation_uid'  
     ];
 
     public function getrisk()

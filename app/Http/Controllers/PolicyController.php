@@ -1039,4 +1039,63 @@ class PolicyController extends Controller
         return view('subagents.policylist', 
         compact('policies', 'products', 'user', 'agentslist', 'searchParams', 'totalsubagents', 'totalpolcount'));
     }
+
+    /** Cancel a policy and refund credit used */
+    public function cancelpolicy(Request $request){
+
+    //dd($request);
+
+    Auth::check();
+    $user = Auth::user();
+    if ($user->role == 'superadmin') {
+        $policy = policy::where('id', $request->id)->first();
+
+        
+        if (!empty($policy) && $policy->status == 'approved') {
+            $agent = agentsdetailsModel::where('uid', $policy->agent_id)->first();
+            $creditLog = '';
+
+            // Refund credit only if the policy was NOT paid by card
+            if($policy->getsuccesspayments()->count() == 0){
+                if ($agent && $agent->issubagent == false){
+                    $agent->noused = max(0, $agent->noused - 1);
+                    $agent->save();
+                    $creditLog = ' | New credit count: ' . $agent->noused;
+                } elseif ($agent) {
+                    $agent->subcreditused = max(0, $agent->subcreditused - 1);
+                    $agent->save();
+                    $creditLog = ' | New subcredit count: ' . $agent->subcreditused;
+                }
+            }
+
+            $cancellreason=$request->cancellation_reason ?? 'No reason provided';
+
+            $policy->status = 'cancelled';
+            $policy->cancellation_reason ='Reason: '. $cancellreason . ' | Cancelled by ' . $user->name . $creditLog. ' | Cancellation Time: ' . now()->toDateTimeString();
+            $policy->cancellation_date = now();
+            $policy->cancellation_uid = $user->id;
+            $policy->cancelled = true;
+            $policy->save();
+            // Refund credit if paid by agency credit
+            /**
+            if ($request->has('agencycredit')) {
+                $agent = agentsdetailsModel::where('uid', $policy->agent_id)->first();
+                if ($agent) {
+                    $agent->noused = max(0, $agent->noused - 1); // Ensure noused doesn't go negative
+                    $agent->save();
+                }
+            }
+            **/
+
+            return redirect()->route('list_policy')->with('success', 'Policy cancelled and credit refunded successfully.');
+        } else {
+            return redirect()->route('list_policy')->with('error', 'Policy not found.');
+        }
+
+    }
+    else{
+        return redirect()->route('list_policy')->with('error', 'Unauthorized Access');
+    }
+
+    }
 }

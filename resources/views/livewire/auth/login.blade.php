@@ -93,11 +93,11 @@ new #[Layout('components.layouts.auth')] class extends Component {
 
     <form wire:submit="login" class="mb-6">
         <div class="mb-6">
-            <label for="email" class="form-label">{{ __('Email or Username') }}</label>
+            <label for="email" class="form-label" style="color: #B18752;">{{ __('Email or Username') }}</label>
             <input
                 wire:model="email"
                 type="email"
-                class="form-control @error('email') is-invalid @enderror"
+                class="form-control text-white @error('email') is-invalid @enderror"
                 id="email"
                 required
                 autofocus
@@ -111,7 +111,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
 
         <div class="mb-6 form-password-toggle">
             <div class="d-flex justify-content-between">
-                <label for="password" class="form-label">{{ __('Password') }}</label>
+                <label for="password" class="form-label" style="color: #B18752;">{{ __('Password') }}</label>
                 @if (Route::has('password.request'))
                     <a href="{{ route('password.request') }}" wire:navigate>
                         <span>{{ __('Forgot Password?') }}</span>
@@ -122,7 +122,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 <input
                     wire:model="password"
                     type="password"
-                    class="form-control @error('password') is-invalid @enderror"
+                    class="form-control text-white @error('password') is-invalid @enderror"
                     id="password"
                     required
                     autocomplete="current-password"
@@ -139,7 +139,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
             <div class="d-flex justify-content-between mt-8">
                 <div class="form-check mb-0 ms-2">
                     <input wire:model="remember" type="checkbox" class="form-check-input" id="remember">
-                    <label class="form-check-label" for="remember">
+                    <label class="form-check-label" for="remember" style="color: #B18752;">
                         {{ __('Remember Me') }}
                     </label>
                 </div>

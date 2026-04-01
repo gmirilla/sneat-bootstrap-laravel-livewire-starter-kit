@@ -50,6 +50,7 @@ Route::middleware('auth')->group(function () {
     Route::post('policy/confirm_mpolicy', [PolicyController::class, 'confirmmpolicy'])->name('confirm_mpolicy');
     Route::post('policy/pay_policy', [PolicyController::class, 'paypolicy'])->name('pay_policy_old');
     Route::post('policy/renew_policy', [PolicyController::class, 'renewpolicy'])->name('renew_policy');
+    Route::post('policy/cancel_policy', [PolicyController::class, 'cancelpolicy'])->name('cancel_policy');
 
     // Reports & renewals
     Route::post('filter_report', [PolicyController::class, 'filterreport'])->name('filterreport');
@@ -83,6 +84,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('ecmr_index',[ECMRController::class, 'index'])->name('ecmrs.index'); 
+    Route::get('ecmr_check',[ECMRController::class, 'ecmrCheck'])->name('ecmrs.check'); 
 
 });
 
