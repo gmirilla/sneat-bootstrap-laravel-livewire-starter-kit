@@ -5,6 +5,15 @@
     a:hover {
     color: #B18752;
   }
+  input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: #ffffff !important;
+    transition: background-color 9999s ease-in-out 0s;
+    box-shadow: 0 0 0px 1000px #161616 inset !important; /* match your background */
+}
+
 </style>
 <div class="authentication-wrapper authentication-cover">
   <div class="authentication-inner row m-0">
