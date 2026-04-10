@@ -51,9 +51,16 @@ class EcmrController extends Controller
             'curl'    => $curlOpts,
         ];
 
+        // NPF government server requires browser-like headers — bare PHP requests get reset
+        $headers = [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept'     => 'application/json',
+        ];
+
         try {
             //Use GET TOKEN to LOGIN
             $response   = Http::withOptions($httpOptions)
+                ->withHeaders($headers)
                 ->post(env('eMCR_URL') . 'api/apiuser/login', [
                     'username' => env('eMCR_USERNAME'),
                     'password' => env('eMCR_PASSWORD'),
@@ -70,6 +77,7 @@ class EcmrController extends Controller
         if ($jsonObject->statusCode == 0) {
             try {
                 $querysearch   = Http::withOptions($httpOptions)
+                    ->withHeaders($headers)
                     ->withToken($jsonObject->data->token)
                     ->get(env('eMCR_URL') . 'api/insurance/cmrisinfo/v1/license/' . $ecmr_check);
                 $queryresponse = json_decode($querysearch->body());
