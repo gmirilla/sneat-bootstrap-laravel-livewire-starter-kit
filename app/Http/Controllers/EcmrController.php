@@ -34,12 +34,11 @@ class EcmrController extends Controller
         $policy = $policyrisk ? Policy::find($policyrisk->policyid) : null;
         $user = Auth::user();
 
-        // Namecheap shared hosting has an outdated CA bundle and restricts TLS negotiation.
-        // Use cacert.pem if present; otherwise fall back to the system CA bundle.
+        // Build cURL options — let TLS version auto-negotiate (don't force TLSv1_2).
+        // Use fresh cacert.pem if available, otherwise fall back to system bundle.
         $caBundle = base_path('storage/cacert.pem');
         $curlOpts = [
-            CURLOPT_HTTP_VERSION  => CURL_HTTP_VERSION_1_1,
-            CURLOPT_SSLVERSION    => CURL_SSLVERSION_TLSv1_2,
+            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
         ];
@@ -52,41 +51,47 @@ class EcmrController extends Controller
             'curl'    => $curlOpts,
         ];
 
-        //Use GET TOKEN to LOGIN
-        $response = Http::withOptions($httpOptions)
-            ->post(env('eMCR_URL') . 'api/apiuser/login', [
-                'username' => env('eMCR_USERNAME'),
-                'password' => env('eMCR_PASSWORD'),
-            ]);
+        try {
+            //Use GET TOKEN to LOGIN
+            $response   = Http::withOptions($httpOptions)
+                ->post(env('eMCR_URL') . 'api/apiuser/login', [
+                    'username' => env('eMCR_USERNAME'),
+                    'password' => env('eMCR_PASSWORD'),
+                ]);
+            $jsonObject = json_decode($response->body());
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            return back()->with('error', 'ECMR login request failed: ' . $e->getMessage());
+        }
 
-        $jsonObject = json_decode($response->body());
+        if (!isset($jsonObject->statusCode)) {
+            return back()->with('error', 'ECMR API returned an unexpected response during login.');
+        }
 
         if ($jsonObject->statusCode == 0) {
-
-            $querysearch = Http::withOptions($httpOptions)
-                ->withToken($jsonObject->data->token)
-                ->get(env('eMCR_URL') . 'api/insurance/cmrisinfo/v1/license/' . $ecmr_check);
-            $queryresponse = json_decode($querysearch->body());
-
+            try {
+                $querysearch   = Http::withOptions($httpOptions)
+                    ->withToken($jsonObject->data->token)
+                    ->get(env('eMCR_URL') . 'api/insurance/cmrisinfo/v1/license/' . $ecmr_check);
+                $queryresponse = json_decode($querysearch->body());
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                return back()->with('error', 'ECMR lookup request failed: ' . $e->getMessage());
+            }
 
             //store the search result in database
-            $ecmr = new ecmr();
+            $ecmr               = new ecmr();
             $ecmr->licence_plate = $ecmr_check;
-            $ecmr->response = $querysearch->body();
-            $ecmr->status = $queryresponse->data->cmr_status ?? 'Unknown';
-            $ecmr->cmr_number = $queryresponse->data->cmr_number ?? 'N/A';
-            $ecmr->message = $queryresponse->message;
-            $ecmr->policy_id = $policy ? $policy->id : null;
-            $ecmr->cuid = $user ? $user->id : null;
+            $ecmr->response     = $querysearch->body();
+            $ecmr->status       = $queryresponse->data->cmr_status ?? 'Unknown';
+            $ecmr->cmr_number   = $queryresponse->data->cmr_number ?? 'N/A';
+            $ecmr->message      = $queryresponse->message ?? '';
+            $ecmr->policy_id    = $policy ? $policy->id : null;
+            $ecmr->cuid         = $user ? $user->id : null;
             $ecmr->save();
 
             return back()->with('success', 'CMR information retrieved and stored successfully.');
         } else {
-            return back()->with('error', 'Login failed. Message: ' . $jsonObject->message);
+            return back()->with('error', 'ECMR login failed: ' . ($jsonObject->message ?? 'Unknown error'));
         }
-
-
-        return view('ecmrs.index', compact('ecmrs'));
     }
 
 
