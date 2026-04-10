@@ -35,17 +35,21 @@ class EcmrController extends Controller
         $user = Auth::user();
 
         // Namecheap shared hosting has an outdated CA bundle and restricts TLS negotiation.
-        // Force TLS 1.2, attach a fresh CA bundle, and set a reasonable timeout.
+        // Use cacert.pem if present; otherwise fall back to the system CA bundle.
+        $caBundle = base_path('storage/cacert.pem');
+        $curlOpts = [
+            CURLOPT_HTTP_VERSION  => CURL_HTTP_VERSION_1_1,
+            CURLOPT_SSLVERSION    => CURL_SSLVERSION_TLSv1_2,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ];
+        if (file_exists($caBundle) && is_readable($caBundle)) {
+            $curlOpts[CURLOPT_CAINFO] = $caBundle;
+        }
         $httpOptions = [
             'verify'  => true,
             'timeout' => 30,
-            'curl'    => [
-                CURLOPT_HTTP_VERSION  => CURL_HTTP_VERSION_1_1,
-                CURLOPT_SSLVERSION    => CURL_SSLVERSION_TLSv1_2,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2,
-                CURLOPT_CAINFO        => base_path('storage/cacert.pem'),
-            ],
+            'curl'    => $curlOpts,
         ];
 
         //Use GET TOKEN to LOGIN
