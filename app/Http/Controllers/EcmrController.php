@@ -27,15 +27,19 @@ class EcmrController extends Controller
     public function validateCMR(Request $request)
     {
         // TO DO VALIDATION
-    $ecmr_check=$request->ecmr_regno;
+        $ecmr_check = $request->ecmr_regno;
 
-    //Get policy details 
-    $policyrisk=policyrisk::where('regno', $ecmr_check)->orderBy('created_at', 'desc')->first();
-    $policy = $policyrisk ? Policy::find($policyrisk->policyid) : null;
-    $user=Auth::user();
-    
+        //Get policy details 
+        $policyrisk = policyrisk::where('regno', $ecmr_check)->orderBy('created_at', 'desc')->first();
+        $policy = $policyrisk ? Policy::find($policyrisk->policyid) : null;
+        $user = Auth::user();
+
         //Use GET TOKEN to LOGIN
-        $response = Http::post(env('eMCR_URL') . 'api/apiuser/login', [
+        $response = Http::withOptions([
+            'curl' => [
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            ],
+        ])->post(env('eMCR_URL') . 'api/apiuser/login', [
             'username' => env('eMCR_USERNAME'),
             'password' => env('eMCR_PASSWORD'),
         ]);
@@ -45,26 +49,31 @@ class EcmrController extends Controller
         if ($jsonObject->statusCode == 0) {
 
 
-            $querysearch = Http::withToken($jsonObject->data->token)->get(env('eMCR_URL') . 'api/insurance/cmrisinfo/v1/license/' .$ecmr_check);
+            $querysearch = Http::withOptions([
+                'curl' => [
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                ],
+            ])->withToken($jsonObject->data->token)
+                ->get(env('eMCR_URL') . 'api/insurance/cmrisinfo/v1/license/' . $ecmr_check);
             $queryresponse = json_decode($querysearch->body());
 
-            
+
             //store the search result in database
             $ecmr = new ecmr();
-            $ecmr->licence_plate= $ecmr_check;
+            $ecmr->licence_plate = $ecmr_check;
             $ecmr->response = $querysearch->body();
             $ecmr->status = $queryresponse->data->cmr_status ?? 'Unknown';
             $ecmr->cmr_number = $queryresponse->data->cmr_number ?? 'N/A';
             $ecmr->message = $queryresponse->message;
-            $ecmr->policy_id = $policy ? $policy->id : null;   
-            $ecmr->cuid= $user ? $user->id : null;  
+            $ecmr->policy_id = $policy ? $policy->id : null;
+            $ecmr->cuid = $user ? $user->id : null;
             $ecmr->save();
-            
+
             return back()->with('success', 'CMR information retrieved and stored successfully.');
         } else {
             return back()->with('error', 'Login failed. Message: ' . $jsonObject->message);
         }
-        
+
 
         return view('ecmrs.index', compact('ecmrs'));
     }
