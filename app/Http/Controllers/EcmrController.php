@@ -6,7 +6,7 @@ use App\Models\ecmr;
 use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use App\Models\Policy;
+use App\Models\policy;
 use App\Models\policyrisk;
 use Illuminate\Support\Facades\Auth;
 
