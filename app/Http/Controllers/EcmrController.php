@@ -34,26 +34,33 @@ class EcmrController extends Controller
         $policy = $policyrisk ? Policy::find($policyrisk->policyid) : null;
         $user = Auth::user();
 
-        //Use GET TOKEN to LOGIN
-        $response = Http::withOptions([
-            'curl' => [
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        // Namecheap shared hosting has an outdated CA bundle and restricts TLS negotiation.
+        // Force TLS 1.2, attach a fresh CA bundle, and set a reasonable timeout.
+        $httpOptions = [
+            'verify'  => true,
+            'timeout' => 30,
+            'curl'    => [
+                CURLOPT_HTTP_VERSION  => CURL_HTTP_VERSION_1_1,
+                CURLOPT_SSLVERSION    => CURL_SSLVERSION_TLSv1_2,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_CAINFO        => base_path('storage/cacert.pem'),
             ],
-        ])->post(env('eMCR_URL') . 'api/apiuser/login', [
-            'username' => env('eMCR_USERNAME'),
-            'password' => env('eMCR_PASSWORD'),
-        ]);
+        ];
+
+        //Use GET TOKEN to LOGIN
+        $response = Http::withOptions($httpOptions)
+            ->post(env('eMCR_URL') . 'api/apiuser/login', [
+                'username' => env('eMCR_USERNAME'),
+                'password' => env('eMCR_PASSWORD'),
+            ]);
 
         $jsonObject = json_decode($response->body());
 
         if ($jsonObject->statusCode == 0) {
 
-
-            $querysearch = Http::withOptions([
-                'curl' => [
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                ],
-            ])->withToken($jsonObject->data->token)
+            $querysearch = Http::withOptions($httpOptions)
+                ->withToken($jsonObject->data->token)
                 ->get(env('eMCR_URL') . 'api/insurance/cmrisinfo/v1/license/' . $ecmr_check);
             $queryresponse = json_decode($querysearch->body());
 
