@@ -16,4 +16,14 @@ class ecmr extends Model
         'message',
         'cmr_number'
     ];
+
+    public function policy()
+    {
+        return $this->belongsTo(Policy::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'cuid');
+    }
 }

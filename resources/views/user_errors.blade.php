@@ -12,10 +12,10 @@
     
 @else
 
-    <div class="card-body text-center"><h1 class=" text-danger"> Possible Malicous Error Detected </h1>
+    <div class="card-body text-center"><h1 class=" text-danger"> Possible Malicous Action Detected </h1>
     <br>
     <h2>How Did You Get here!! Naughty!! Naughty!!!</h2>
-    <h3>Error Logged and Administrator nofied  </h3>  
+    <h3>Error Logged and Administrator notified  </h3>  
     
 @endif
 </x-layouts.app>

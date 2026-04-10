@@ -84,7 +84,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('ecmr_index',[ECMRController::class, 'index'])->name('ecmrs.index'); 
-    Route::get('ecmr_check',[ECMRController::class, 'ecmrCheck'])->name('ecmrs.check'); 
+    Route::get('emcr_check',[EcmrController::class, 'validateCMR'])->name('ecmr.check'); 
 
 });
 
@@ -158,6 +158,7 @@ Route::middleware('auth')->group(function () {
     
 
 });
+
 
 Route::middleware(['auth'])->group(function () {
   Route::redirect('settings', 'settings/profile');
