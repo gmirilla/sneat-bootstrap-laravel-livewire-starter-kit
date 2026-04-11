@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\ecmr;
 use Illuminate\Auth\Middleware\Authorize;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use App\Models\policy;
 use App\Models\policyrisk;
 use Illuminate\Support\Facades\Auth;
@@ -34,43 +33,32 @@ class EcmrController extends Controller
         $policy = $policyrisk ? Policy::find($policyrisk->policyid) : null;
         $user = Auth::user();
 
-        // Use fresh cacert.pem if available so Namecheap's stale CA bundle
-        // doesn't reject our proxy's SSL certificate.
-        $caBundle  = base_path('storage/cacert.pem');
-        $proxyHttp = Http::withOptions([
-                'verify'  => file_exists($caBundle) ? $caBundle : true,
-                'timeout' => 30,
-            ])
-            ->withHeaders(['X-Proxy-Secret' => env('PROXY_SECRET')]);
+        $secret   = env('PROXY_SECRET');
+        $proxyUrl = rtrim(env('PROXY_URL'), '/');
 
-
-        try {
-            //Use GET TOKEN to LOGIN
-        $response   = $proxyHttp->post(env('PROXY_URL') . '/api/ecmr/login');
-$jsonObject = json_decode($response->body());
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            return back()->with('error', 'ECMR login request failed: ' . $e->getMessage());
+        // Use system curl binary — bypasses PHP's cURL extension and its stale CA bundle
+        $loginBody = $this->curlExec('POST', $proxyUrl . '/api/ecmr/login', $secret);
+        if ($loginBody === null) {
+            return back()->with('error', 'ECMR login request failed: system curl error.');
         }
+        $jsonObject = json_decode($loginBody);
 
         if (!isset($jsonObject->statusCode)) {
             return back()->with('error', 'ECMR API returned an unexpected response during login.');
         }
 
         if ($jsonObject->statusCode == 0) {
-            try {
-$querysearch = $proxyHttp->get(env('PROXY_URL') . '/api/ecmr/lookup', [
-    'token' => $jsonObject->data->token,
-    'regno' => $ecmr_check,
-]);
-                $queryresponse = json_decode($querysearch->body());
-            } catch (\Illuminate\Http\Client\ConnectionException $e) {
-                return back()->with('error', 'ECMR lookup request failed: ' . $e->getMessage());
+            $lookupUrl   = $proxyUrl . '/api/ecmr/lookup?token=' . urlencode($jsonObject->data->token) . '&regno=' . urlencode($ecmr_check);
+            $lookupBody  = $this->curlExec('GET', $lookupUrl, $secret);
+            if ($lookupBody === null) {
+                return back()->with('error', 'ECMR lookup request failed: system curl error.');
             }
+            $queryresponse = json_decode($lookupBody);
 
             //store the search result in database
             $ecmr               = new ecmr();
             $ecmr->licence_plate = $ecmr_check;
-            $ecmr->response     = $querysearch->body();
+            $ecmr->response     = $lookupBody;
             $ecmr->status       = $queryresponse->data->cmr_status ?? 'Unknown';
             $ecmr->cmr_number   = $queryresponse->data->cmr_number ?? 'N/A';
             $ecmr->message      = $queryresponse->message ?? '';
@@ -131,5 +119,22 @@ $querysearch = $proxyHttp->get(env('PROXY_URL') . '/api/ecmr/lookup', [
     public function destroy(ecmr $ecmr)
     {
         //
+    }
+
+    /**
+     * Make an HTTP call using the system curl binary instead of PHP's cURL
+     * extension, bypassing Namecheap's stale CA bundle entirely.
+     * Returns the response body string, or null on failure.
+     */
+    private function curlExec(string $method, string $url, string $secret): ?string
+    {
+        $escapedUrl    = escapeshellarg($url);
+        $escapedSecret = escapeshellarg('X-Proxy-Secret: ' . $secret);
+        $methodFlag    = strtoupper($method) === 'POST' ? '-X POST' : '-X GET';
+
+        $cmd    = "curl -s --max-time 30 {$methodFlag} {$escapedUrl} -H {$escapedSecret} -H " . escapeshellarg('Accept: application/json');
+        $output = shell_exec($cmd);
+
+        return ($output !== null && $output !== '') ? $output : null;
     }
 }
