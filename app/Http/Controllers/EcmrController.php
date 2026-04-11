@@ -34,6 +34,10 @@ class EcmrController extends Controller
         $policy = $policyrisk ? Policy::find($policyrisk->policyid) : null;
         $user = Auth::user();
 
+        $proxyHttp = Http::withHeaders(['X-Proxy-Secret' => env('PROXY_SECRET')])->timeout(30);
+
+
+
         // Build cURL options — let TLS version auto-negotiate (don't force TLSv1_2).
         // Use fresh cacert.pem if available, otherwise fall back to system bundle.
         $caBundle = base_path('storage/cacert.pem');
@@ -59,13 +63,8 @@ class EcmrController extends Controller
 
         try {
             //Use GET TOKEN to LOGIN
-            $response   = Http::withOptions($httpOptions)
-                ->withHeaders($headers)
-                ->post(env('eMCR_URL') . 'api/apiuser/login', [
-                    'username' => env('eMCR_USERNAME'),
-                    'password' => env('eMCR_PASSWORD'),
-                ]);
-            $jsonObject = json_decode($response->body());
+        $response   = $proxyHttp->post(env('PROXY_URL') . '/api/ecmr/login');
+$jsonObject = json_decode($response->body());
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             return back()->with('error', 'ECMR login request failed: ' . $e->getMessage());
         }
@@ -76,10 +75,10 @@ class EcmrController extends Controller
 
         if ($jsonObject->statusCode == 0) {
             try {
-                $querysearch   = Http::withOptions($httpOptions)
-                    ->withHeaders($headers)
-                    ->withToken($jsonObject->data->token)
-                    ->get(env('eMCR_URL') . 'api/insurance/cmrisinfo/v1/license/' . $ecmr_check);
+$querysearch = $proxyHttp->get(env('PROXY_URL') . '/api/ecmr/lookup', [
+    'token' => $jsonObject->data->token,
+    'regno' => $ecmr_check,
+]);
                 $queryresponse = json_decode($querysearch->body());
             } catch (\Illuminate\Http\Client\ConnectionException $e) {
                 return back()->with('error', 'ECMR lookup request failed: ' . $e->getMessage());
