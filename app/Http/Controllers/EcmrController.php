@@ -34,32 +34,15 @@ class EcmrController extends Controller
         $policy = $policyrisk ? Policy::find($policyrisk->policyid) : null;
         $user = Auth::user();
 
-        $proxyHttp = Http::withHeaders(['X-Proxy-Secret' => env('PROXY_SECRET')])->timeout(30);
+        // Use fresh cacert.pem if available so Namecheap's stale CA bundle
+        // doesn't reject our proxy's SSL certificate.
+        $caBundle  = base_path('storage/cacert.pem');
+        $proxyHttp = Http::withOptions([
+                'verify'  => file_exists($caBundle) ? $caBundle : true,
+                'timeout' => 30,
+            ])
+            ->withHeaders(['X-Proxy-Secret' => env('PROXY_SECRET')]);
 
-
-
-        // Build cURL options — let TLS version auto-negotiate (don't force TLSv1_2).
-        // Use fresh cacert.pem if available, otherwise fall back to system bundle.
-        $caBundle = base_path('storage/cacert.pem');
-        $curlOpts = [
-            CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2,
-        ];
-        if (file_exists($caBundle) && is_readable($caBundle)) {
-            $curlOpts[CURLOPT_CAINFO] = $caBundle;
-        }
-        $httpOptions = [
-            'verify'  => true,
-            'timeout' => 30,
-            'curl'    => $curlOpts,
-        ];
-
-        // NPF government server requires browser-like headers — bare PHP requests get reset
-        $headers = [
-            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept'     => 'application/json',
-        ];
 
         try {
             //Use GET TOKEN to LOGIN
