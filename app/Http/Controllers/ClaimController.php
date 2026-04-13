@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\claim;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
-use Exception;
 
 
 class ClaimController extends Controller
@@ -72,57 +70,32 @@ class ClaimController extends Controller
      */
 public function claimcheck(Request $request)
 {
-    $claimNumber  = $request->claimnumber;
+    $claimNumber = $request->claimnumber;
 
-    try {
+    $secret   = env('PROXY_SECRET');
+    $proxyUrl = rtrim(env('PROXY_URL'), '/');
 
-        // Query must match BOTH claim_no AND policy_no
-$result = DB::connection('Elite')
-    ->table('epgi_claim as e')
-    ->join('epgi_policy as p', 'e.policy_id', '=', 'p.id')
-    ->select(
-        'p.policy_no',
-        'e.claim_no',
-        'e.description',
-        'e.state',
-        'e.loss_date',
-        'e.notification_date'
-    )
-    ->where('e.claim_no', $claimNumber)
-    ->orWhere('p.policy_no', $claimNumber)
-    ->orderBy('e.loss_date', 'desc')
-    ->get();
+    if (empty($secret) || empty($proxyUrl)) {
+        $response = ['status' => 'error', 'message' => 'Proxy not configured. Add PROXY_SECRET and PROXY_URL to .env', 'data' => []];
+        return view('claim.claim_check', compact('response'));
+    }
 
-        // Not found
-        if (!$result) {
-            $response = [
-                'status'  => 'not_found',
-                'message' => 'No claim found for the provided claim and policy number',
-                'data'    => []
-            ];
+    $escapedUrl    = escapeshellarg($proxyUrl . '/api/claim/check?number=' . urlencode($claimNumber));
+    $escapedSecret = escapeshellarg('X-Proxy-Secret: ' . $secret);
+    $cmd           = "curl -s --max-time 30 -X GET {$escapedUrl} -H {$escapedSecret} -H " . escapeshellarg('Accept: application/json');
+    $body          = shell_exec($cmd);
 
-            return view('claim.claim_check', compact('response'));
-        }else{
-                    // Success
-        $response = [
-            'status'  => 'success',
-            'message' => 'Claim retrieved successfully',
-            'data'    => $result
-        ];
+    if (empty($body)) {
+        Log::error('Claim Check Error: proxy returned empty response');
+        $response = ['status' => 'error', 'message' => 'Unable to reach claim service at this time.', 'data' => []];
+        return view('claim.claim_check', compact('response'));
+    }
 
-        }
+    $response = json_decode($body, true);
 
-
-
-    } catch (Exception $e) {
-
-        Log::error('Claim Check Error: '.$e->getMessage());
-
-        $response = [
-            'status'  => 'error',
-            'message' => 'Unable to process claim check at this time',
-            'data'    => []
-        ];
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        Log::error('Claim Check Error: invalid JSON from proxy — ' . $body);
+        $response = ['status' => 'error', 'message' => 'Invalid response from claim service.', 'data' => []];
     }
 
     return view('claim.claim_check', compact('response'));
