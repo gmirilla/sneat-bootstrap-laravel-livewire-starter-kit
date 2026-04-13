@@ -81,13 +81,12 @@
                   @if ($usercheck->getAgentDetails()?->canregistersubagent)
             <!-- Sub Agent Mgmt -->
                           <!-- Settings -->
-
                                       <li>
-              <a class="dropdown-item {{ request()->routeIs('list_sub_agents') ? 'active' : '' }}" wire:navigate>
+              <a class="dropdown-item {{ request()->routeIs('list_sub_agents') ? 'active' : '' }}" href="{{ route('list_sub_agents') }}" wire:navigate>
         <i class="menu-icon fa fa-users"></i>{{ __('List of Sub Agents') }}</a>
             </li>
               <li>
-              <a class="dropdown-item {{ request()->routeIs('list_policy_subagents') ? 'active' : '' }}" wire:navigate>
+              <a class="dropdown-item {{ request()->routeIs('list_policy_subagents') ? 'active' : '' }}" href="{{ route('list_policy_subagents') }}" wire:navigate>
         <i class="menu-icon fa fa-check"></i>{{ __('Sub Agents Policies') }}</a>
             </li>
 
