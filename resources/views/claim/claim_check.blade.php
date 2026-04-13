@@ -4,9 +4,15 @@
 @endphp
 
 <div class="container mt-5">
-    @dd($results)
+   
+    @@switch($results['status'])
+        @case('error')
+            <div>    SERVER ERROR</div>
+            @break
+        @default
+            @if ($results instanceof \Illuminate\Support\Collection && $results->count() > 1)
 
-    @if ($results instanceof \Illuminate\Support\Collection && $results->count() > 1)
+
 
         {{-- MULTIPLE RESULTS --}}
         <div class="alert alert-info rounded-3 shadow-sm">
@@ -89,6 +95,10 @@
         </div>
 
     @endif
+
+            
+    @endswitch
+
 
 </div>
 
