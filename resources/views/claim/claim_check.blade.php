@@ -5,7 +5,7 @@
 
 <div class="container mt-5">
    
-    @@switch($results['status'])
+    @switch($results['status'])
         @case('error')
             <div>    SERVER ERROR</div>
             @break
