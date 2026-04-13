@@ -117,7 +117,6 @@ $result = DB::connection('Elite')
     } catch (Exception $e) {
 
         Log::error('Claim Check Error: '.$e->getMessage());
-        dd($e->getMessage());
 
         $response = [
             'status'  => 'error',
