@@ -4,6 +4,7 @@
 @endphp
 
 <div class="container mt-5">
+    @dd($results)
 
     @if ($results instanceof \Illuminate\Support\Collection && $results->count() > 1)
 

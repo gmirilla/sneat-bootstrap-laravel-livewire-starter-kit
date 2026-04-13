@@ -36,6 +36,10 @@ class EcmrController extends Controller
         $secret   = env('PROXY_SECRET');
         $proxyUrl = rtrim(env('PROXY_URL'), '/');
 
+        if (empty($secret) || empty($proxyUrl)) {
+            return back()->with('error', 'ECMR proxy is not configured. Add PROXY_SECRET and PROXY_URL to .env');
+        }
+
         // Use system curl binary — bypasses PHP's cURL extension and its stale CA bundle
         $loginBody = $this->curlExec('POST', $proxyUrl . '/api/ecmr/login', $secret);
         if ($loginBody === null) {
