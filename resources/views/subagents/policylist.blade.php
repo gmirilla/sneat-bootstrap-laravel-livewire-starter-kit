@@ -42,7 +42,7 @@
             <div class="col-md-4 mb-3">
                 <div class="p-3 border rounded bg-light h-100">
                     <i class="fa fa-file text-warning mb-2" style="font-size: 3.5rem;"></i>
-                    <h5 class="fw-bold mt-2">Policies Sold</h5>
+                    <h5 class="fw-bold mt-2">Total Policies </h5>
                     <h4 class="fw-bold mt-2">{{$totalpolcount ?? 'N/A'}}</h4>
                     <p class="text-muted mb-0">Total policies Count</p>
                 </div>
@@ -54,8 +54,6 @@
 </div>
 
     {{-- ── Per-Subagent Sales Summary ─────────────────────────────────────
-         Computed from $policies which is already filtered, so cards
-         automatically reflect whatever filter the user has applied.
     --}}
     @php
         $byAgent = $policies->groupBy('agent_id');
