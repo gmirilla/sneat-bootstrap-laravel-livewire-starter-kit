@@ -109,6 +109,7 @@ Route::middleware('auth')->group(function () {
 #CLAIM ROUTES STILL TESTING
 
     Route::post('claim_check',         [ClaimController::class, 'claimcheck'])->name('claim_check');
+    Route::get('claim_check',          fn() => redirect(route('home') . '#claimcheck'));
     Route::post('claim/send_enquiry',  [ClaimController::class, 'sendEnquiry'])->name('claim.send_enquiry');
 
 

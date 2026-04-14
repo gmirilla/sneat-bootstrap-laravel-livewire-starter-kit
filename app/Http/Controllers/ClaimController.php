@@ -112,17 +112,37 @@ public function claimcheck(Request $request)
             'sender_name'  => 'required|string|max:100',
             'sender_email' => 'required|email',
             'message_body' => 'required|string|max:2000',
+            'documents'    => 'nullable|array|max:5',
+            'documents.*'  => 'file|max:5120|mimes:pdf,doc,docx,jpg,jpeg,png',
         ]);
+
+        // Store uploads in temp disk; collect absolute paths for the Mailable
+        $attachmentPaths = [];
+        foreach ($request->file('documents', []) as $file) {
+            $attachmentPaths[] = $file->store('claim_enquiries', 'local');
+        }
+
+        // Resolve to absolute paths so Attachment::fromPath() can read them
+        $absPaths = array_map(
+            fn(string $p) => storage_path('app/' . $p),
+            $attachmentPaths
+        );
 
         try {
             Mail::to(env('CLAIMS_EMAIL', 'claims@salamtakafulinsurance.com'))
                 ->send(new ClaimEnquiry(
-                    senderName:  $request->sender_name,
-                    senderEmail: $request->sender_email,
-                    claimNo:     $request->claim_no  ?: null,
-                    policyNo:    $request->policy_no ?: null,
-                    messageBody: $request->message_body,
+                    senderName:      $request->sender_name,
+                    senderEmail:     $request->sender_email,
+                    claimNo:         $request->claim_no  ?: null,
+                    policyNo:        $request->policy_no ?: null,
+                    messageBody:     $request->message_body,
+                    attachmentPaths: $absPaths,
                 ));
+
+            // Clean up temp files after successful send
+            foreach ($attachmentPaths as $path) {
+                \Illuminate\Support\Facades\Storage::disk('local')->delete($path);
+            }
 
             return back()->with('enquiry_success', 'Your message has been sent to the claims team.');
         } catch (\Exception $e) {

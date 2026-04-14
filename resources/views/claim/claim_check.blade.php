@@ -141,7 +141,7 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('claim.send_enquiry') }}" method="POST">
+            <form action="{{ route('claim.send_enquiry') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     @if($errors->any())
@@ -181,6 +181,14 @@
                                 placeholder="Describe your enquiry…" required maxlength="2000">{{ old('message_body') }}</textarea>
                             <div class="form-text text-end"><span id="charCount">0</span> / 2000</div>
                         </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Supporting Documents</label>
+                            <input type="file" name="documents[]" id="documentInput"
+                                class="form-control" multiple
+                                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                            <div class="form-text">Up to 5 files · Max 5 MB each · PDF, Word, JPG, PNG</div>
+                            <ul id="fileList" class="list-unstyled mt-2 mb-0 small text-muted"></ul>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -211,6 +219,39 @@
     const counter  = document.getElementById('charCount');
     if (msgArea) {
         msgArea.addEventListener('input', () => counter.textContent = msgArea.value.length);
+    }
+
+    // File list preview + client-side validation
+    const docInput = document.getElementById('documentInput');
+    const fileList = document.getElementById('fileList');
+    if (docInput) {
+        docInput.addEventListener('change', function () {
+            fileList.innerHTML = '';
+            const files  = Array.from(this.files);
+            const maxMB  = 5;
+            const maxFiles = 5;
+            let valid = true;
+
+            if (files.length > maxFiles) {
+                fileList.innerHTML = `<li class="text-danger">Maximum ${maxFiles} files allowed.</li>`;
+                this.value = '';
+                return;
+            }
+
+            files.forEach(f => {
+                const sizeMB = (f.size / 1024 / 1024).toFixed(2);
+                const tooBig = f.size > maxMB * 1024 * 1024;
+                if (tooBig) valid = false;
+                fileList.insertAdjacentHTML('beforeend',
+                    `<li class="${tooBig ? 'text-danger' : 'text-success'}">
+                        <i class="bx ${tooBig ? 'bx-x-circle' : 'bx-check-circle'} me-1"></i>
+                        ${f.name} <span class="text-muted">(${sizeMB} MB)${tooBig ? ' — exceeds 5 MB limit' : ''}</span>
+                    </li>`
+                );
+            });
+
+            if (!valid) this.value = '';
+        });
     }
 </script>
 
