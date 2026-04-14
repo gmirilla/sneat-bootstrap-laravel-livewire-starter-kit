@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\policy;
 use App\Models\policyrisk;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 
 class EcmrController extends Controller
 {
@@ -126,12 +127,32 @@ class EcmrController extends Controller
     }
 
     /**
-     * Make an HTTP call using the system curl binary instead of PHP's cURL
-     * extension, bypassing Namecheap's stale CA bundle entirely.
+     * Make an HTTP call via the proxy.
+     *
+     * - On Linux (production/Namecheap): uses the system curl binary to bypass
+     *   PHP's stale CA bundle.
+     * - On Windows (local dev): uses Laravel's Http client directly.
+     *
      * Returns the response body string, or null on failure.
      */
     private function curlExec(string $method, string $url, string $secret): ?string
     {
+        if (PHP_OS_FAMILY === 'Windows') {
+            try {
+                $response = Http::withHeaders([
+                    'X-Proxy-Secret' => $secret,
+                    'Accept'         => 'application/json',
+                ])->timeout(30)->{strtolower($method)}($url);
+
+                $body = $response->body();
+                return ($body !== '') ? $body : null;
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('ECMR Http client error: ' . $e->getMessage());
+                return null;
+            }
+        }
+
+        // Linux: bypass PHP cURL extension's stale CA bundle
         $escapedUrl    = escapeshellarg($url);
         $escapedSecret = escapeshellarg('X-Proxy-Secret: ' . $secret);
         $methodFlag    = strtoupper($method) === 'POST' ? '-X POST' : '-X GET';

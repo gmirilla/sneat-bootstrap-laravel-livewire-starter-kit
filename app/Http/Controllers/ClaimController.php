@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\ClaimEnquiry;
 use App\Models\claim;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
@@ -82,10 +83,27 @@ public function claimcheck(Request $request)
         return view('claim.claim_check', compact('response'));
     }
 
-    $escapedUrl    = escapeshellarg($proxyUrl . '/api/claim/check?number=' . urlencode($claimNumber));
-    $escapedSecret = escapeshellarg('X-Proxy-Secret: ' . $secret);
-    $cmd           = "curl -s --max-time 30 -X GET {$escapedUrl} -H {$escapedSecret} -H " . escapeshellarg('Accept: application/json');
-    $body          = shell_exec($cmd);
+    $claimUrl = $proxyUrl . '/api/claim/check?number=' . urlencode($claimNumber);
+
+    if (PHP_OS_FAMILY === 'Windows') {
+        // Local dev: use Laravel Http client
+        try {
+            $httpResponse = Http::withHeaders([
+                'X-Proxy-Secret' => $secret,
+                'Accept'         => 'application/json',
+            ])->timeout(30)->get($claimUrl);
+            $body = $httpResponse->body();
+        } catch (\Exception $e) {
+            Log::error('Claim Check Error: Http client exception — ' . $e->getMessage());
+            $body = null;
+        }
+    } else {
+        // Linux/Namecheap: bypass PHP cURL's stale CA bundle via system curl
+        $escapedUrl    = escapeshellarg($claimUrl);
+        $escapedSecret = escapeshellarg('X-Proxy-Secret: ' . $secret);
+        $cmd           = "curl -s --max-time 30 -X GET {$escapedUrl} -H {$escapedSecret} -H " . escapeshellarg('Accept: application/json');
+        $body          = shell_exec($cmd);
+    }
 
     if (empty($body)) {
         Log::error('Claim Check Error: proxy returned empty response');

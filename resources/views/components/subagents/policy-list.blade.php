@@ -49,6 +49,10 @@
     }
 </style>
 <div class="card row gy-2 gx-3 align-items-center mb-3">
+        <div class="sf-header">
+        <i class="fa fa-sliders"></i> Filter Policies
+    </div>
+
             <div class="card-body table-responsive">
                 <table class="table table-striped table-sm" style="font-size:0.8rem" id='policylist'>
                     @if (empty($searchParams))

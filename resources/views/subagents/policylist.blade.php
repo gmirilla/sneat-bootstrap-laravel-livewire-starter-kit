@@ -132,13 +132,49 @@
             @endforeach
         </div>
     @endif
-
+    
     <x-subagents.subagentfilters
         :products="$products"
         :user="$user"
         :agentslist="$agentslist"
         :searchParams="$searchParams"
     />
+
+    <div class="mb-4 card-body table-responsive">
+            <div class="sf-header mb-4">
+        <i class="fa fa-sliders"></i> Agent Sales Summary
+    </div>
+        <table class="table table-striped table-hover align-middle" id="agentsummary" style="font-size:0.85rem;">
+            <thead>
+                <tr>
+                    <th>Subagent Name</th>
+                    <th>Product Type</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+            @forelse ($byAgent as $agentId => $policysummary)
+                
+                    <tr>
+                        <td>{{ $policysummary->first()->getagentname() }}</td>
+                        <td>{{ ucwords($policysummary->first()->producttype) }}</td>
+                        <td>{{ $policysummary->count() }}</td>
+                    </tr>
+
+                
+            @empty
+            <tr>
+                <td colspan="3" class="text-center text-muted py-4">
+                    <i class="fa fa-info-circle me-1"></i> No policies found for the current filters.
+                </td>  
+            </tr>
+                
+            @endforelse
+                </tbody>
+        </table>
+    </div>
+
+
 
     <x-subagents.policy-list
         :user="$user"
@@ -147,6 +183,25 @@
     />
 
 </div>
+<script>
+            new DataTable('#agentsummary', {
+                dom: 'Bfrtip', // Adds the button controls
+                buttons: [{
+                        extend: 'excelHtml5',
+                        text: 'Export to Excel',
+                        title: 'Policy List',
+
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: 'Export to PDF',
+                        title: 'Policy List',
+                        orientation: 'landscape', // optional
+                        pageSize: 'A4' // optional
+                    }
+                ]
+            });
+        </script>
 
 
 
