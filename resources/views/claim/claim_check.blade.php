@@ -7,6 +7,7 @@
     $isMultiple = is_array($results) && isset($results[0]);
     $items      = $isMultiple ? array_map(fn($r) => (object) $r, $results) : [];
     $single     = $isMultiple ? null : (object) $results;
+
 @endphp
 
 <div class="container mt-5">
@@ -24,7 +25,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-
+@dd($response)
     @switch($response['status'])
         @case('error')
             <div class="alert alert-danger">
