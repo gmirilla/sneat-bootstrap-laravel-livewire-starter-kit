@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ClaimEnquiry;
 use App\Models\claim;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 
 
@@ -100,4 +102,32 @@ public function claimcheck(Request $request)
 
     return view('claim.claim_check', compact('response'));
 }
+
+    /**
+     * Send a claim enquiry email to the claims team.
+     */
+    public function sendEnquiry(Request $request)
+    {
+        $request->validate([
+            'sender_name'  => 'required|string|max:100',
+            'sender_email' => 'required|email',
+            'message_body' => 'required|string|max:2000',
+        ]);
+
+        try {
+            Mail::to(env('CLAIMS_EMAIL', 'claims@salamtakafulinsurance.com'))
+                ->send(new ClaimEnquiry(
+                    senderName:  $request->sender_name,
+                    senderEmail: $request->sender_email,
+                    claimNo:     $request->claim_no  ?: null,
+                    policyNo:    $request->policy_no ?: null,
+                    messageBody: $request->message_body,
+                ));
+
+            return back()->with('enquiry_success', 'Your message has been sent to the claims team.');
+        } catch (\Exception $e) {
+            Log::error('Claim enquiry email failed: ' . $e->getMessage());
+            return back()->with('enquiry_error', 'Failed to send message. Please try again later.');
+        }
+    }
 }

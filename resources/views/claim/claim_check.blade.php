@@ -11,6 +11,20 @@
 
 <div class="container mt-5">
 
+    {{-- Flash messages --}}
+    @if(session('enquiry_success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('enquiry_success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('enquiry_error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            {{ session('enquiry_error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @switch($response['status'])
         @case('error')
             <div class="alert alert-danger">
@@ -24,6 +38,12 @@
                 {{-- MULTIPLE RESULTS --}}
                 <div class="alert alert-info rounded-3 shadow-sm">
                     <strong>Notice:</strong> Multiple claims found for this policy. Please select a claim to view details.
+                </div>
+
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#claimEnquiryModal">
+                        <i class="bx bx-envelope me-1"></i> Contact Claims Team
+                    </button>
                 </div>
 
                 <div class="table-responsive mt-4">
@@ -89,10 +109,17 @@
                                 <strong>Reported Date:</strong> {{ $single->notification_date ? \Carbon\Carbon::parse($single->notification_date)->format('M d, Y') : 'N/A' }}
                             </div>
                         </div>
-                        <div class="mt-3">
+                        <div class="mt-3 d-flex gap-2">
                             <a href="{{ route('home') }}" class="btn btn-outline-secondary btn-sm">
                                 Back to Search
                             </a>
+                            <button class="btn btn-outline-primary btn-sm"
+                                data-bs-toggle="modal"
+                                data-bs-target="#claimEnquiryModal"
+                                data-claim="{{ $single->claim_no }}"
+                                data-policy="{{ $single->policy_no }}">
+                                <i class="bx bx-envelope me-1"></i> Contact Claims Team
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -103,6 +130,89 @@
     @endswitch
 
 </div>
+
+{{-- ── Claim Enquiry Modal ─────────────────────────────────────────── --}}
+<div class="modal fade" id="claimEnquiryModal" tabindex="-1" aria-labelledby="claimEnquiryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="claimEnquiryModalLabel">
+                    <i class="bx bx-envelope me-1"></i> Contact Claims Team
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('claim.send_enquiry') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    @if($errors->any())
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Your Name <span class="text-danger">*</span></label>
+                            <input type="text" name="sender_name" class="form-control"
+                                value="{{ old('sender_name', Auth::user()->name ?? '') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Your Email <span class="text-danger">*</span></label>
+                            <input type="email" name="sender_email" class="form-control"
+                                value="{{ old('sender_email', Auth::user()->email ?? '') }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Claim No</label>
+                            <input type="text" name="claim_no" id="modal_claim_no" class="form-control"
+                                value="{{ old('claim_no') }}" placeholder="Optional">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Policy No</label>
+                            <input type="text" name="policy_no" id="modal_policy_no" class="form-control"
+                                value="{{ old('policy_no') }}" placeholder="Optional">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Message <span class="text-danger">*</span></label>
+                            <textarea name="message_body" class="form-control" rows="5"
+                                placeholder="Describe your enquiry…" required maxlength="2000">{{ old('message_body') }}</textarea>
+                            <div class="form-text text-end"><span id="charCount">0</span> / 2000</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bx bx-send me-1"></i> Send Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Pre-fill claim/policy fields when opened from a specific row
+    document.getElementById('claimEnquiryModal').addEventListener('show.bs.modal', function (e) {
+        const trigger = e.relatedTarget;
+        if (trigger) {
+            const claim  = trigger.getAttribute('data-claim');
+            const policy = trigger.getAttribute('data-policy');
+            if (claim)  document.getElementById('modal_claim_no').value  = claim;
+            if (policy) document.getElementById('modal_policy_no').value = policy;
+        }
+    });
+
+    // Character counter
+    const msgArea  = document.querySelector('textarea[name="message_body"]');
+    const counter  = document.getElementById('charCount');
+    if (msgArea) {
+        msgArea.addEventListener('input', () => counter.textContent = msgArea.value.length);
+    }
+</script>
 
 <style>
     .hover-shadow:hover {
