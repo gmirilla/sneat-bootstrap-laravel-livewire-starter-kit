@@ -25,11 +25,15 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-@dd($response)
     @switch($response['status'])
         @case('error')
             <div class="alert alert-danger">
                 <strong>Server Error:</strong> {{ $response['message'] ?? 'An unknown error occurred.' }}
+            </div>
+            @break
+        @case('not_found')
+             <div class="alert alert-warning">
+                <strong>No Claims Found:</strong> We couldn't find any claims matching the provided details. Please verify your information and try again.  If you believe this is an error, feel free to contact our claims team for assistance.
             </div>
             @break
 
