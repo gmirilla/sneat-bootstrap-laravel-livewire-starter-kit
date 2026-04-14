@@ -53,11 +53,93 @@
     </div>
 </div>
 
-    <x-subagents.subagentfilters  
+    {{-- ── Per-Subagent Sales Summary ─────────────────────────────────────
+         Computed from $policies which is already filtered, so cards
+         automatically reflect whatever filter the user has applied.
+    --}}
+    @php
+        $byAgent = $policies->groupBy('agent_id');
+
+        $statusColour = [
+            'approved'  => 'success',
+            'draft'     => 'secondary',
+            'failed'    => 'danger',
+            'cancelled' => 'warning',
+        ];
+    @endphp
+
+    @if ($byAgent->isNotEmpty())
+        @if (!empty($searchParams) && array_filter($searchParams))
+            <div class="alert alert-info py-2 mb-3" style="font-size:.82rem;">
+                <i class="fa fa-filter me-1"></i>
+                Summary reflects current filter —
+                @if (!empty($searchParams['policytype'])) <strong>Type:</strong> {{ ucwords($searchParams['policytype']) }};  @endif
+                @if (!empty($searchParams['status']))     <strong>Status:</strong> {{ ucwords($searchParams['status']) }};    @endif
+                @if (!empty($searchParams['datefrom']))   <strong>From:</strong> {{ $searchParams['datefrom'] }};             @endif
+                @if (!empty($searchParams['dateto']))     <strong>To:</strong> {{ $searchParams['dateto'] }};                 @endif
+            </div>
+        @endif
+
+        <div class="row g-3 mb-4">
+            @foreach ($byAgent as $agentId => $agentPolicies)
+                @php
+                    $agentName    = $agentPolicies->first()->getagentname() ?? 'Unknown Agent';
+                    $total        = $agentPolicies->count();
+                    $byStatus     = $agentPolicies->groupBy('status');
+                    $byType       = $agentPolicies->groupBy('producttype');
+                    $totalPremium = $agentPolicies->sum('contribution');
+                @endphp
+
+                <div class="col-md-6 col-xl-4">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold" style="font-size:.85rem;">
+                                <i class="fa fa-user me-1"></i> {{ $agentName }}
+                            </span>
+                            <span class="badge bg-light text-primary">{{ $total }} {{ Str::plural('policy', $total) }}</span>
+                        </div>
+                        <div class="card-body py-2 px-3">
+
+                            {{-- Status breakdown --}}
+                            <p class="text-muted mb-1" style="font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;">By Status</p>
+                            <div class="d-flex flex-wrap gap-1 mb-3">
+                                @foreach ($byStatus as $status => $statusPolicies)
+                                    <span class="badge bg-{{ $statusColour[$status] ?? 'secondary' }}">
+                                        {{ ucfirst($status) }}: {{ $statusPolicies->count() }}
+                                    </span>
+                                @endforeach
+                            </div>
+
+                            {{-- Policy type breakdown --}}
+                            <p class="text-muted mb-1" style="font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;">By Policy Type</p>
+                            <div class="d-flex flex-wrap gap-1 mb-3">
+                                @foreach ($byType as $type => $typePolicies)
+                                    <span class="badge bg-light text-dark border" style="font-size:.72rem;">
+                                        {{ ucwords($type) }}: {{ $typePolicies->count() }}
+                                    </span>
+                                @endforeach
+                            </div>
+
+                            {{-- Total premium --}}
+                            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-1">
+                                <small class="text-muted">Total Contribution</small>
+                                <span class="fw-bold text-success" style="font-size:.85rem;">
+                                    &#8358;{{ number_format($totalPremium, 2) }}
+                                </span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    <x-subagents.subagentfilters
         :products="$products"
         :user="$user"
         :agentslist="$agentslist"
-        ::searchParams="$searchParams"
+        :searchParams="$searchParams"
     />
 
     <x-subagents.policy-list
@@ -67,6 +149,8 @@
     />
 
 </div>
+
+
 
 
 
