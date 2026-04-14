@@ -91,10 +91,10 @@
                         <h5 class="card-title fw-bold">Claim Summary</h5>
                         <div class="row mt-3">
                             <div class="col-md-6 mb-2">
-                                <strong>Claim No:</strong> {{ $single->claim_no }}
+                                <strong>Claim No:</strong> {{ $single->claim_no ??  'N/A' }}
                             </div>
                             <div class="col-md-6 mb-2">
-                                <strong>Policy No:</strong> {{ $single->policy_no }}
+                                <strong>Policy No:</strong> {{ $single->policy_no ?? 'N/A' }}
                             </div>
                             <div class="col-md-6 mb-2">
                                 <strong>Status:</strong>
