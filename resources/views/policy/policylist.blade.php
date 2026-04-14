@@ -895,6 +895,7 @@
                                 <th>Status</th>
                                 @if ($user->role == 'admin' || $user->role == 'superadmin')
                                     <th>Agent</th>
+                                    <th>Parent Agent</th>
                                 @endif
                                 <th>Action</th>
                             </tr>
@@ -1016,6 +1017,7 @@
 
                                     @if ($user->role == 'admin' || $user->role == 'superadmin')
                                         <td>{{ $policy->getagentname() }}</td>
+                                        <td>{{ $policy->getparentagentname() }}</td>
                                     @endif
 
                                     <td>

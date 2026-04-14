@@ -58,6 +58,18 @@ class policy extends Model
         $agent = User::where('id', $this->agent_id)->first();
         return $agent ? $agent->name : 'Agent Not Found';
     }
+
+    public function getparentagentname()
+    {
+        $agent = agentsdetailsModel::where('uid', $this->agent_id)->first();
+        if ($agent && $agent->puid) {
+            $parentAgent = User::where('id', $agent->puid)->first();
+            return $parentAgent ? $parentAgent->name : 'Parent Agent Not Found';
+        }
+        $parentAgent = User::where('id', $this->agent_id)->first();
+        return $parentAgent ? $parentAgent->name : 'Parent Agent Not Found' ;
+    }
+
     public function getaddress()
     {
         $address = User::where('id', $this->insured_id)->first();
