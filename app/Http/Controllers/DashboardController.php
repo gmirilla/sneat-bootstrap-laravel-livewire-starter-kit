@@ -280,10 +280,25 @@ class DashboardController extends Controller
      */
     public function niipmgtdashboard()
     {
+        // Count policies with definite NIIP failures (DB-level patterns only;
+        // JSON-response failures are shown separately in the view if needed).
+        $failedNiipCount = policy::where('status', 'approved')
+            ->whereNotNull('policyno')
+            ->where('policyno', '!=', '')
+            ->where(function ($q) {
+                $q->whereNull('niip_status')
+                  ->orWhere('niip_status', '')
+                  ->orWhere('niip_status', 'Array')
+                  ->orWhere('niip_status', 'like', 'Error:%')
+                  ->orWhere('niip_status', 'retry_queued');
+            })
+            ->count();
+
         return view('niip.niipcodemgmt', [
-            'totalMakes' => vehicleMake::count(),
-            'totalColors' => vehicleColor::count(),
-            'totalStates' => states::count(),
+            'totalMakes'      => vehicleMake::count(),
+            'totalColors'     => vehiclecolor::count(),
+            'totalStates'     => states::count(),
+            'failedNiipCount' => $failedNiipCount,
         ]);
     }
 }

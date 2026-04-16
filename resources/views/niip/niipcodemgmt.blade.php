@@ -59,6 +59,36 @@
         @endif
     </div>
 
+    {{-- ── Failed NIIP Retry Panel ──────────────────────────────────────── --}}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <strong><i class="fa fa-refresh me-2"></i>Failed NIIP Submissions</strong>
+            @if ($failedNiipCount > 0)
+                <span class="badge bg-danger">{{ $failedNiipCount }} pending</span>
+            @else
+                <span class="badge bg-success">All clear</span>
+            @endif
+        </div>
+        <div class="card-body">
+            @if ($failedNiipCount > 0)
+                <p class="text-muted small mb-3">
+                    {{ $failedNiipCount }} approved {{ Str::plural('policy', $failedNiipCount) }}
+                    {{ $failedNiipCount === 1 ? 'has' : 'have' }} a missing or failed NIIP submission.
+                    Clicking retry will queue all of them for resubmission in the background.
+                </p>
+                <form method="POST" action="{{ route('niip.retry_all_failed') }}"
+                      onsubmit="return confirm('Queue {{ $failedNiipCount }} failed NIIP submission(s) for retry?')">
+                    @csrf
+                    <button type="submit" class="btn btn-warning retry-btn">
+                        <i class="fa fa-refresh me-1"></i> Retry All Failed ({{ $failedNiipCount }})
+                    </button>
+                </form>
+            @else
+                <p class="text-muted small mb-0">No failed NIIP submissions detected.</p>
+            @endif
+        </div>
+    </div>
+
     <div class="row g-4">
         <div class="card">
             <div class="card-body">
@@ -91,7 +121,7 @@
         document.addEventListener("DOMContentLoaded", function() {
             const overlay = document.getElementById("loadingOverlay");
 
-            document.querySelectorAll(".update-btn").forEach(btn => {
+            document.querySelectorAll(".update-btn, .retry-btn").forEach(btn => {
                 btn.addEventListener("click", function() {
                     overlay.style.display = "flex";
                 });

@@ -26,14 +26,50 @@
                 </div>
             </div>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <strong>Total Credits Assigned:</strong> {{ $agent->subcreditassigned }}
+            @php $parentDetails = $agent->parentAgentDetails(); @endphp
+
+            @if ($parentDetails && $parentDetails->pool_enabled)
+                {{-- Pool mode --}}
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Credit Mode:</strong>
+                        <span class="badge bg-primary ms-1">Shared Pool</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Personal Cap:</strong>
+                        {{ $agent->pool_cap > 0 ? $agent->pool_cap : 'Unlimited' }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Cap Used:</strong> {{ $agent->pool_cap_used }}
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <strong>Total Credits Used:</strong> {{ $agent->subcreditused }}
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Pool Size:</strong> {{ $parentDetails->pool_size }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Pool Used:</strong> {{ $parentDetails->pool_used }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Pool Available:</strong>
+                        {{ $parentDetails->pool_size - $parentDetails->pool_used }}
+                    </div>
                 </div>
-            </div>
+            @else
+                {{-- Individual allocation mode --}}
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Credit Mode:</strong>
+                        <span class="badge bg-secondary ms-1">Individual</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Total Credits Assigned:</strong> {{ $agent->subcreditassigned }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Total Credits Used:</strong> {{ $agent->subcreditused }}
+                    </div>
+                </div>
+            @endif
 
             <div class="row mb-3">
                 <div class="col-md-6">

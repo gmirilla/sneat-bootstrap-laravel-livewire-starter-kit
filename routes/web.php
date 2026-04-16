@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
     // Misc
     Route::get('test_async', [PolicyController::class, 'testasync'])->name('test_async');
     Route::get('retry_niip', [PolicyController::class, 'retryniip'])->name('retry_niip');
+    Route::post('niip/retry_all_failed', [PolicyController::class, 'retryAllFailedNiip'])->name('niip.retry_all_failed');
 
     // Paystack
     Route::get('init_paystack/{policy}', [PolicyController::class, 'init_paystack'])->name('init_paystack');
@@ -98,6 +99,7 @@ Route::middleware('auth')->group(function () {
     Route::post('sub_agents/register_new/{agent}',[AgentsdetailsModelController::class, 'registerSubAgent'])->name('register_sub_agent');
     Route::post('sub_agents/update_credit/add',[AgentsdetailsModelController::class, 'subAgentCreditAdd'])->name('subagent.credit.add');
     Route::post('sub_agents/update_credit/remove',[AgentsdetailsModelController::class, 'subAgentCreditRemove'])->name('subagent.credit.remove');
+    Route::post('sub_agents/pool/update', [AgentsdetailsModelController::class, 'poolUpdate'])->name('subagent.pool.update');
     Route::post('/subagent/{id}/reset-password', [UserController::class, 'resetPassword'])->name('subagent.resetpassword');
 
 

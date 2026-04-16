@@ -477,30 +477,33 @@ class PolicyController extends Controller
         #Handle Payment Method
         switch ($request) {
             case $request->has('agencycredit'):
-                #TO DO Get How Much Credit the Agent has and pay using assinged credit
-                // Get Current Agency Credit
-                // New logic to handle Sub Agents  with their own credits
                 $agent = agentsdetailsModel::where('uid', $user->id)->first();
                 if ($user->role == 'agent') {
                     $creditleft = $agent->noallocated - $agent->noused;
-                    #To Get individual AUTH TOKEN
-                    #1.  Check if the Agent has an Access Token From Elite
-                    $token = $agent->auth_token;
+                    $token      = $agent->auth_token;
                 } elseif ($user->role == 'subagent') {
                     $subagentdetails = agentsdetailsModel::where('uid', $user->id)->first();
+                    $parentagent     = agentsdetailsModel::where('uid', $subagentdetails->puid)->first();
+                    $token           = $parentagent->auth_token;
 
-                    $creditleft = $subagentdetails->subcreditassigned - $subagentdetails->subcreditused;
-                    //to get Auth token from Parent
-                    $parentagent = agentsdetailsModel::where('uid', $subagentdetails->puid)->first();
-                    $token = $parentagent->auth_token;
+                    if ($parentagent->pool_enabled) {
+                        $poolAvailable = $parentagent->pool_size - $parentagent->pool_used;
+                        if ($subagentdetails->pool_cap > 0) {
+                            // Personal cap within pool — honour the tighter of pool or cap
+                            $capRemaining = $subagentdetails->pool_cap - $subagentdetails->pool_cap_used;
+                            $creditleft   = min($poolAvailable, $capRemaining);
+                        } else {
+                            $creditleft = $poolAvailable;
+                        }
+                    } else {
+                        $creditleft = $subagentdetails->subcreditassigned - $subagentdetails->subcreditused;
+                    }
                 }
 
-                // Secondary check for Agency credit 
                 if ($creditleft <= 0) {
-                    $message = "You do not have sufficient Credits to make this purchase";
-                    $error = 'error';
+                    $message   = "You do not have sufficient Credits to make this purchase";
+                    $error     = 'error';
                     $errorcode = '402-004';
-                    $message;
                     return view('user_errors', compact('error', 'errorcode', 'message'));
                 }
                 break;
@@ -597,50 +600,32 @@ class PolicyController extends Controller
             }
             $policy->status = 'approved';
             $policy->save();
-            #Get Agent Credit Balance and change to reflect success;
+            // Deduct credit on Elite approval
             if ($request->has('agencycredit')) {
-                $agent->noused = $agent->noused + 1;
-                $agent->save();
-            }
-            if ($user->role == 'subagent') {
-
-                $subagentdetails->subcreditused = $subagentdetails->subcreditused + 1;
-                $subagentdetails->noused = $subagentdetails->noused - 1;
-                $subagentdetails->save();
+                if ($user->role == 'subagent') {
+                    if ($parentagent->pool_enabled) {
+                        // Pool mode — atomic deduction to prevent race conditions
+                        DB::transaction(function () use ($parentagent, $subagentdetails) {
+                            $parentagent->lockForUpdate()->increment('pool_used');
+                            if ($subagentdetails->pool_cap > 0) {
+                                $subagentdetails->increment('pool_cap_used');
+                            }
+                        });
+                    } else {
+                        // Individual allocation mode
+                        $subagentdetails->subcreditused += 1;
+                        $subagentdetails->noused        -= 1;
+                        $subagentdetails->save();
+                    }
+                } else {
+                    $agent->noused += 1;
+                    $agent->save();
+                }
             }
             $policy->save();
 
-            #TO DO Upload policy to NIIP
-
-            #Prepare Third Party Motor Policy API Data for NIIP
-
-            $niipdata =
-                [
-                    "APIKey" => config('variables.NIIP_API_KEY'),
-                    "Purpose" => $policy->niipvehicleuse,
-                    "VehicleColor" => $policyrisk->vechiclecolorid,
-                    "VehicleMake" => $policyrisk->getvmakeid(),
-                    "VehicleModel" => $policyrisk->getvmodelid(),
-                    "EngineCap" => 3, // TO DO Get Engine Capacity
-                    "State" => $policy->stateid,
-                    "LGA" => $policy->lgaid,
-                    "RegNo" => $policyrisk->regno,
-                    "ChassisNo" => $policyrisk->chassisno,
-                    "EngineNo" => $policyrisk->engineno,
-                    "PolicyHolderFirstName" => $policy->firstname,
-                    "PolicyHolderLastName" => $policy->lastname,
-                    "PolicyHolderMiddleName" => ' ',
-                    "PolicyHolderMobileNo" => $policy->telno,
-                    "PolicyHolderEmail" => $policy->email,
-                    "PolicyHolderNIN" => '  ',
-                    "IssueDate" => date('Y-m-d', strtotime($policy->start_date)),
-                    "PolicyHolderAddress" => str_replace(' ', '', $policy->getaddress()),
-                    "PolicyNumber" => $policy->policyno
-
-                ];
-            #encode NIIP Data to JSON
-
-            PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
+            // Upload policy to NIIP
+            PostNIIPDataSlow::dispatch($this->buildNiipData($policy, $policyrisk)); // Non-blocking
         }
         // Handle failure response from Elite
         else {
@@ -805,43 +790,142 @@ class PolicyController extends Controller
 
     public function retryniip(Request $request)
     {
-        // Test asynchronous job dispatching
-        $policy = policy::where('policyno', $request->policyno)->first();
+        $policy     = policy::where('policyno', $request->policyno)->first();
         $policyrisk = $policy->getrisk();
 
-        $niipdata = [
-            "APIKey" => config('variables.NIIP_API_KEY'),
-            "Purpose" => $policy->niipvehicleuse,
-            "VehicleColor" => $policyrisk->vechiclecolorid,
-            "VehicleMake" => $policyrisk->getvmakeid(),
-            "VehicleModel" => $policyrisk->getvmodelid(),
-            "EngineCap" => 3, // TO DO Get Engine Capacity
-            "State" => $policy->stateid,
-            "LGA" => $policy->lgaid,
-            "RegNo" => $policyrisk->regno,
-            "ChassisNo" => $policyrisk->chassisno,
-            "EngineNo" => $policyrisk->engineno,
-            "PolicyHolderFirstName" => $policy->firstname,
-            "PolicyHolderLastName" => $policy->lastname,
-            "PolicyHolderMiddleName" => ' ',
-            "PolicyHolderMobileNo" => $policy->telno,
-            "PolicyHolderEmail" => $policy->email,
-            "PolicyHolderNIN" => '  ',
-            "IssueDate" => date('Y-m-d', strtotime($policy->start_date)),
-            "PolicyHolderAddress" => str_replace(' ', '', $policy->getaddress()),
-            "PolicyNumber" => $policy->policyno
-        ];
+        $policy->niip_status = 'retry_queued';
+        $policy->save();
 
-        //PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
-        // echo "NIIP data dispatched successfully.";
+        PostNIIPDataSlow::dispatch($this->buildNiipData($policy, $policyrisk));
 
-        // echo json_encode($niipdata);
-        PostNIIPDataSlow::dispatch($niipdata);
-
-        $id = $policy->id;
-        $retrymessage = "NIIP data dispatched.";
+        $id           = $policy->id;
+        $retrymessage = 'NIIP data dispatched.';
 
         return redirect()->route('view_policy', compact('retrymessage', 'id'));
+    }
+
+    /**
+     * Retry all failed NIIP submissions in bulk.
+     * Restricted to admin / superadmin.
+     */
+    public function retryAllFailedNiip(Request $request)
+    {
+        $user = Auth::user();
+        if (!in_array($user->role, ['admin', 'superadmin'])) {
+            return redirect()->route('niip_code_mgmt')
+                ->with('error', 'Unauthorised.');
+        }
+
+        // Collect approved policies whose NIIP submission never succeeded.
+        // DB-level filter catches the definitive failure patterns; the PHP
+        // filter below catches JSON responses where isSuccess !== true.
+        $candidates = policy::where('status', 'approved')
+            ->whereNotNull('policyno')
+            ->where('policyno', '!=', '')
+            ->where(function ($q) {
+                $q->whereNull('niip_status')
+                  ->orWhere('niip_status', '')
+                  ->orWhere('niip_status', 'Array')        // job bug: array cast to string
+                  ->orWhere('niip_status', 'like', 'Error:%')
+                  ->orWhere('niip_status', 'retry_queued'); // previously queued but job failed again
+            })
+            ->get();
+
+        // Also check JSON responses that indicate failure
+        $jsonFailed = policy::where('status', 'approved')
+            ->whereNotNull('policyno')
+            ->where('policyno', '!=', '')
+            ->whereNotNull('niip_status')
+            ->where('niip_status', 'not like', 'Error:%')
+            ->where('niip_status', '!=', 'retry_queued')
+            ->where('niip_status', '!=', 'Array')
+            ->get()
+            ->filter(fn($p) => $this->niipResponseFailed($p->niip_status));
+
+        $failed = $candidates->merge($jsonFailed)->unique('id');
+
+        if ($failed->isEmpty()) {
+            return redirect()->route('niip_code_mgmt')
+                ->with('success', 'No failed NIIP submissions found.');
+        }
+
+        $queued     = 0;
+        $skipped    = 0;
+
+        foreach ($failed as $policy) {
+            $policyrisk = $policy->getrisk();
+
+            if (!$policyrisk) {
+                Log::warning("NIIP batch retry: no risk record for policy {$policy->policyno}");
+                $skipped++;
+                continue;
+            }
+
+            $policy->niip_status = 'retry_queued';
+            $policy->save();
+
+            PostNIIPDataSlow::dispatch($this->buildNiipData($policy, $policyrisk));
+            $queued++;
+        }
+
+        $msg = "Queued {$queued} NIIP submission(s) for retry.";
+        if ($skipped > 0) {
+            $msg .= " {$skipped} skipped (missing risk record).";
+        }
+
+        Log::info("NIIP batch retry by {$user->name}: {$msg}");
+
+        return redirect()->route('niip_code_mgmt')->with('success', $msg);
+    }
+
+    /**
+     * Build the NIIP submission payload for a policy.
+     * Single source of truth used by confirmmpolicy, retryniip, and retryAllFailedNiip.
+     */
+    private function buildNiipData(policy $policy, policyrisk $policyrisk): array
+    {
+        return [
+            "APIKey"                  => config('variables.NIIP_API_KEY'),
+            "Purpose"                 => $policy->niipvehicleuse,
+            "VehicleColor"            => $policyrisk->vechiclecolorid,
+            "VehicleMake"             => $policyrisk->getvmakeid(),
+            "VehicleModel"            => $policyrisk->getvmodelid(),
+            "EngineCap"               => 3, // TO DO: get actual engine capacity
+            "State"                   => $policy->stateid,
+            "LGA"                     => $policy->lgaid,
+            "RegNo"                   => $policyrisk->regno,
+            "ChassisNo"               => $policyrisk->chassisno,
+            "EngineNo"                => $policyrisk->engineno,
+            "PolicyHolderFirstName"   => $policy->firstname,
+            "PolicyHolderLastName"    => $policy->lastname,
+            "PolicyHolderMiddleName"  => ' ',
+            "PolicyHolderMobileNo"    => $policy->telno,
+            "PolicyHolderEmail"       => $policy->email,
+            "PolicyHolderNIN"         => '  ',
+            "IssueDate"               => date('Y-m-d', strtotime($policy->start_date)),
+            "PolicyHolderAddress"     => str_replace(' ', '', $policy->getaddress()),
+            "PolicyNumber"            => $policy->policyno,
+        ];
+    }
+
+    /**
+     * Returns true when a stored niip_status JSON string indicates a failed
+     * API response (isSuccess !== true).
+     */
+    private function niipResponseFailed(?string $niipStatus): bool
+    {
+        if (empty($niipStatus)) {
+            return true;
+        }
+
+        $decoded = json_decode($niipStatus, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            // Not valid JSON — treat as failed
+            return true;
+        }
+
+        return !($decoded['isSuccess'] ?? false);
     }
 
     public function filterreport(Request $request)
@@ -1056,15 +1140,28 @@ class PolicyController extends Controller
             $creditLog = '';
 
             // Refund credit only if the policy was NOT paid by card
-            if($policy->getsuccesspayments()->count() == 0){
-                if ($agent && $agent->issubagent == false){
+            if ($policy->getsuccesspayments()->count() == 0) {
+                if ($agent && $agent->issubagent == false) {
+                    // Regular agent
                     $agent->noused = max(0, $agent->noused - 1);
                     $agent->save();
                     $creditLog = ' | New credit count: ' . $agent->noused;
                 } elseif ($agent) {
-                    $agent->subcreditused = max(0, $agent->subcreditused - 1);
-                    $agent->save();
-                    $creditLog = ' | New subcredit count: ' . $agent->subcreditused;
+                    // Subagent — check if parent uses pool mode
+                    $parentAgent = $agent->parentAgentDetails();
+                    if ($parentAgent && $parentAgent->pool_enabled) {
+                        $parentAgent->pool_used = max(0, $parentAgent->pool_used - 1);
+                        $parentAgent->save();
+                        if ($agent->pool_cap > 0) {
+                            $agent->pool_cap_used = max(0, $agent->pool_cap_used - 1);
+                            $agent->save();
+                        }
+                        $creditLog = ' | Pool refund: pool_used now ' . $parentAgent->pool_used;
+                    } else {
+                        $agent->subcreditused = max(0, $agent->subcreditused - 1);
+                        $agent->save();
+                        $creditLog = ' | New subcredit count: ' . $agent->subcreditused;
+                    }
                 }
             }
 
