@@ -731,7 +731,7 @@
                             <span class="tile-icon"><i class="fa-solid fa-building-shield"></i></span>
                             {{-- FIX #8: Restored to enabled — was incorrectly disabled --}}
                             <p class="text-alert">Occupier's Liability Policy**</p>
-                            <button class="btn-tile" name="btnoccupier">Occupier's Liability</button>
+                            <button class="btn-tile" name="btnoccupier" disabled>Occupier's Liability</button>
                         </div>
 
                         <div class="sl-product-tile">
