@@ -122,7 +122,7 @@
                         <td>{{ $sub->email }}</td>
                         <td>{{ $subDetails->status ?? 'N/A' }}</td>
                         @if ($agentDetails->pool_enabled)
-                            <td>{{ $subDetails->pool_cap > 0 ? $subDetails->pool_cap : '∞' }}</td>
+                            <td>{{ ($subDetails->pool_cap ?? 0) > 0 ? $subDetails->pool_cap : '∞' }}</td>
                             <td>{{ $subDetails->pool_cap_used ?? 0 }}</td>
                         @else
                             <td>{{ $subDetails->subcreditassigned ?? 'N/A' }}</td>
