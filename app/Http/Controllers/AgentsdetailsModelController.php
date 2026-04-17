@@ -185,6 +185,13 @@ class AgentsdetailsModelController extends Controller
         $agentDetails    = agentsdetailsModel::where('uid', Auth::id())->first();
         $subAgentDetails = agentsdetailsModel::where('uid', $subAgent->id)->first();
 
+        if (!$agentDetails) {
+            return back()->withErrors(['credits' => 'Agent record not found.']);
+        }
+        if (!$subAgentDetails) {
+            return back()->withErrors(['subagent_id' => 'Sub-agent credit record not found.']);
+        }
+
         if ($agentDetails->pool_enabled) {
             // Pool mode: increase the subagent's personal cap only (no parent credit cost)
             $subAgentDetails->pool_cap += $validatedData['credits'];
@@ -218,6 +225,13 @@ class AgentsdetailsModelController extends Controller
 
         $agentDetails    = agentsdetailsModel::where('uid', Auth::id())->first();
         $subAgentDetails = agentsdetailsModel::where('uid', $subAgent->id)->first();
+
+        if (!$agentDetails) {
+            return back()->withErrors(['credits' => 'Agent record not found.']);
+        }
+        if (!$subAgentDetails) {
+            return back()->withErrors(['subagent_id' => 'Sub-agent credit record not found.']);
+        }
 
         if ($agentDetails->pool_enabled) {
             // Pool mode: reduce the subagent's cap, but not below what they've already used
