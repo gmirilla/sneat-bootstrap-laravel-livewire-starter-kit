@@ -934,11 +934,25 @@ class PolicyController extends Controller
             ? agentsdetailsModel::where('issubagent', false)->get()
             : collect();
 
-        $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
+        $searchParams = $request->only(['search', 'policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
         $query        = policy::query();
 
         if (in_array($user->role, ['agent', 'subagent'])) {
             $query->where('agent_id', $user->id);
+        }
+
+        // Free-text search across policy no., insured name, and vehicle reg no.
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function ($q) use ($term) {
+                $q->where('policyno', 'like', "%{$term}%")
+                  ->orWhere('insured_name', 'like', "%{$term}%")
+                  ->orWhereIn('id', function ($sub) use ($term) {
+                      $sub->select('policyid')
+                          ->from('policyrisks')
+                          ->where('regno', 'like', "%{$term}%");
+                  });
+            });
         }
 
         if ($request->filled('policytype')) {

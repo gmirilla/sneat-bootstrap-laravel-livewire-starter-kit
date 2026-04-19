@@ -755,6 +755,15 @@
                 <form action="{{ route('filterreport') }}" method="get" id="filterForm">
                     <div class="sl-filter-grid">
 
+                        {{-- Search --}}
+                        <div class="sl-filter-field" style="flex: 2 1 260px;">
+                            <label for="search">Search</label>
+                            <input type="text" name="search" id="search"
+                                placeholder="Policy No., Insured Name, Reg No."
+                                value="{{ $searchParams['search'] ?? '' }}"
+                                style="width:100%;padding:.48rem .75rem;border:1.5px solid var(--border);border-radius:7px;font-size:.83rem;font-family:var(--font);color:var(--text);background:var(--surface);transition:border-color .2s;">
+                        </div>
+
                         {{-- Policy Type --}}
                         <div class="sl-filter-field">
                             <label for="policytype">Policy Type</label>
@@ -846,9 +855,13 @@
                     </div>
 
                     {{-- Active Filter Chips --}}
-                    @if (!empty($searchParams))
+                    @if (!empty(array_filter($searchParams)))
                         <div class="sl-filter-chips">
                             <span class="sl-chip-label">Active filters:</span>
+                            @if (!empty($searchParams['search']))
+                                <span class="sl-chip"><i class="fa-solid fa-magnifying-glass"></i>
+                                    "{{ $searchParams['search'] }}"</span>
+                            @endif
                             @if (!empty($searchParams['policytype']))
                                 <span class="sl-chip"><i class="fa-solid fa-tag"></i>
                                     {{ ucwords($searchParams['policytype']) }}</span>
