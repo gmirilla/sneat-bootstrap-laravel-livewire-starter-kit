@@ -53,7 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::post('policy/cancel_policy', [PolicyController::class, 'cancelpolicy'])->name('cancel_policy');
 
     // Reports & renewals
-    Route::post('filter_report', [PolicyController::class, 'filterreport'])->name('filterreport');
+    Route::match(['get', 'post'], 'filter_report', [PolicyController::class, 'filterreport'])->name('filterreport');
      Route::post('subagent/filter_report', [PolicyController::class, 'subagentfilterreport'])->name('subagent.filterreport');
     Route::get('upcoming_renewals', [PolicyController::class, 'renewalslist'])->name('renewalslist');
 

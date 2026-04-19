@@ -752,8 +752,7 @@
                 <i class="fa-solid fa-sliders"></i> Filter Policies
             </div>
             <div class="sl-card-body">
-                <form action="{{ route('filterreport') }}" method="post" id="filterForm">
-                    @csrf
+                <form action="{{ route('filterreport') }}" method="get" id="filterForm">
                     <div class="sl-filter-grid">
 
                         {{-- Policy Type --}}
@@ -1096,6 +1095,12 @@
                             </tbody>
                         </table>
                     </div>
+
+                {{-- Laravel pagination links — carry filter params through pages --}}
+                <div class="mt-3">
+                    {{ $policies->withQueryString()->links() }}
+                </div>
+
                 </div>
             </div>
 
@@ -1174,8 +1179,12 @@
             });
 
             // ── DataTable ─────────────────────────────────────────────
+            // paging: false — Laravel handles pagination; DataTable provides
+            // per-page search and export on the current 50-row page only.
             new DataTable('#policylist', {
-                dom: 'Bfrtip',
+                paging: false,
+                info: false,
+                dom: 'Bfrt',
                 buttons: [{
                         extend: 'excelHtml5',
                         text: '<i class="fa-solid fa-file-excel"></i> Excel',

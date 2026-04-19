@@ -35,43 +35,40 @@ class PolicyController extends Controller
 
         Auth::check();
         $user = Auth::user();
-        $agentslist = agentsdetailsModel::all();
 
-        //filter based on role
+        // Scope agentslist to avoid loading every agent for the dropdown
+        $agentslist = in_array($user->role, ['admin', 'superadmin'])
+            ? agentsdetailsModel::where('issubagent', false)->get()
+            : collect();
+
         switch ($user->role) {
             case 'agent':
-                # RETRIEVE ALL POLICIES CREATED BY THIS AGENT
-                $policies = policy::where('agent_id', $user->id)->orderBy('updated_at', 'desc')->get();
-
-                break;
-
             case 'subagent':
-                # RETRIEVE ALL POLICIES CREATED BY THISSUBAGENT
-                $policies = policy::where('agent_id', $user->id)->orderBy('updated_at', 'desc')->get();
-
+                $policies = policy::where('agent_id', $user->id)
+                    ->orderBy('updated_at', 'desc')
+                    ->paginate(50);
                 break;
+
             case 'admin':
-                # Retreieve all policies
-                $policies = policy::all();
-
-                break;
             case 'superadmin':
-                # Retreieve all policies
-                $policies = policy::all();
-
+                $policies = policy::orderBy('updated_at', 'desc')->paginate(50);
                 break;
+
             case 'user':
-                # Retrieve policies created by and for this user this user
-                $policies = policy::where('insured_id', $user->id)->get();
+                $policies = policy::where('insured_id', $user->id)
+                    ->orderBy('updated_at', 'desc')
+                    ->paginate(50);
                 break;
 
             default:
-                # code...
+                $policies = collect()->paginate(50);
                 break;
         }
-        $products = policy::select('producttype')->distinct()->pluck('producttype');
 
-        return view('policy.policylist', compact('policies', 'products', 'user', 'agentslist'));
+        $products    = policy::select('producttype')->distinct()->pluck('producttype');
+        $searchParams = [];
+
+        return view('policy.policylist', compact('policies', 'products', 'user', 'agentslist', 'searchParams'));
     }
 
     /**
@@ -932,71 +929,36 @@ class PolicyController extends Controller
     {
         Auth::check();
         $user = Auth::user();
-        $agentslist = agentsdetailsModel::all();
-        $query = Policy::query();
+
+        $agentslist   = in_array($user->role, ['admin', 'superadmin'])
+            ? agentsdetailsModel::where('issubagent', false)->get()
+            : collect();
+
         $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
+        $query        = policy::query();
 
-        switch ($user->role) {
-            case in_array($user->role, ['agent', 'subagent']):
-
-                # code...
-
-                if ($request->filled('policytype')) {
-                    $query->where('producttype', $request->policytype)->where('agent_id', $user->id);
-                }
-
-                if ($request->filled('status')) {
-                    $query->where('status', $request->status)->where('agent_id', $user->id);
-                }
-
-                if ($request->filled('datefrom')) {
-                    $query->whereDate('created_at', '>=', $request->datefrom)->where('agent_id', $user->id);
-                }
-
-                if ($request->filled('dateto')) {
-                    $query->whereDate('created_at', '<=', $request->dateto)->where('agent_id', $user->id);
-                }
-                if ($request->filled('agentcode')) {
-                    $query->where('agent_id', $request->agentcode)->where('agent_id', $user->id);
-                }
-
-                $policies = $query->get();
-                $products = policy::select('producttype')->distinct()->pluck('producttype');
-
-                break;
-                            # code...
-            case in_array($user->role, ['admin', 'superadmin']):
-
-
-                if ($request->filled('policytype')) {
-                    $query->where('producttype', $request->policytype);
-                }
-
-                if ($request->filled('status')) {
-                    $query->where('status', $request->status);
-                }
-
-                if ($request->filled('datefrom')) {
-                    $query->whereDate('created_at', '>=', $request->datefrom);
-                }
-
-                if ($request->filled('dateto')) {
-                    $query->whereDate('created_at', '<=', $request->dateto);
-                }
-                if ($request->filled('agentcode')) {
-                    $query->where('agent_id', $request->agentcode);
-                }
-
-                $policies = $query->get();
-                $products = policy::select('producttype')->distinct()->pluck('producttype');
-
-            default:
-
-                break;
+        if (in_array($user->role, ['agent', 'subagent'])) {
+            $query->where('agent_id', $user->id);
         }
 
+        if ($request->filled('policytype')) {
+            $query->where('producttype', $request->policytype);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('datefrom')) {
+            $query->whereDate('created_at', '>=', $request->datefrom);
+        }
+        if ($request->filled('dateto')) {
+            $query->whereDate('created_at', '<=', $request->dateto);
+        }
+        if ($request->filled('agentcode') && in_array($user->role, ['admin', 'superadmin'])) {
+            $query->where('agent_id', $request->agentcode);
+        }
 
-
+        $policies = $query->orderBy('updated_at', 'desc')->paginate(50)->withQueryString();
+        $products = policy::select('producttype')->distinct()->pluck('producttype');
 
 
 
