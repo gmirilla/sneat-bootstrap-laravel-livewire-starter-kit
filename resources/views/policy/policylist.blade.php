@@ -705,6 +705,13 @@
                     Purchase of Third Party Insurance for Trucks, Lorries and Articulated Vehicles is <strong>not
                         allowed</strong> via this app.
                 </div>
+                <div class="sl-notice">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <strong class="text-danger"> Please note that due to internal issues all Sales via this app are temporarily sospended.
+                        <br/> We apologize for any inconvenience and are working to resolve this as quickly as possible.
+                        <br/> Please contact our Sales team for updatates and assistance.
+                    </strong>
+                                </div>
 
                 <form action="{{ route('buy_policy') }}" method="get">
                     <div class="sl-product-grid">
@@ -712,19 +719,19 @@
                         <div class="sl-product-tile">
                             <span class="tile-icon"><i class="fa-solid fa-car"></i></span>
                             <p>Private Vehicles</p>
-                            <button class="btn-tile" name="btnprivatemotor">Private Motor Third Party</button>
+                            <button class="btn-tile" name="btnprivatemotor" disabled>Private Motor Third Party</button>
                         </div>
 
                         <div class="sl-product-tile">
                             <span class="tile-icon"><i class="fa-solid fa-truck"></i></span>
                             <p>Taxis, Staff Bus, Mini Bus</p>
-                            <button class="btn-tile" name="btncommercialmotor">Commercial Motor Third Party</button>
+                            <button class="btn-tile" name="btncommercialmotor" disabled>Commercial Motor Third Party</button>
                         </div>
 
                         <div class="sl-product-tile">
                             <span class="tile-icon"><i class="fa-solid fa-motorcycle"></i></span>
                             <p>Motorcycle, Tricycle</p>
-                            <button class="btn-tile" name="btnmotorcycle">Motorcycle/Tricycle Third Party</button>
+                            <button class="btn-tile" name="btnmotorcycle" disabled>Motorcycle/Tricycle Third Party</button>
                         </div>
 
                         <div class="sl-product-tile">
