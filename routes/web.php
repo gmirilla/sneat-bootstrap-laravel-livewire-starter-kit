@@ -40,8 +40,8 @@ Route::middleware('auth')->group(function () {
 
     // Policy listing & views
     Route::get('list_policy', [PolicyController::class, 'index'])->name('list_policy');
-    // Route::get('buypolicy', [PolicyController::class, 'buypolicy'])->name('buy_policy'); 
-    Route::get('buypolicy', [PolicyController::class, 'index'])->name('buy_policy');
+    Route::get('buypolicy', [PolicyController::class, 'buypolicy'])->name('buy_policy'); 
+    //Route::get('buypolicy', [PolicyController::class, 'index'])->name('buy_policy');
     Route::get('new_policy', [PolicyController::class, 'newpolicy'])->name('new_policy');
     Route::get('view_policy', [PolicyController::class, 'viewpolicy'])->name('view_policy');
     Route::get('list_policy_subagents', [PolicyController::class, 'listpolicySubagents'])->name('list_policy_subagents');

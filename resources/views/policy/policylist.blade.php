@@ -719,19 +719,19 @@
                         <div class="sl-product-tile">
                             <span class="tile-icon"><i class="fa-solid fa-car"></i></span>
                             <p>Private Vehicles</p>
-                            <button class="btn-tile" name="btnprivatemotor" disabled>Private Motor Third Party</button>
+                            <button class="btn-tile" name="btnprivatemotor">Private Motor Third Party</button>
                         </div>
 
                         <div class="sl-product-tile">
                             <span class="tile-icon"><i class="fa-solid fa-truck"></i></span>
                             <p>Taxis, Staff Bus, Mini Bus</p>
-                            <button class="btn-tile" name="btncommercialmotor" disabled>Commercial Motor Third Party</button>
+                            <button class="btn-tile" name="btncommercialmotor">Commercial Motor Third Party</button>
                         </div>
 
                         <div class="sl-product-tile">
                             <span class="tile-icon"><i class="fa-solid fa-motorcycle"></i></span>
                             <p>Motorcycle, Tricycle</p>
-                            <button class="btn-tile" name="btnmotorcycle" disabled>Motorcycle/Tricycle Third Party</button>
+                            <button class="btn-tile" name="btnmotorcycle">Motorcycle/Tricycle Third Party</button>
                         </div>
 
                         <div class="sl-product-tile">
