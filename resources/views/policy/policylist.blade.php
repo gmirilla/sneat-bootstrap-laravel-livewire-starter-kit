@@ -705,13 +705,7 @@
                     Purchase of Third Party Insurance for Trucks, Lorries and Articulated Vehicles is <strong>not
                         allowed</strong> via this app.
                 </div>
-                <div class="sl-notice">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                    <strong class="text-danger"> Please note that due to internal issues all Sales via this app are temporarily sospended.
-                        <br/> We apologize for any inconvenience and are working to resolve this as quickly as possible.
-                        <br/> Please contact our Sales team for updatates and assistance.
-                    </strong>
-                                </div>
+
 
                 <form action="{{ route('buy_policy') }}" method="get">
                     <div class="sl-product-grid">
