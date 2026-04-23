@@ -705,6 +705,14 @@
                     Purchase of Third Party Insurance for Trucks, Lorries and Articulated Vehicles is <strong>not
                         allowed</strong> via this app.
                 </div>
+                <div class="sl-notice text-danger">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    Please be informed that sucessful upload to NIIP/NIID with this app is reliant on 
+                     your selection of the appropriate insurance type for your vehicle type<strong>
+                    </strong> as per the options below. Incorrect selection may lead to NIIP/NIID upload failure 
+                    and potential issues with your policy. If you are unsure about which insurance type to select, please consult with your insurance provider or agent before proceeding.
+                </div>
+
 
 
                 <form action="{{ route('buy_policy') }}" method="get">
