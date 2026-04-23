@@ -613,8 +613,10 @@
     /* ── LOADING OVERLAY ─────────────────────────────── */
     #ecmrLoadingOverlay {
         position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         background: rgba(255, 255, 255, 0.75);
         display: none;
         justify-content: center;
@@ -623,6 +625,7 @@
         flex-direction: column;
         gap: .75rem;
     }
+
     #ecmrLoadingOverlay .overlay-msg {
         font-size: .9rem;
         font-weight: 600;
@@ -705,12 +708,15 @@
                     Purchase of Third Party Insurance for Trucks, Lorries and Articulated Vehicles is <strong>not
                         allowed</strong> via this app.
                 </div>
-                <div class="sl-notice text-danger">
+                                <div class="sl-notice text-danger">
                     <i class="fa-solid fa-triangle-exclamation"></i>
-                    Please be informed that sucessful upload to NIIP/NIID with this app is reliant on 
-                     your selection of the appropriate insurance type for your vehicle type as per the options below. Incorrect selection may lead to NIIP/NIID upload failure 
-                    and potential issues with your policy. If you are unsure about which insurance type to select, please consult with your insurance provider or agent before proceeding.
+                    Please be informed that sucessful upload to NIIP/NIID with this app is reliant on
+                    your selection of the appropriate insurance type for your vehicle type as per the options below.
+                    Incorrect selection may lead to NIIP/NIID upload failure
+                    and potential issues with your policy. If you are unsure about which insurance type to select,
+                    please consult with your insurance provider or agent before proceeding.
                 </div>
+
 
 
 
@@ -1055,10 +1061,10 @@
                                             </a>
                                         @endif
                                         @if (($user->role == 'admin' || $user->role == 'superadmin') && str_contains(strtolower($policy->producttype), 'motor'))
-                                                <a class="btn-cert ecmr-retry-link"
-                                                    href="{{route('ecmr.check', ['ecmr_regno' => $policy->getrisk()->regno ?? 'n/a'])}}">
-                                                    <i class="fa-solid fa-shield"></i> Retry ECMR
-                                                </a>
+                                            <a class="btn-cert ecmr-retry-link"
+                                                href="{{ route('ecmr.check', ['ecmr_regno' => $policy->getrisk()->regno ?? 'n/a']) }}">
+                                                <i class="fa-solid fa-shield"></i> Retry ECMR
+                                            </a>
                                         @endif
 
                                         @if ($user->role == 'admin' || $user->role == 'superadmin')
@@ -1117,10 +1123,10 @@
                         </table>
                     </div>
 
-                {{-- Laravel pagination links — carry filter params through pages --}}
-                <div class="mt-3">
-                    {{ $policies->withQueryString()->links() }}
-                </div>
+                    {{-- Laravel pagination links — carry filter params through pages --}}
+                    <div class="mt-3">
+                        {{ $policies->withQueryString()->links() }}
+                    </div>
 
                 </div>
             </div>

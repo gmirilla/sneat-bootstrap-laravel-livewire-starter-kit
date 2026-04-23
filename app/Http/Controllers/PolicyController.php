@@ -82,7 +82,7 @@ class PolicyController extends Controller
         $colors = vehiclecolor::all();
 
 
-        switch ($request) {
+        switch (true) {
             case ($request->has('btnprivatemotor')):
                 # begin the purchase of a private motor policy
                 $producttype = 'Private Motor Third Party';
@@ -472,7 +472,7 @@ class PolicyController extends Controller
 
 
         #Handle Payment Method
-        switch ($request) {
+        switch (true) {
             case $request->has('agencycredit'):
                 $agent = agentsdetailsModel::where('uid', $user->id)->first();
                 if ($user->role == 'agent') {
