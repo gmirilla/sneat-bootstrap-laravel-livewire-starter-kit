@@ -12,12 +12,28 @@ class UserController extends Controller
     /**
      * Display a listing of all users.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
-        $users=User::all();
+        $searchParams = $request->only(['search', 'role']);
 
-        return view('usermgmgt.listusers', compact('users'));
+        $query = User::query();
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function ($q) use ($term) {
+                $q->where('firstname', 'like', "%{$term}%")
+                  ->orWhere('lastname',  'like', "%{$term}%")
+                  ->orWhere('email',     'like', "%{$term}%");
+            });
+        }
+
+        if ($request->filled('role')) {
+            $query->where('role', $request->role);
+        }
+
+        $users = $query->orderBy('created_at', 'desc')->paginate(30)->withQueryString();
+
+        return view('usermgmgt.listusers', compact('users', 'searchParams'));
     }
 
         public function updateuser(Request $request)
@@ -58,13 +74,10 @@ class UserController extends Controller
 
        
 
-        $users=User::all();
-
-        return view('usermgmgt.listusers', compact('users'));
+        return redirect()->route('list_users');
     }
 
 
-    
     /**
      * Set the user's API Token.
      */

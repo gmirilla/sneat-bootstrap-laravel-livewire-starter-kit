@@ -463,6 +463,7 @@ class PolicyController extends Controller
         $policyrisk = policyrisk::where('policyid', $request->policyid)->first();
         $insured = User::where('id', $policy->insured_id)->first();
         $transaction = null;
+        $creditType = $this->creditType($policy->producttype);
         #Validation of mandatory Field with default values
         $gsm = $insured->telno;
         if (empty($gsm)) {
@@ -476,7 +477,7 @@ class PolicyController extends Controller
             case $request->has('agencycredit'):
                 $agent = agentsdetailsModel::where('uid', $user->id)->first();
                 if ($user->role == 'agent') {
-                    $creditleft = $agent->noallocated - $agent->noused;
+                    $creditleft = $agent->availableByType($creditType);
                     $token      = $agent->auth_token;
                 } elseif ($user->role == 'subagent') {
                     $subagentdetails = agentsdetailsModel::where('uid', $user->id)->first();
@@ -484,21 +485,26 @@ class PolicyController extends Controller
                     $token           = $parentagent->auth_token;
 
                     if ($parentagent->pool_enabled) {
-                        $poolAvailable = $parentagent->pool_size - $parentagent->pool_used;
-                        if ($subagentdetails->pool_cap > 0) {
-                            // Personal cap within pool — honour the tighter of pool or cap
-                            $capRemaining = $subagentdetails->pool_cap - $subagentdetails->pool_cap_used;
-                            $creditleft   = min($poolAvailable, $capRemaining);
+                        if ($creditType === 'private') {
+                            $poolAvailable = $parentagent->pool_private_size - $parentagent->pool_private_used;
+                            $cap     = $subagentdetails->pool_cap_private;
+                            $capUsed = $subagentdetails->pool_cap_used_private;
                         } else {
-                            $creditleft = $poolAvailable;
+                            $poolAvailable = $parentagent->pool_commercial_size - $parentagent->pool_commercial_used;
+                            $cap     = $subagentdetails->pool_cap_commercial;
+                            $capUsed = $subagentdetails->pool_cap_used_commercial;
                         }
+                        $creditleft = $cap > 0 ? min($poolAvailable, $cap - $capUsed) : $poolAvailable;
                     } else {
-                        $creditleft = $subagentdetails->subcreditassigned - $subagentdetails->subcreditused;
+                        $creditleft = $creditType === 'private'
+                            ? $subagentdetails->subcreditassigned_private - $subagentdetails->subcreditused_private
+                            : $subagentdetails->subcreditassigned_commercial - $subagentdetails->subcreditused_commercial;
                     }
                 }
 
-                if ($creditleft <= 0) {
-                    $message   = "You do not have sufficient Credits to make this purchase";
+                if (($creditleft ?? 0) <= 0) {
+                    $typeLabel = $creditType === 'commercial' ? 'Commercial' : 'Private';
+                    $message   = "You do not have sufficient {$typeLabel} credits to make this purchase";
                     $error     = 'error';
                     $errorcode = '402-004';
                     return view('user_errors', compact('error', 'errorcode', 'message'));
@@ -602,20 +608,37 @@ class PolicyController extends Controller
                 if ($user->role == 'subagent') {
                     if ($parentagent->pool_enabled) {
                         // Pool mode — atomic deduction to prevent race conditions
-                        DB::transaction(function () use ($parentagent, $subagentdetails) {
-                            $parentagent->lockForUpdate()->increment('pool_used');
-                            if ($subagentdetails->pool_cap > 0) {
-                                $subagentdetails->increment('pool_cap_used');
+                        DB::transaction(function () use ($parentagent, $subagentdetails, $creditType) {
+                            if ($creditType === 'private') {
+                                $parentagent->lockForUpdate()->increment('pool_private_used');
+                                if ($subagentdetails->pool_cap_private > 0) {
+                                    $subagentdetails->increment('pool_cap_used_private');
+                                }
+                            } else {
+                                $parentagent->lockForUpdate()->increment('pool_commercial_used');
+                                if ($subagentdetails->pool_cap_commercial > 0) {
+                                    $subagentdetails->increment('pool_cap_used_commercial');
+                                }
                             }
                         });
                     } else {
-                        // Individual allocation mode
-                        $subagentdetails->subcreditused += 1;
-                        $subagentdetails->noused        -= 1;
+                        // Individual allocation mode — typed counters only
+                        if ($creditType === 'private') {
+                            $subagentdetails->subcreditused_private += 1;
+                        } else {
+                            $subagentdetails->subcreditused_commercial += 1;
+                        }
+                        $subagentdetails->syncSubcreditTotals();
                         $subagentdetails->save();
                     }
                 } else {
-                    $agent->noused += 1;
+                    // Direct agent deduction
+                    if ($creditType === 'private') {
+                        $agent->private_used += 1;
+                    } else {
+                        $agent->commercial_used += 1;
+                    }
+                    $agent->syncTotals();
                     $agent->save();
                 }
             }
@@ -879,6 +902,15 @@ class PolicyController extends Controller
      * Build the NIIP submission payload for a policy.
      * Single source of truth used by confirmmpolicy, retryniip, and retryAllFailedNiip.
      */
+    /**
+     * Map a product type string to its credit category.
+     * Only "Commercial Motor Third Party" is commercial; everything else is private.
+     */
+    private function creditType(string $producttype): string
+    {
+        return strtolower(trim($producttype)) === 'commercial motor third party' ? 'commercial' : 'private';
+    }
+
     private function buildNiipData(policy $policy, policyrisk $policyrisk): array
     {
         return [
@@ -1112,31 +1144,52 @@ class PolicyController extends Controller
 
         
         if (!empty($policy) && $policy->status == 'approved') {
-            $agent = agentsdetailsModel::where('uid', $policy->agent_id)->first();
-            $creditLog = '';
+            $agent      = agentsdetailsModel::where('uid', $policy->agent_id)->first();
+            $creditType = $this->creditType($policy->producttype);
+            $creditLog  = '';
 
             // Refund credit only if the policy was NOT paid by card
             if ($policy->getsuccesspayments()->count() == 0) {
                 if ($agent && $agent->issubagent == false) {
-                    // Regular agent
-                    $agent->noused = max(0, $agent->noused - 1);
+                    // Regular agent — refund typed counter and sync total
+                    if ($creditType === 'private') {
+                        $agent->private_used = max(0, $agent->private_used - 1);
+                    } else {
+                        $agent->commercial_used = max(0, $agent->commercial_used - 1);
+                    }
+                    $agent->syncTotals();
                     $agent->save();
-                    $creditLog = ' | New credit count: ' . $agent->noused;
+                    $creditLog = " | {$creditType} credit refunded. noused now: {$agent->noused}";
                 } elseif ($agent) {
                     // Subagent — check if parent uses pool mode
                     $parentAgent = $agent->parentAgentDetails();
                     if ($parentAgent && $parentAgent->pool_enabled) {
-                        $parentAgent->pool_used = max(0, $parentAgent->pool_used - 1);
-                        $parentAgent->save();
-                        if ($agent->pool_cap > 0) {
-                            $agent->pool_cap_used = max(0, $agent->pool_cap_used - 1);
-                            $agent->save();
+                        if ($creditType === 'private') {
+                            $parentAgent->pool_private_used = max(0, $parentAgent->pool_private_used - 1);
+                            $parentAgent->save();
+                            if ($agent->pool_cap_private > 0) {
+                                $agent->pool_cap_used_private = max(0, $agent->pool_cap_used_private - 1);
+                                $agent->save();
+                            }
+                        } else {
+                            $parentAgent->pool_commercial_used = max(0, $parentAgent->pool_commercial_used - 1);
+                            $parentAgent->save();
+                            if ($agent->pool_cap_commercial > 0) {
+                                $agent->pool_cap_used_commercial = max(0, $agent->pool_cap_used_commercial - 1);
+                                $agent->save();
+                            }
                         }
-                        $creditLog = ' | Pool refund: pool_used now ' . $parentAgent->pool_used;
+                        $creditLog = " | Pool {$creditType} refund";
                     } else {
-                        $agent->subcreditused = max(0, $agent->subcreditused - 1);
+                        // Individual allocation mode — refund typed counter and sync total
+                        if ($creditType === 'private') {
+                            $agent->subcreditused_private = max(0, $agent->subcreditused_private - 1);
+                        } else {
+                            $agent->subcreditused_commercial = max(0, $agent->subcreditused_commercial - 1);
+                        }
+                        $agent->syncSubcreditTotals();
                         $agent->save();
-                        $creditLog = ' | New subcredit count: ' . $agent->subcreditused;
+                        $creditLog = " | {$creditType} subcredit refunded. total used: {$agent->subcreditused}";
                     }
                 }
             }

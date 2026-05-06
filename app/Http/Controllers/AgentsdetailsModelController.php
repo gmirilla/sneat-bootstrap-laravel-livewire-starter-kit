@@ -10,12 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class AgentsdetailsModelController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
         $agents = DB::table('users')
             ->leftJoin('agentsdetails_models', 'users.id', '=', 'agentsdetails_models.uid')
             ->select(
@@ -25,110 +21,112 @@ class AgentsdetailsModelController extends Controller
                 'allowcredit',
                 'noallocated',
                 'noused',
+                'private_allocated',
+                'private_used',
+                'commercial_allocated',
+                'commercial_used',
                 'status',
                 'auth_token'
-
             )->where('role', 'agent')->get();
-
 
         return view('usermgmgt.listagent', compact('agents'));
     }
 
-
-
     public function agentprofile(Request $request)
     {
-        //
-        // dd($request);
-        $user = User::where('id', $request->uid)->first();
+        $user  = User::where('id', $request->uid)->first();
         $agent = agentsdetailsModel::where('uid', $request->uid)->first();
 
         return view('usermgmgt.agentdetails', compact('user', 'agent'));
     }
 
-        public function subagentsprofile(User $sid)
+    public function subagentsprofile(User $sid)
     {
-        //
-        $user = $sid;
+        $user  = $sid;
         $agent = agentsdetailsModel::where('uid', $sid->id)->first();
 
         return view('subagents.profile', compact('user', 'agent'));
     }
 
+    // ── Admin: update agent credits ────────────────────────────────────────
 
     public function agentupdate(Request $request)
     {
-        //
         try {
-            //code...
             $agent = agentsdetailsModel::where('uid', $request->userid)->first();
             if (!$agent) {
-                $agent = new agentsdetailsModel();
+                $agent      = new agentsdetailsModel();
                 $agent->uid = $request->userid;
             }
 
-            $agent->noallocated = $request->noallocated;
-            $agent->status = $request->status;
-            $agent->auth_token = $request->authtoken;
-            $agent->canregistersubagent= $request->has('agentregistersubagentchk') ? true : false;
+            $agent->private_allocated    = (int) $request->private_allocated;
+            $agent->commercial_allocated = (int) $request->commercial_allocated;
+            // Keep total in sync
+            $agent->noallocated = $agent->private_allocated + $agent->commercial_allocated;
 
-
-            if ($request->has('agentcreditchk')) {
-
-                $agent->allowcredit = true;
-            } else {
-
-                $agent->allowcredit = false;
-            }
+            $agent->status              = $request->status;
+            $agent->auth_token          = $request->authtoken;
+            $agent->canregistersubagent = $request->has('agentregistersubagentchk');
+            $agent->allowcredit         = $request->has('agentcreditchk');
 
             $agent->save();
         } catch (\Throwable $th) {
-            //throw $th;
+            //
         }
-
 
         return redirect()->route('list_agents');
     }
 
+    // ── Sub-agent list ─────────────────────────────────────────────────────
 
-    //LIST ALL SUB AGENTS BY AGENT
     public function subagentsList(Request $request)
     {
         $agent        = Auth::user();
         $subagents    = User::where('parentid', $agent->id)->get();
         $agentDetails = agentsdetailsModel::where('uid', $agent->id)->first();
-        $availableCredits = $agentDetails->noallocated - $agentDetails->noused;
 
-        return view('subagents.subagentslist', compact('subagents', 'agent', 'availableCredits', 'agentDetails'));
+        $availablePrivate    = $agentDetails->availablePrivate();
+        $availableCommercial = $agentDetails->availableCommercial();
+        $availableCredits    = $availablePrivate + $availableCommercial;
+
+        return view('subagents.subagentslist', compact(
+            'subagents', 'agent', 'agentDetails',
+            'availableCredits', 'availablePrivate', 'availableCommercial'
+        ));
     }
 
-    //REGISTER NEW SUB AGENTS BY AGENT
+    // ── Register new sub-agent ─────────────────────────────────────────────
+
     public function registerSubAgent(User $agent, Request $request)
     {
         $agentDetails = agentsdetailsModel::where('uid', $agent->id)->first();
         $poolMode     = $agentDetails && $agentDetails->pool_enabled;
 
         $validatedData = $request->validate([
-            'firstname'  => 'required',
-            'lastname'   => 'required',
-            'phone'      => 'required',
-            'email'      => 'required|email|unique:users,email',
-            'password'   => 'required|min:6',
-            // In pool mode this becomes an optional cap (0 = unlimited).
-            // In individual mode it is the allocated credit amount.
-            'subcredit'  => 'required|integer|min:0',
-            'address'    => 'nullable|string|max:255',
+            'firstname'            => 'required',
+            'lastname'             => 'required',
+            'phone'                => 'required',
+            'email'                => 'required|email|unique:users,email',
+            'password'             => 'required|min:6',
+            'address'              => 'nullable|string|max:255',
+            'subcredit_private'    => 'required|integer|min:0',
+            'subcredit_commercial' => 'required|integer|min:0',
         ]);
 
-        if (!$agentDetails || $agentDetails->canregistersubagent == false || $agentDetails->status === 'deactivated') {
-            return back()->withErrors(['subcredit' => 'You do not have permission to register sub agents.']);
+        if (!$agentDetails || !$agentDetails->canregistersubagent || $agentDetails->status === 'deactivated') {
+            return back()->withErrors(['subcredit_private' => 'You do not have permission to register sub agents.']);
         }
 
+        $reqPrivate    = (int) $validatedData['subcredit_private'];
+        $reqCommercial = (int) $validatedData['subcredit_commercial'];
+
         if (!$poolMode) {
-            // Individual mode: credits must be available on the parent
-            $availablecredits = $agentDetails->noallocated - $agentDetails->noused;
-            if ($availablecredits < $validatedData['subcredit']) {
-                return back()->withErrors(['subcredit' => 'Insufficient credits available for allocation.']);
+            // Individual mode: both credit types must be available on parent
+            if ($agentDetails->availablePrivate() < $reqPrivate) {
+                return back()->withErrors(['subcredit_private' => 'Insufficient private credits available.']);
+            }
+            if ($agentDetails->availableCommercial() < $reqCommercial) {
+                return back()->withErrors(['subcredit_commercial' => 'Insufficient commercial credits available.']);
             }
         }
 
@@ -144,37 +142,59 @@ class AgentsdetailsModelController extends Controller
             'parentid'  => $agent->id,
         ]);
 
-        agentsdetailsModel::create([
-            'uid'                => $newSubAgent->id,
-            'noallocated'        => 0,
-            'noused'             => 0,
-            'allowcredit'        => true,
-            'status'             => 'active',
-            'puid'               => $agent->id,
-            'issubagent'         => true,
-            // Individual-mode fields
-            'subcreditassigned'  => $poolMode ? 0 : $validatedData['subcredit'],
-            'subcreditused'      => 0,
-            // Pool-mode cap fields
-            'pool_cap'           => $poolMode ? $validatedData['subcredit'] : 0,
-            'pool_cap_used'      => 0,
-        ]);
+        $subRecord = [
+            'uid'         => $newSubAgent->id,
+            'noallocated' => 0,
+            'noused'      => 0,
+            'allowcredit' => true,
+            'status'      => 'active',
+            'puid'        => $agent->id,
+            'issubagent'  => true,
+        ];
 
-        if (!$poolMode && $validatedData['subcredit'] > 0) {
-            // Reserve the allocated credits in the parent's noused
-            $agentDetails->noused += $validatedData['subcredit'];
+        if ($poolMode) {
+            // Pool mode: caps only — no parent credit cost
+            $subRecord['pool_cap_private']         = $reqPrivate;
+            $subRecord['pool_cap_used_private']     = 0;
+            $subRecord['pool_cap_commercial']       = $reqCommercial;
+            $subRecord['pool_cap_used_commercial']  = 0;
+            $subRecord['subcreditassigned_private']    = 0;
+            $subRecord['subcreditassigned_commercial'] = 0;
+        } else {
+            // Individual mode: allocate from parent's typed balances
+            $subRecord['subcreditassigned_private']    = $reqPrivate;
+            $subRecord['subcreditassigned_commercial'] = $reqCommercial;
+            $subRecord['subcreditused_private']        = 0;
+            $subRecord['subcreditused_commercial']     = 0;
+            $subRecord['subcreditassigned']            = $reqPrivate + $reqCommercial;
+            $subRecord['subcreditused']                = 0;
+        }
+
+        agentsdetailsModel::create($subRecord);
+
+        if (!$poolMode) {
+            // Reserve allocated credits in parent's typed used counters
+            if ($reqPrivate > 0) {
+                $agentDetails->private_used += $reqPrivate;
+            }
+            if ($reqCommercial > 0) {
+                $agentDetails->commercial_used += $reqCommercial;
+            }
+            $agentDetails->syncTotals();
             $agentDetails->save();
         }
 
         return redirect()->route('list_sub_agents')->with('success', 'Sub agent registered successfully.');
     }
 
-    // FUNCTION TO UPDATE SUB AGENT CREDITS BY AGENT
+    // ── Add credits / cap to sub-agent ────────────────────────────────────
+
     public function subAgentCreditAdd(Request $request)
     {
         $validatedData = $request->validate([
-            'subagent_id' => 'required|exists:users,id',
-            'credits'     => 'required|integer|min:1',
+            'subagent_id'  => 'required|exists:users,id',
+            'credit_type'  => 'required|in:private,commercial',
+            'credits'      => 'required|integer|min:1',
         ]);
 
         $subAgent = User::where('id', $validatedData['subagent_id'])->first();
@@ -192,30 +212,48 @@ class AgentsdetailsModelController extends Controller
             return back()->withErrors(['subagent_id' => 'Sub-agent credit record not found.']);
         }
 
+        $type    = $validatedData['credit_type'];
+        $credits = $validatedData['credits'];
+
         if ($agentDetails->pool_enabled) {
-            // Pool mode: increase the subagent's personal cap only (no parent credit cost)
-            $subAgentDetails->pool_cap += $validatedData['credits'];
+            // Pool mode: raise cap only — no parent credit cost
+            if ($type === 'private') {
+                $subAgentDetails->pool_cap_private += $credits;
+            } else {
+                $subAgentDetails->pool_cap_commercial += $credits;
+            }
             $subAgentDetails->save();
         } else {
-            // Individual mode: reserve credits from parent's available balance
-            $availableCredits = $agentDetails->noallocated - $agentDetails->noused;
-            if ($availableCredits < $validatedData['credits']) {
-                return back()->withErrors(['credits' => 'Insufficient credits available for allocation.']);
+            // Individual mode: check parent availability for this type
+            $available = $agentDetails->availableByType($type);
+            if ($available < $credits) {
+                return back()->withErrors(['credits' => "Insufficient {$type} credits available (have {$available})."]);
             }
-            $subAgentDetails->subcreditassigned += $validatedData['credits'];
+
+            if ($type === 'private') {
+                $subAgentDetails->subcreditassigned_private += $credits;
+                $agentDetails->private_used                += $credits;
+            } else {
+                $subAgentDetails->subcreditassigned_commercial += $credits;
+                $agentDetails->commercial_used                 += $credits;
+            }
+            $subAgentDetails->syncSubcreditTotals();
             $subAgentDetails->save();
-            $agentDetails->noused += $validatedData['credits'];
+            $agentDetails->syncTotals();
             $agentDetails->save();
         }
 
-        return back()->with('success', 'Credits updated successfully.');
+        return back()->with('success', ucfirst($type) . ' credits updated successfully.');
     }
+
+    // ── Remove credits / cap from sub-agent ───────────────────────────────
 
     public function subAgentCreditRemove(Request $request)
     {
         $validatedData = $request->validate([
-            'subagent_id' => 'required|exists:users,id',
-            'credits'     => 'required|integer|min:1',
+            'subagent_id'  => 'required|exists:users,id',
+            'credit_type'  => 'required|in:private,commercial',
+            'credits'      => 'required|integer|min:1',
         ]);
 
         $subAgent = User::where('id', $validatedData['subagent_id'])->first();
@@ -233,43 +271,64 @@ class AgentsdetailsModelController extends Controller
             return back()->withErrors(['subagent_id' => 'Sub-agent credit record not found.']);
         }
 
+        $type    = $validatedData['credit_type'];
+        $credits = $validatedData['credits'];
+
         if ($agentDetails->pool_enabled) {
-            // Pool mode: reduce the subagent's cap, but not below what they've already used
-            $unusedCap = $subAgentDetails->pool_cap - $subAgentDetails->pool_cap_used;
-            if ($unusedCap < $validatedData['credits']) {
-                return back()->withErrors(['credits' => 'Cannot remove more than the subagent\'s unused cap.']);
+            // Pool mode: reduce cap, but not below used
+            $cap     = $type === 'private' ? $subAgentDetails->pool_cap_private     : $subAgentDetails->pool_cap_commercial;
+            $capUsed = $type === 'private' ? $subAgentDetails->pool_cap_used_private : $subAgentDetails->pool_cap_used_commercial;
+            $unused  = $cap - $capUsed;
+            if ($unused < $credits) {
+                return back()->withErrors(['credits' => "Cannot remove more than the sub-agent's unused {$type} cap ({$unused})."]);
             }
-            $subAgentDetails->pool_cap -= $validatedData['credits'];
+            if ($type === 'private') {
+                $subAgentDetails->pool_cap_private -= $credits;
+            } else {
+                $subAgentDetails->pool_cap_commercial -= $credits;
+            }
             $subAgentDetails->save();
         } else {
-            // Individual mode: return credits to parent's available balance
-            $unusedCredits = $subAgentDetails->subcreditassigned - $subAgentDetails->subcreditused;
-            if ($unusedCredits < $validatedData['credits']) {
-                return back()->withErrors(['credits' => 'Insufficient unused credits available for removal.']);
+            // Individual mode: only remove unused credits
+            $assigned = $type === 'private' ? $subAgentDetails->subcreditassigned_private     : $subAgentDetails->subcreditassigned_commercial;
+            $used     = $type === 'private' ? $subAgentDetails->subcreditused_private         : $subAgentDetails->subcreditused_commercial;
+            $unused   = $assigned - $used;
+            if ($unused < $credits) {
+                return back()->withErrors(['credits' => "Insufficient unused {$type} credits available for removal ({$unused})."]);
             }
-            $subAgentDetails->subcreditassigned -= $validatedData['credits'];
+
+            if ($type === 'private') {
+                $subAgentDetails->subcreditassigned_private -= $credits;
+                $agentDetails->private_used                -= $credits;
+            } else {
+                $subAgentDetails->subcreditassigned_commercial -= $credits;
+                $agentDetails->commercial_used                 -= $credits;
+            }
+            $subAgentDetails->syncSubcreditTotals();
             $subAgentDetails->save();
-            $agentDetails->noused -= $validatedData['credits'];
+            $agentDetails->syncTotals();
             $agentDetails->save();
         }
 
-        return back()->with('success', 'Credits updated successfully.');
+        return back()->with('success', ucfirst($type) . ' credits updated successfully.');
     }
 
     // ── Pool Management ────────────────────────────────────────────────────
 
     /**
-     * Enable, resize, or disable the shared credit pool for the logged-in agent.
+     * Enable, resize, or disable the shared credit pool.
      *
      * POST fields:
-     *   action      — 'enable' | 'resize' | 'disable'
-     *   pool_size   — required for 'enable' and 'resize'
+     *   action               — 'enable' | 'resize' | 'disable'
+     *   pool_private_size    — credits to commit to the private pool
+     *   pool_commercial_size — credits to commit to the commercial pool
      */
     public function poolUpdate(Request $request)
     {
         $request->validate([
-            'action'    => 'required|in:enable,resize,disable',
-            'pool_size' => 'required_if:action,enable,resize|integer|min:0',
+            'action'               => 'required|in:enable,resize,disable',
+            'pool_private_size'    => 'required_if:action,enable,resize|integer|min:0',
+            'pool_commercial_size' => 'required_if:action,enable,resize|integer|min:0',
         ]);
 
         $agentDetails = agentsdetailsModel::where('uid', Auth::id())->first();
@@ -281,111 +340,94 @@ class AgentsdetailsModelController extends Controller
 
         if ($action === 'enable') {
             if ($agentDetails->pool_enabled) {
-                return back()->withErrors(['pool_size' => 'Pool is already enabled. Use resize to change the size.']);
+                return back()->withErrors(['action' => 'Pool is already enabled. Use resize to change sizes.']);
             }
-            $newSize          = (int) $request->pool_size;
-            $availableCredits = $agentDetails->noallocated - $agentDetails->noused;
-            if ($newSize > $availableCredits) {
-                return back()->withErrors(['pool_size' => "Insufficient credits. You have {$availableCredits} available."]);
+
+            $newPrivate    = (int) $request->pool_private_size;
+            $newCommercial = (int) $request->pool_commercial_size;
+
+            if ($newPrivate > $agentDetails->availablePrivate()) {
+                return back()->withErrors(['pool_private_size' => "Insufficient private credits (have {$agentDetails->availablePrivate()})."]);
             }
-            $agentDetails->pool_enabled = true;
-            $agentDetails->pool_size    = $newSize;
-            $agentDetails->pool_used    = 0;
-            $agentDetails->noused      += $newSize;
+            if ($newCommercial > $agentDetails->availableCommercial()) {
+                return back()->withErrors(['pool_commercial_size' => "Insufficient commercial credits (have {$agentDetails->availableCommercial()})."]);
+            }
+
+            $agentDetails->pool_enabled          = true;
+            $agentDetails->pool_private_size     = $newPrivate;
+            $agentDetails->pool_private_used     = 0;
+            $agentDetails->pool_commercial_size  = $newCommercial;
+            $agentDetails->pool_commercial_used  = 0;
+            // Reserve pool credits in typed used counters
+            $agentDetails->private_used    += $newPrivate;
+            $agentDetails->commercial_used += $newCommercial;
+            $agentDetails->syncTotals();
             $agentDetails->save();
-            return back()->with('success', "Credit pool enabled with {$newSize} credits.");
+
+            return back()->with('success', "Pool enabled — Private: {$newPrivate}, Commercial: {$newCommercial}.");
         }
 
         if ($action === 'resize') {
             if (!$agentDetails->pool_enabled) {
-                return back()->withErrors(['pool_size' => 'Pool is not enabled.']);
-            }
-            $newSize  = (int) $request->pool_size;
-            $oldSize  = $agentDetails->pool_size;
-            $poolUsed = $agentDetails->pool_used;
-
-            if ($newSize < $poolUsed) {
-                return back()->withErrors(['pool_size' => "Cannot shrink pool below already-consumed credits ({$poolUsed})."]);
+                return back()->withErrors(['action' => 'Pool is not enabled.']);
             }
 
-            $delta = $newSize - $oldSize;
+            $newPrivate    = (int) $request->pool_private_size;
+            $newCommercial = (int) $request->pool_commercial_size;
 
-            if ($delta > 0) {
-                // Growing: check parent has enough free credits
-                $availableCredits = $agentDetails->noallocated - $agentDetails->noused;
-                if ($delta > $availableCredits) {
-                    return back()->withErrors(['pool_size' => "Insufficient credits. You have {$availableCredits} available."]);
-                }
-                $agentDetails->noused += $delta;
-            } else {
-                // Shrinking: release unused credits back
-                $agentDetails->noused += $delta; // delta is negative
+            if ($newPrivate < $agentDetails->pool_private_used) {
+                return back()->withErrors(['pool_private_size' => "Cannot shrink below already-consumed private credits ({$agentDetails->pool_private_used})."]);
+            }
+            if ($newCommercial < $agentDetails->pool_commercial_used) {
+                return back()->withErrors(['pool_commercial_size' => "Cannot shrink below already-consumed commercial credits ({$agentDetails->pool_commercial_used})."]);
             }
 
-            $agentDetails->pool_size = $newSize;
+            $deltaPrivate    = $newPrivate    - $agentDetails->pool_private_size;
+            $deltaCommercial = $newCommercial - $agentDetails->pool_commercial_size;
+
+            if ($deltaPrivate > 0 && $deltaPrivate > $agentDetails->availablePrivate()) {
+                return back()->withErrors(['pool_private_size' => "Insufficient private credits to grow pool (have {$agentDetails->availablePrivate()})."]);
+            }
+            if ($deltaCommercial > 0 && $deltaCommercial > $agentDetails->availableCommercial()) {
+                return back()->withErrors(['pool_commercial_size' => "Insufficient commercial credits to grow pool (have {$agentDetails->availableCommercial()})."]);
+            }
+
+            $agentDetails->pool_private_size    = $newPrivate;
+            $agentDetails->pool_commercial_size = $newCommercial;
+            $agentDetails->private_used    += $deltaPrivate;    // negative delta = release
+            $agentDetails->commercial_used += $deltaCommercial;
+            $agentDetails->syncTotals();
             $agentDetails->save();
-            return back()->with('success', "Credit pool resized to {$newSize}.");
+
+            return back()->with('success', "Pool resized — Private: {$newPrivate}, Commercial: {$newCommercial}.");
         }
 
         if ($action === 'disable') {
             if (!$agentDetails->pool_enabled) {
                 return back()->withErrors(['action' => 'Pool is not enabled.']);
             }
-            // Release unused pool credits back to the agent's free balance
-            $unused                   = $agentDetails->pool_size - $agentDetails->pool_used;
-            $agentDetails->noused     = max(0, $agentDetails->noused - $unused);
-            $agentDetails->pool_enabled = false;
-            $agentDetails->pool_size  = 0;
-            $agentDetails->pool_used  = 0;
+            // Release unused pool credits back
+            $unusedPrivate    = $agentDetails->pool_private_size    - $agentDetails->pool_private_used;
+            $unusedCommercial = $agentDetails->pool_commercial_size - $agentDetails->pool_commercial_used;
+
+            $agentDetails->private_used    = max(0, $agentDetails->private_used    - $unusedPrivate);
+            $agentDetails->commercial_used = max(0, $agentDetails->commercial_used - $unusedCommercial);
+            $agentDetails->pool_enabled          = false;
+            $agentDetails->pool_private_size     = 0;
+            $agentDetails->pool_private_used     = 0;
+            $agentDetails->pool_commercial_size  = 0;
+            $agentDetails->pool_commercial_used  = 0;
+            $agentDetails->syncTotals();
             $agentDetails->save();
-            return back()->with('success', 'Credit pool disabled. Unused credits returned to your balance.');
+
+            return back()->with('success', 'Pool disabled. Unused credits returned to your balance.');
         }
     }
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(agentsdetailsModel $agentsdetailsModel)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(agentsdetailsModel $agentsdetailsModel)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, agentsdetailsModel $agentsdetailsModel)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(agentsdetailsModel $agentsdetailsModel)
-    {
-        //
-    }
+    public function create() {}
+    public function store(Request $request) {}
+    public function show(agentsdetailsModel $agentsdetailsModel) {}
+    public function edit(agentsdetailsModel $agentsdetailsModel) {}
+    public function update(Request $request, agentsdetailsModel $agentsdetailsModel) {}
+    public function destroy(agentsdetailsModel $agentsdetailsModel) {}
 }

@@ -70,7 +70,7 @@ if ($validator->fails()) {
 
         //First create new user account if phonenumber is unique
 
-         $insured=User::where('telno',$request->phone)->first();
+         $insured=User::where('telno',$request->phone)->orWhere('email',$request->email)->first();
          $fullname= $request->fname. "  ".$request->lname;
 
             if (empty($insured)) {

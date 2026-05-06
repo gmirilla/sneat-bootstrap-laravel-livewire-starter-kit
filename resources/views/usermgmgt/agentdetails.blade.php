@@ -41,16 +41,31 @@
                             @endif
                         </div>
                         <div class="col-auto">
-                            <label class='form-label form-check-label' for="agentname">Allocated Credits</label>
-                            <input type="number" class="form-control form-control-lg" name="noallocated"
-                                value="{{ $agent->noallocated }}">
+                            <label class='form-label form-check-label'>Private Credits Allocated</label>
+                            <input type="number" class="form-control form-control-lg" name="private_allocated"
+                                value="{{ $agent->private_allocated ?? 0 }}" min="0">
                             <input type="number" class="form-control form-control-lg" name="agentid" hidden
                                 value="{{ $agent->id }}">
                         </div>
                         <div class="col-auto">
-                            <label class='form-label' for="agentname">Credits used*</label>
-                            <input type="number" class="form-control form-control-lg" name="noused" disabled
-                                value="{{ $agent->noused }}">
+                            <label class='form-label'>Private Credits Used*</label>
+                            <input type="number" class="form-control form-control-lg" disabled
+                                value="{{ $agent->private_used ?? 0 }}">
+                        </div>
+                        <div class="col-auto">
+                            <label class='form-label form-check-label'>Commercial Credits Allocated</label>
+                            <input type="number" class="form-control form-control-lg" name="commercial_allocated"
+                                value="{{ $agent->commercial_allocated ?? 0 }}" min="0">
+                        </div>
+                        <div class="col-auto">
+                            <label class='form-label'>Commercial Credits Used*</label>
+                            <input type="number" class="form-control form-control-lg" disabled
+                                value="{{ $agent->commercial_used ?? 0 }}">
+                        </div>
+                        <div class="col-auto">
+                            <label class='form-label'>Total Allocated / Used*</label>
+                            <input type="text" class="form-control form-control-lg" disabled
+                                value="{{ ($agent->noallocated ?? 0) }} / {{ ($agent->noused ?? 0) }}">
                         </div>
                         <div class="col-auto">
                             <label class='form-label form-check-label' for="status">Status</label>
