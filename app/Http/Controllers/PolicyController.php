@@ -46,17 +46,21 @@ class PolicyController extends Controller
             case 'subagent':
                 $policies = policy::where('agent_id', $user->id)
                     ->orderBy('updated_at', 'desc')
+                    ->with(['risk', 'agentUser'])
                     ->paginate(50);
                 break;
 
             case 'admin':
             case 'superadmin':
-                $policies = policy::orderBy('updated_at', 'desc')->paginate(50);
+                $policies = policy::orderBy('updated_at', 'desc')
+                    ->with(['risk', 'agentUser'])
+                    ->paginate(50);
                 break;
 
             case 'user':
                 $policies = policy::where('insured_id', $user->id)
                     ->orderBy('updated_at', 'desc')
+                    ->with(['risk', 'agentUser'])
                     ->paginate(50);
                 break;
 
@@ -581,28 +585,44 @@ class PolicyController extends Controller
         }
 
 
-        $response = Http::withHeader('Auth-Token', $accesstoken)->withBody($policydatajSon)
-            ->post(config('variables.API_ELITE_URL'));
-        #handle response from elite check status for success/fail
+        try {
+            $response = Http::withHeader('Auth-Token', $accesstoken)
+                ->withBody($policydatajSon)
+                ->timeout(30)
+                ->retry(3, 3000, fn (\Exception $e) => $e instanceof \Illuminate\Http\Client\ConnectionException)
+                ->post(config('variables.API_ELITE_URL'));
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            // Elite API unreachable or timed out after 3 attempts — leave policy as draft, no credit deducted
+            \Illuminate\Support\Facades\Log::error('Elite API timeout after 3 attempts in paypolicy', [
+                'policy_id' => $policy->id,
+                'message'   => $e->getMessage(),
+            ]);
+            $policy->elite_msg = 'Elite API timeout: ' . $e->getMessage();
+            $policy->status    = 'draft';
+            $policy->save();
+
+            $errors = 'The insurance server did not respond in time. Your policy has NOT been issued. Please try again shortly.';
+            $id     = $policy->id;
+            return redirect()->route('view_policy', compact('errors', 'id'));
+        }
 
         $policy->elite_msg = $response->body();
-
 
         // Decode JSON string into an associative array
         $data = json_decode($response->body(), true);
 
-        if ($data['data']['status'] == 'success') {
-            # code...
+        if (($data['data']['status'] ?? '') == 'success') {
 
             $policy->elite_msg = $data['data']['status'] . $data['data']['message'];
-            $policy->policyno = $data['data']['policy_number'];
-            # Update transaction record with policy number
+            $policy->policyno  = $data['data']['policy_number'];
+
             if ($transaction) {
                 $transaction->policyno = $policy->policyno;
                 $transaction->save();
             }
             $policy->status = 'approved';
             $policy->save();
+
             // Deduct credit on Elite approval
             if ($request->has('agencycredit')) {
                 if ($user->role == 'subagent') {
@@ -646,31 +666,18 @@ class PolicyController extends Controller
 
             // Upload policy to NIIP
             PostNIIPDataSlow::dispatch($this->buildNiipData($policy, $policyrisk)); // Non-blocking
-        }
-        // Handle failure response from Elite
-        else {
-            # code...
-
-
-            $policy->elite_msg = $response->body();
-            $policy->elite_msg = $data['data']['status'] . $data['data']['message'];
-            $policy->policyno = '';
-            $policy->status = 'failed';
+        } else {
+            // Elite returned a failure response
+            $policy->elite_msg = ($data['data']['status'] ?? '') . ($data['data']['message'] ?? $response->body());
+            $policy->policyno  = '';
+            $policy->status    = 'failed';
             $policy->save();
 
             $errors = $policy->elite_msg;
-            $id = $policy->id;
+            $id     = $policy->id;
 
             return redirect()->route('view_policy', compact('errors', 'id'));
         }
-
-
-
-
-        $policy->save();
-
-
-
 
         return redirect()->route('list_policy');
     }
@@ -957,6 +964,80 @@ class PolicyController extends Controller
         return !($decoded['isSuccess'] ?? false);
     }
 
+    public function csvExport(Request $request)
+    {
+        $user     = Auth::user();
+        $isAdmin  = in_array($user->role, ['admin', 'superadmin']);
+        $query    = policy::query()->with(['risk', 'agentUser']);
+
+        if (in_array($user->role, ['agent', 'subagent'])) {
+            $query->where('agent_id', $user->id);
+        }
+
+        if ($request->filled('search')) {
+            $term = $request->search;
+            $query->where(function ($q) use ($term) {
+                $q->where('policyno', 'like', "%{$term}%")
+                  ->orWhere('insured_name', 'like', "%{$term}%")
+                  ->orWhereIn('id', function ($sub) use ($term) {
+                      $sub->select('policyid')->from('policyrisks')
+                          ->where('regno', 'like', "%{$term}%");
+                  });
+            });
+        }
+        if ($request->filled('policytype')) {
+            $query->where('producttype', $request->policytype);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('datefrom')) {
+            $query->whereDate('created_at', '>=', $request->datefrom);
+        }
+        if ($request->filled('dateto')) {
+            $query->whereDate('created_at', '<=', $request->dateto);
+        }
+        if ($request->filled('agentcode') && $isAdmin) {
+            $query->where('agent_id', $request->agentcode);
+        }
+
+        $filename = 'policies-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($query, $isAdmin) {
+            $handle = fopen('php://output', 'w');
+
+            $header = ['Policy No.', 'Policy Type', 'Reg No.', 'Insured Name', 'Contribution', 'Created At', 'Status'];
+            if ($isAdmin) {
+                array_push($header, 'Agent', 'Parent Agent');
+            }
+            fputcsv($handle, $header);
+
+            $query->orderBy('updated_at', 'desc')->chunk(200, function ($policies) use ($handle, $isAdmin) {
+                foreach ($policies as $policy) {
+                    $row = [
+                        $policy->policyno ?: 'Incomplete',
+                        $policy->producttype,
+                        $policy->risk?->regno ?? 'N/A',
+                        $policy->insured_name,
+                        number_format((float) $policy->contribution, 2),
+                        $policy->created_at->format('d M Y H:i'),
+                        $policy->status,
+                    ];
+                    if ($isAdmin) {
+                        $row[] = $policy->getagentname();
+                        $row[] = $policy->getparentagentname();
+                    }
+                    fputcsv($handle, $row);
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Cache-Control'       => 'no-cache, must-revalidate',
+        ]);
+    }
+
     public function filterreport(Request $request)
     {
         Auth::check();
@@ -1003,7 +1084,10 @@ class PolicyController extends Controller
             $query->where('agent_id', $request->agentcode);
         }
 
-        $policies = $query->orderBy('updated_at', 'desc')->paginate(50)->withQueryString();
+        $policies = $query->orderBy('updated_at', 'desc')
+            ->with(['risk', 'agentUser'])
+            ->paginate(50)
+            ->withQueryString();
         $products = policy::select('producttype')->distinct()->pluck('producttype');
 
 

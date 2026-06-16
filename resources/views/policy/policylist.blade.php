@@ -1,3 +1,4 @@
+@push('styles')
 <style>
     :root {
         --brand: #B18752;
@@ -345,6 +346,12 @@
         color: #b91c1c;
     }
 
+    .badge-emcr {
+        background: #eaf2ff;
+        color: #1a56a6;
+        border: 1px solid #c3d9f7;
+    }
+
     /* ── TABLE ────────────────────────────────────── */
     .sl-table-wrap {
         overflow-x: auto;
@@ -632,58 +639,123 @@
         color: var(--brand);
     }
 
-    /* DataTables overrides */
-    .dataTables_wrapper .dt-buttons .dt-button {
-        background: var(--surface);
-        border: 1.5px solid var(--border);
-        color: var(--text);
-        border-radius: 7px;
-        font-size: .78rem;
-        font-family: var(--font);
-        padding: .4rem .9rem;
-        transition: background .18s;
+    /* ── TABLE TOOLBAR ───────────────────────────────── */
+    .sl-table-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .75rem;
+        margin-bottom: 1rem;
     }
 
-    .dataTables_wrapper .dt-buttons .dt-button:hover {
-        background: var(--brand-pale);
-    }
-
-    .dataTables_wrapper .dataTables_filter input {
+    .sl-table-search {
+        padding: .45rem .75rem;
         border: 1.5px solid var(--border);
         border-radius: 7px;
-        padding: .4rem .75rem;
         font-size: .82rem;
         font-family: var(--font);
+        color: var(--text);
+        background: var(--surface);
+        min-width: 220px;
+        transition: border-color .2s;
     }
 
-    .dataTables_wrapper .dataTables_filter input:focus {
+    .sl-table-search:focus {
         outline: none;
         border-color: var(--brand-light);
         box-shadow: 0 0 0 3px rgba(177, 135, 82, .15);
     }
 
-    .dataTables_wrapper {
+    .sl-table-actions {
+        display: flex;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-export,
+    .btn-print {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .4rem .9rem;
+        font-size: .78rem;
+        font-weight: 600;
+        border-radius: 7px;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background .18s, border-color .18s, color .18s;
+        border: 1.5px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
         font-family: var(--font);
-        font-size: .82rem;
     }
 
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-        background: var(--brand) !important;
-        border-color: var(--brand) !important;
-        color: #fff !important;
-        border-radius: 6px;
+    .btn-export:hover,
+    .btn-print:hover {
+        background: var(--brand-pale);
+        border-color: var(--brand-light);
+        color: var(--brand);
     }
 
-    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-        background: var(--brand-pale) !important;
-        border-color: var(--border) !important;
-        color: var(--brand) !important;
-        border-radius: 6px;
+    /* ── PAGINATION ──────────────────────────────────── */
+    .pagination {
+        gap: .25rem;
+        flex-wrap: wrap;
+    }
+
+    .page-link {
+        border: 1.5px solid var(--border);
+        border-radius: 6px !important;
+        color: var(--text);
+        font-size: .8rem;
+        font-family: var(--font);
+        padding: .35rem .75rem;
+        background: var(--surface);
+        transition: background .18s, border-color .18s, color .18s;
+    }
+
+    .page-link:hover {
+        background: var(--brand-pale);
+        border-color: var(--brand-light);
+        color: var(--brand);
+    }
+
+    .page-item.active .page-link {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: #fff;
+        box-shadow: none;
+    }
+
+    .page-item.disabled .page-link {
+        background: var(--surface-2);
+        border-color: var(--border);
+        color: var(--muted);
+    }
+
+    /* ── PRINT ────────────────────────────────────────── */
+    @media print {
+        .sl-card:has(> .sl-card-header > .fa-shield-halved),
+        .sl-card:has(> .sl-card-header > .fa-sliders),
+        .sl-table-toolbar,
+        .sl-filter-chips,
+        .sl-modal-overlay,
+        #ecmrLoadingOverlay,
+        .btn-view, .btn-cert, .btn-cancel,
+        .layout-navbar, .layout-menu,
+        footer { display: none !important; }
+
+        #policylist { font-size: .7rem; }
+        #policylist thead th,
+        #policylist tbody td { padding: .4rem .6rem; }
     }
 </style>
+@endpush
 
 <x-layouts.app>
+
+    @php $isAdmin = in_array($user->role, ['admin', 'superadmin']); @endphp
 
     @if ($errors->any())
         <div class="sl-alert">
@@ -782,16 +854,12 @@
                         <div class="sl-filter-field">
                             <label for="policytype">Policy Type</label>
                             <select name="policytype" id="policytype">
-                                @if ($searchParams['policytype'] ?? false)
-                                    <option value="{{ $searchParams['policytype'] }}" selected>
-                                        {{ ucwords($searchParams['policytype']) }}</option>
-                                @else
-                                    <option value="">All Types</option>
-                                    @forelse ($products as $product)
-                                        <option value="{{ $product }}">{{ ucwords($product) }}</option>
-                                    @empty
-                                    @endforelse
-                                @endif
+                                <option value="">All Types</option>
+                                @forelse ($products as $product)
+                                    <option value="{{ $product }}" @selected(($searchParams['policytype'] ?? '') === $product)>{{ ucwords($product) }}</option>
+                                @empty
+                                    <option value="" disabled>No types available</option>
+                                @endforelse
                             </select>
                         </div>
 
@@ -799,48 +867,30 @@
                         <div class="sl-filter-field">
                             <label for="status">Status</label>
                             <select name="status" id="status">
-                                {{-- FIX #9: Added 'Cancelled' as a filterable status option --}}
-                                @if ($searchParams['status'] ?? false)
-                                    <option value="{{ $searchParams['status'] }}" selected>
-                                        {{ ucwords($searchParams['status']) }}</option>
-                                @else
-                                    <option value="">All Statuses</option>
-                                    <option value="approved">Approved</option>
-                                    <option value="draft">Draft</option>
-                                    <option value="failed">Failed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                @endif
+                                <option value="">All Statuses</option>
+                                <option value="approved" @selected(($searchParams['status'] ?? '') === 'approved')>Approved</option>
+                                <option value="draft" @selected(($searchParams['status'] ?? '') === 'draft')>Draft</option>
+                                <option value="failed" @selected(($searchParams['status'] ?? '') === 'failed')>Failed</option>
+                                <option value="cancelled" @selected(($searchParams['status'] ?? '') === 'cancelled')>Cancelled</option>
                             </select>
                         </div>
 
                         {{-- Date From --}}
                         <div class="sl-filter-field">
                             <label for="datefrom">Date From</label>
-                            @if ($searchParams['datefrom'] ?? false)
-                                <input type="date" name="datefromfilter" id="datefromfilter"
-                                    value="{{ $searchParams['datefrom'] }}" disabled>
-                                <input type="date" name="datefrom" id="datefrom"
-                                    value="{{ $searchParams['datefrom'] }}" hidden>
-                            @else
-                                <input type="date" name="datefrom" id="datefrom">
-                            @endif
+                            <input type="date" name="datefrom" id="datefrom"
+                                value="{{ $searchParams['datefrom'] ?? '' }}">
                         </div>
 
                         {{-- Date To --}}
                         <div class="sl-filter-field">
                             <label for="dateto">Date To</label>
-                            @if ($searchParams['dateto'] ?? false)
-                                <input type="date" name="datetofilter" id="datetofilter"
-                                    value="{{ $searchParams['dateto'] }}" disabled>
-                                <input type="date" name="dateto" id="dateto"
-                                    value="{{ $searchParams['dateto'] }}" hidden>
-                            @else
-                                <input type="date" name="dateto" id="dateto">
-                            @endif
+                            <input type="date" name="dateto" id="dateto"
+                                value="{{ $searchParams['dateto'] ?? '' }}">
                         </div>
 
                         {{-- Agent (admin only) --}}
-                        @if ($user->role == 'admin' || $user->role == 'superadmin')
+                        @if ($isAdmin)
                             <div class="sl-filter-field">
                                 <label for="agentcode">Agent</label>
                                 <select name="agentcode" id="agentcode">
@@ -908,8 +958,21 @@
                 <i class="fa-solid fa-list-ul"></i> Policy List
             </div>
             <div class="sl-card-body">
+                <div class="sl-table-toolbar">
+                    <input type="text" id="tableSearch" class="sl-table-search"
+                        placeholder="Quick search this page…" aria-label="Search table rows">
+                    <div class="sl-table-actions">
+                        <a href="{{ route('policy.export-csv', request()->query()) }}" class="btn-export">
+                            <i class="fa-solid fa-file-csv"></i> Export CSV
+                        </a>
+                        <button type="button" onclick="window.print()" class="btn-print">
+                            <i class="fa-solid fa-print"></i> Print
+                        </button>
+                    </div>
+                </div>
+
                 <div class="sl-table-wrap">
-                    <table class="table table-striped table-sm" id="policylist">
+                    <table class="table table-sm" id="policylist">
                         <thead>
                             <tr>
                                 <th>Policy No.</th>
@@ -919,7 +982,7 @@
                                 <th>Contribution</th>
                                 <th>Created At</th>
                                 <th>Status</th>
-                                @if ($user->role == 'admin' || $user->role == 'superadmin')
+                                @if ($isAdmin)
                                     <th>Agent</th>
                                     <th>Parent Agent</th>
                                 @endif
@@ -929,7 +992,7 @@
 
                         <tfoot>
                             <tr>
-                                <td colspan="{{ $user->role == 'admin' || $user->role == 'superadmin' ? 9 : 8 }}">
+                                <td colspan="{{ $isAdmin ? 9 : 8 }}">
                                     @if (!empty($searchParams))
                                         <strong>Filtered by:</strong>
                                         @if (!empty($searchParams['policytype']))
@@ -951,6 +1014,7 @@
 
                         <tbody>
                             @forelse ($policies as $policy)
+                                @php $risk = $policy->getrisk(); @endphp
                                 <tr>
                                     <td>
                                         @if (empty($policy->policyno))
@@ -961,15 +1025,15 @@
                                     </td>
                                     <td>{{ $policy->producttype }}</td>
                                     <td>
-                                        @if (empty($policy->getrisk()->regno))
+                                        @if (empty($risk?->regno))
                                             <span class="policy-incomplete">No Reg No. #{{ $policy->id }}</span>
                                         @else
-                                            {{ $policy->getrisk()->regno }}
+                                            {{ $risk?->regno }}
                                         @endif
                                     </td>
                                     <td>{{ $policy->insured_name }}</td>
-                                    <td>{{ $policy->contribution }}</td>
-                                    <td>{{ $policy->created_at }}</td>
+                                    <td>{{ number_format((float)$policy->contribution, 2) }}</td>
+                                    <td>{{ $policy->created_at->format('d M Y H:i') }}</td>
                                     <td>
                                         @switch($policy->status)
                                             @case('approved')
@@ -1022,7 +1086,7 @@
                                             @default
                                                 <span class="sl-badge badge-default">{{ $policy->status }}</span>
                                         @endswitch
-                                        @if (($user->role == 'admin' || $user->role == 'superadmin') && str_contains($policy->producttype, 'Motor'))
+                                        @if (($isAdmin) && str_contains($policy->producttype, 'Motor'))
                                             @php
                                                 $emcr = $policy->getemcr();
                                                 $message = $emcr?->message ?? 'Emcr Missing';
@@ -1031,7 +1095,7 @@
 
                                             <a href="#" class="niip-trigger"
                                                 data-message="{{ $response }}">
-                                                <span class="sl-badge badge-cancelled">
+                                                <span class="sl-badge badge-emcr">
                                                     <i class="fa-solid fa-shield"></i> EMCR :
                                                     {{ $message }}
                                                 </span>
@@ -1041,7 +1105,7 @@
 
                                     </td>
 
-                                    @if ($user->role == 'admin' || $user->role == 'superadmin')
+                                    @if ($isAdmin)
                                         <td>{{ $policy->getagentname() }}</td>
                                         <td>{{ $policy->getparentagentname() }}</td>
                                     @endif
@@ -1060,14 +1124,14 @@
                                                 <i class="fa-solid fa-file-certificate"></i> Certificate
                                             </a>
                                         @endif
-                                        @if (($user->role == 'admin' || $user->role == 'superadmin') && str_contains(strtolower($policy->producttype), 'motor'))
+                                        @if (($isAdmin) && str_contains(strtolower($policy->producttype), 'motor'))
                                             <a class="btn-cert ecmr-retry-link"
-                                                href="{{ route('ecmr.check', ['ecmr_regno' => $policy->getrisk()->regno ?? 'n/a']) }}">
+                                                href="{{ route('ecmr.check', ['ecmr_regno' => $risk?->regno ?? 'n/a']) }}">
                                                 <i class="fa-solid fa-shield"></i> Retry ECMR
                                             </a>
                                         @endif
 
-                                        @if ($user->role == 'admin' || $user->role == 'superadmin')
+                                        @if ($isAdmin)
                                             {{-- FIX #3: trigger uses custom modal system, not Bootstrap data-bs-toggle --}}
                                             <button class="btn-cancel cancel-trigger"
                                                 data-policy-id="{{ $policy->id }}"
@@ -1079,7 +1143,7 @@
                                 </tr>
 
                                 {{-- FIX #1: Cancel modal is now INSIDE the @forelse loop, one per policy row --}}
-                                @if ($user->role == 'admin' || $user->role == 'superadmin')
+                                @if ($isAdmin)
                                     <div class="sl-modal-overlay cancel-modal" id="cancelModal-{{ $policy->id }}">
                                         <div class="sl-modal">
                                             <div class="sl-modal-header danger">
@@ -1118,6 +1182,11 @@
                                 @endif
 
                                 @empty
+                                    <tr>
+                                        <td colspan="{{ $isAdmin ? 10 : 8 }}" style="text-align:center;color:var(--muted);padding:2rem 1rem;">
+                                            No policies found.
+                                        </td>
+                                    </tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -1155,6 +1224,7 @@
             </div>
         </div>
 
+        @push('scripts')
         <script>
             // ── NIIP modal ────────────────────────────────────────────
             const niipModal = document.getElementById('niipModal');
@@ -1163,7 +1233,16 @@
             document.querySelectorAll('.niip-trigger').forEach(el => {
                 el.addEventListener('click', e => {
                     e.preventDefault();
-                    niipMsgEl.textContent = el.getAttribute('data-message');
+                    const raw = el.getAttribute('data-message');
+                    let display = raw;
+                    try {
+                        const parsed = JSON.parse(raw);
+                        display = JSON.stringify(parsed, null, 2);
+                        niipMsgEl.style.cssText = 'white-space:pre-wrap;font-family:var(--mono);font-size:.78rem;';
+                    } catch (_) {
+                        niipMsgEl.style.cssText = '';
+                    }
+                    niipMsgEl.textContent = display;
                     niipModal.classList.add('active');
                 });
             });
@@ -1205,27 +1284,14 @@
                 });
             });
 
-            // ── DataTable ─────────────────────────────────────────────
-            // paging: false — Laravel handles pagination; DataTable provides
-            // per-page search and export on the current 50-row page only.
-            new DataTable('#policylist', {
-                paging: false,
-                info: false,
-                dom: 'Bfrt',
-                buttons: [{
-                        extend: 'excelHtml5',
-                        text: '<i class="fa-solid fa-file-excel"></i> Excel',
-                        title: 'Policy List'
-                    },
-                    {
-                        extend: 'pdfHtml5',
-                        text: '<i class="fa-solid fa-file-pdf"></i> PDF',
-                        title: 'Policy List',
-                        orientation: 'landscape',
-                        pageSize: 'A4'
-                    }
-                ]
+            // ── Client-side row search ────────────────────────────────
+            document.getElementById('tableSearch').addEventListener('input', function () {
+                const term = this.value.toLowerCase();
+                document.querySelectorAll('#policylist tbody tr').forEach(row => {
+                    row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+                });
             });
         </script>
+        @endpush
 
     </x-layouts.app>

@@ -70,7 +70,7 @@ if ($validator->fails()) {
 
         //First create new user account if phonenumber is unique
 
-         $insured=User::where('telno',$request->phone)->orWhere('email',$request->email)->first();
+         $insured=User::Where('email',$request->email)->first();
          $fullname= $request->fname. "  ".$request->lname;
 
             if (empty($insured)) {
@@ -254,81 +254,85 @@ if ($validator->fails()) {
                 }
                 
 
-                $response = Http::withHeader('Auth-Token',$accesstoken)->withBody($policydatajSon)
-                ->post(config('variables.API_ELITE_URL'));
-                           #handle response from elite check status for success/fail
-          $policy->elite_msg=$response->body();
-          
+                try {
+                    $response = Http::withHeader('Auth-Token', $accesstoken)
+                        ->withBody($policydatajSon)
+                        ->timeout(30)
+                        ->retry(3, 3000, fn (\Exception $e) => $e instanceof \Illuminate\Http\Client\ConnectionException)
+                        ->post(config('variables.API_ELITE_URL'));
+                } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                    \Illuminate\Support\Facades\Log::error('Elite API timeout after 3 attempts in ThirdPartyController', [
+                        'policy_id' => $policy->id,
+                        'message'   => $e->getMessage(),
+                    ]);
+                    $policy->elite_msg = 'Elite API timeout: ' . $e->getMessage();
+                    $policy->status    = 'draft';
+                    $policy->save();
 
-            // Decode JSON string into an associative array
-            $data = json_decode($response->body(), true);
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'The insurance server did not respond. Policy saved as draft (ID: ' . $policy->id . '). Please retry.',
+                    ], 504);
+                }
 
-            if ($data['data']['status'] == 'success') {
-                # code...
+                $policy->elite_msg = $response->body();
 
-                $policy->elite_msg=$data['data']['status'] .$data['data']['message'];
-                $policy->policyno=$data['data']['policy_number'];
-                $policy->status='approved';
-                $policy->save();
+                // Decode JSON string into an associative array
+                $data = json_decode($response->body(), true);
 
-                          #TO DO Upload policy to NIIP
+                if (($data['data']['status'] ?? '') == 'success') {
 
-                #Prepare Third Party Motor Policy API Data for NIIP
+                    $policy->elite_msg = $data['data']['status'] . $data['data']['message'];
+                    $policy->policyno  = $data['data']['policy_number'];
+                    $policy->status    = 'approved';
+                    $policy->save();
 
-                $niipdata=
-                [
-        "APIKey" => config('variables.NIIP_API_KEY'),
-        "Purpose" => $policy->niipvehicleuse, 
-        "VehicleColor" => $policyrisk->vechiclecolorid, 
-        "VehicleMake" => $policyrisk->getvmakeid(),
-        "VehicleModel" => $policyrisk->getvmodelid(),
-        "EngineCap" => 3, // TO DO Get Engine Capacity
-        "State" => $policy->stateid,
-        "LGA" => $policy->lgaid,
-        "RegNo" => $policyrisk->regno,
-        "ChassisNo" => $policyrisk->chassisno,
-        "EngineNo" => $policyrisk->engineno,
-        "PolicyHolderFirstName" => $policy->firstname,
-        "PolicyHolderLastName" => $policy->lastname,
-        "PolicyHolderMiddleName" => ' ',
-        "PolicyHolderMobileNo" => $policy->telno,
-        "PolicyHolderEmail" => $policy->email,
-        "PolicyHolderNIN" => '  ',
-        "IssueDate" => date('Y-m-d', strtotime($policy->start_date)),
-        "PolicyHolderAddress" => str_replace(' ', '', $policy->getaddress()),
-        "PolicyNumber" => $policy->policyno 
+                    $niipdata = [
+                        'APIKey'                   => config('variables.NIIP_API_KEY'),
+                        'Purpose'                  => $policy->niipvehicleuse,
+                        'VehicleColor'             => $policyrisk->vechiclecolorid,
+                        'VehicleMake'              => $policyrisk->getvmakeid(),
+                        'VehicleModel'             => $policyrisk->getvmodelid(),
+                        'EngineCap'                => 3,
+                        'State'                    => $policy->stateid,
+                        'LGA'                      => $policy->lgaid,
+                        'RegNo'                    => $policyrisk->regno,
+                        'ChassisNo'                => $policyrisk->chassisno,
+                        'EngineNo'                 => $policyrisk->engineno,
+                        'PolicyHolderFirstName'    => $policy->firstname,
+                        'PolicyHolderLastName'     => $policy->lastname,
+                        'PolicyHolderMiddleName'   => ' ',
+                        'PolicyHolderMobileNo'     => $policy->telno,
+                        'PolicyHolderEmail'        => $policy->email,
+                        'PolicyHolderNIN'          => '  ',
+                        'IssueDate'                => date('Y-m-d', strtotime($policy->start_date)),
+                        'PolicyHolderAddress'      => str_replace(' ', '', $policy->getaddress()),
+                        'PolicyNumber'             => $policy->policyno,
+                    ];
+                    PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
+                } else {
+                    $policy->elite_msg = ($data['data']['status'] ?? '') . ($data['data']['message'] ?? $response->body());
+                    $policy->policyno  = '';
+                    $policy->status    = 'failed';
+                    $policy->save();
 
-            ];
-                #encode NIIP Data to JSON
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'Policy submission to insurer failed: ' . $policy->elite_msg,
+                        'data'    => ['policy_id' => $policy->id],
+                    ], 502);
+                }
 
-            PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
-        }
-        		               // Handle failure response from Elite
-                        else {
-                # code...
-   
-
-                $policy->elite_msg=$response->body();
-                $policy->elite_msg=$data['data']['status'] .$data['data']['message'] ;
-                $policy->policyno='';
-                $policy->status='failed';
-                $policy->save();
-                
-                $errors=$policy->elite_msg;
-                $id=$policy->id;
-            }
-
-        //TODO: Success Response
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Policy created successfully',
-            'data' => [
-                'insured_id' => $insured->id,
-                'insured_name' => $insured->name,
-                'policy_number' => $policy->policyno,
-                'certificate_url'=>'http://elitepolicy.salamtakafulinsurance.com/api/v1/policy/view-certificate?policy_no='.$policy->policyno
-            ]
-        ], 201);
+                return response()->json([
+                    'status'  => true,
+                    'message' => 'Policy created successfully',
+                    'data'    => [
+                        'insured_id'      => $insured->id,
+                        'insured_name'    => $insured->name,
+                        'policy_number'   => $policy->policyno,
+                        'certificate_url' => 'http://elitepolicy.salamtakafulinsurance.com/api/v1/policy/view-certificate?policy_no=' . $policy->policyno,
+                    ],
+                ], 201);
 
 
 

@@ -15,9 +15,8 @@
     }
 @endphp
 
+@push('styles')
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
     :root {
         --primary:       #1a56db;
         --primary-dark:  #1342b0;
@@ -456,6 +455,7 @@
         .fields-grid { grid-template-columns: 1fr; }
     }
 </style>
+@endpush
 
 <div class="policy-wrapper">
 
@@ -486,7 +486,6 @@
                 <strong>NIIP Submission Required</strong>
                 <p>{{ $policy->niip_status }}</p>
                 <form action="{{ route('retry_niip') }}" method="GET" style="display:inline">
-                    @csrf
                     <input type="hidden" name="policyno" value="{{ $policy->policyno }}">
                     <button type="submit" class="btn-retry">
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
@@ -610,8 +609,8 @@
                     <div class="field-group">
                         <label class="field-label" for="gender">Gender</label>
                         <select class="field-select" name="gender" id="gender" {{ $statcheck }}>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
+                            <option value="Male" @selected($insured->gender === 'Male')>Male</option>
+                            <option value="Female" @selected($insured->gender === 'Female')>Female</option>
                         </select>
                     </div>
 
@@ -682,7 +681,8 @@
                                         <div class="field-group">
                         <label class="field-label" for="start_date">Policy Start Date</label>
                         <input class="field-input" type="date" name="start_date" id="start_date" required
-                            value="{{ date('Y-m-d') }}" min="{{ date('Y-m-d') }}">
+                            value="{{ $policy->start_date ? date('Y-m-d', strtotime($policy->start_date)) : date('Y-m-d') }}"
+                            min="{{ date('Y-m-d') }}">
                     </div>
                     <div class="field-group">
                         <label class="field-label" for="regno">Registration No.</label>
@@ -742,7 +742,7 @@
                         <select name="vehiclecolor" id="colors" {{ $statcheck }} class="field-select" required>
                             <option value="">Select Colour</option>
                             @foreach ($colors as $color)
-                                <option value="{{ $color->colorid }}">{{ $color->color }}</option>
+                                <option value="{{ $color->colorid }}" @selected($color->colorid == $policyrisk->vechiclecolorid)>{{ $color->color }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -782,48 +782,55 @@
     <div class="overlay-text">Submitting policy&hellip;</div>
 </div>
 
+@push('scripts')
 <script>
-    // Toggle NIIP log panel
     function toggleNiip() {
         document.getElementById('niipPanel').classList.toggle('open');
     }
 
-    // Show overlay on submit
     function showOverlay() {
         document.getElementById('processingOverlay').classList.add('active');
     }
 
-    // Load vehicle models
-    function loadModels() {
-        const makeId = document.getElementById('vehiclemake').value;
-        if (!makeId) return;
-        $.ajax({
-            url: '/get-vehicle-models/' + makeId,
-            type: 'GET',
-            success: function (models) {
-                const $sel = $('#vehiclemodel').empty().append('<option value="">Select Model</option>');
-                models.forEach(function (model) {
-                    $sel.append('<option value="' + model.vmodelid + '">' + model.vmodelname + '</option>');
+    function loadModels(makeId, preselectName) {
+        const id = makeId ?? document.getElementById('vehiclemake')?.value;
+        if (!id) return;
+        fetch('/get-vehicle-models/' + id)
+            .then(r => r.json())
+            .then(models => {
+                const sel = document.getElementById('vehiclemodel');
+                sel.innerHTML = '<option value="">Select Model</option>';
+                models.forEach(m => {
+                    const opt = new Option(m.vmodelname, m.vmodelid);
+                    if (preselectName && m.vmodelname === preselectName) opt.selected = true;
+                    sel.appendChild(opt);
                 });
-            }
-        });
+            });
     }
 
-    // Load LGAs
-    function getlga() {
-        const stateId = document.getElementById('state').value;
-        if (!stateId) return;
-        $.ajax({
-            url: '/get-lga/' + stateId,
-            type: 'GET',
-            success: function (lgas) {
-                const $sel = $('#lgas').empty().append('<option value="">Select LGA</option>');
-                lgas.forEach(function (lga) {
-                    $sel.append('<option value="' + lga.lgaid + '">' + lga.lganame + '</option>');
+    function getlga(stateId, preselectLgaId) {
+        const id = stateId ?? document.getElementById('state')?.value;
+        if (!id) return;
+        fetch('/get-lga/' + id)
+            .then(r => r.json())
+            .then(lgas => {
+                const sel = document.getElementById('lgas');
+                sel.innerHTML = '<option value="">Select LGA</option>';
+                lgas.forEach(l => {
+                    const opt = new Option(l.lganame, l.lgaid);
+                    if (preselectLgaId && String(l.lgaid) === String(preselectLgaId)) opt.selected = true;
+                    sel.appendChild(opt);
                 });
-            }
-        });
+            });
     }
+
+    @if ($editable)
+    // Pre-populate dependent dropdowns from saved policy values
+    const _makeEl = document.getElementById('vehiclemake');
+    if (_makeEl?.value) loadModels(_makeEl.value, @json($policyrisk->vehiclemodel ?? ''));
+    if (@json($policy->stateid)) getlga(@json($policy->stateid), @json($policy->lgaid));
+    @endif
 </script>
+@endpush
 
 </x-layouts.app>

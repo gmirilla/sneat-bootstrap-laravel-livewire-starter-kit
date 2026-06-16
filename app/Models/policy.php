@@ -48,14 +48,28 @@ class policy extends Model
         'cancellation_uid'
     ];
 
+    public function risk()
+    {
+        return $this->hasOne(policyrisk::class, 'policyid');
+    }
+
+    public function agentUser()
+    {
+        return $this->belongsTo(User::class, 'agent_id');
+    }
+
     public function getrisk()
     {
-        return policyrisk::where('policyid', $this->id)->first();
+        return $this->relationLoaded('risk')
+            ? $this->risk
+            : policyrisk::where('policyid', $this->id)->first();
     }
 
     public function getagentname()
     {
-        $agent = User::where('id', $this->agent_id)->first();
+        $agent = $this->relationLoaded('agentUser')
+            ? $this->agentUser
+            : User::where('id', $this->agent_id)->first();
         return $agent ? $agent->name : 'Agent Not Found';
     }
 
