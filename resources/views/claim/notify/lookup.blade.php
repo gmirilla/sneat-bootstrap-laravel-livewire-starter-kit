@@ -24,7 +24,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body p-4">
-            <form action="{{ route('claim.notify.lookup') }}" method="POST">
+            <form action="{{ route('claim.notify.lookup.post') }}" method="POST">
                 @csrf
 
                 <div class="mb-3">
