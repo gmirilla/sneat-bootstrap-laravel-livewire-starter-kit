@@ -1,6 +1,6 @@
 <x-layouts.guest>
 @php
-    $results = $response['data'];
+    $results = $claimData['data'];
     // API returns associative arrays — normalise to objects for consistent -> access
     // Multiple results: $results is a list  [ [...], [...] ]
     // Single result:   $results is one item { ... }
@@ -25,10 +25,10 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
-    @switch($response['status'])
+    @switch($claimData['status'])
         @case('error')
             <div class="alert alert-danger">
-                <strong>Server Error:</strong> {{ $response['message'] ?? 'An unknown error occurred.' }}
+                <strong>Server Error:</strong> {{ $claimData['message'] ?? 'An unknown error occurred.' }}
             </div>
             @break
         @case('not_found')

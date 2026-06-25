@@ -33,4 +33,7 @@ return [
   "NIIP_API_KEY" => "ef7c2e443f6a4ebba15477eeb38c42d16d2d6272aeb24f52b601154d517614c7", // niip token
   "NIID_URL" => 'https://restapi.niid.org/NIIDRESTService/api/motorinsurance',
 
+  "PROXY_URL"    => env('PROXY_URL', ''),
+  "PROXY_SECRET" => env('PROXY_SECRET', ''),
+  "CLAIMS_EMAIL" => env('CLAIMS_EMAIL', 'claims@salamtakafulinsurance.com'),
 ];

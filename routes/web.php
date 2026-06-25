@@ -14,6 +14,7 @@ use App\Http\Controllers\VehiclecolorController;
 use App\Http\Controllers\VehicleMakeController;
 use App\Http\Controllers\VehicleModelController;
 use App\Http\Controllers\PolicyPaymentController;
+use App\Http\Controllers\ClaimNotificationController;
 use App\Http\Controllers\EcmrController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
@@ -80,8 +81,13 @@ Route::get('error', function () {
 })->name('uerror');
 
 Route::middleware('auth')->group(function () {
-    Route::get('list_users',[UserController::class, 'index'])->name('list_users'); 
-    Route::post('update_user',[UserController::class, 'updateuser'])->name('update_user');    
+    Route::get('list_users',  [UserController::class, 'index'])->name('list_users');
+    Route::post('update_user', [UserController::class, 'updateuser'])->name('update_user');
+
+    // Admin — pending account verification
+    Route::get('admin/pending-accounts',          [UserController::class, 'pendingAccounts'])->name('admin.pending_accounts');
+    Route::post('admin/accounts/{user}/approve',  [UserController::class, 'approveAccount'])->name('admin.accounts.approve');
+    Route::post('admin/accounts/{user}/reject',   [UserController::class, 'rejectAccount'])->name('admin.accounts.reject');
 });
 
 
@@ -114,7 +120,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('claim_check',         [ClaimController::class, 'claimcheck'])->name('claim_check');
     Route::get('claim_check',          fn() => redirect(route('home') . '#claimcheck'));
-    Route::post('claim/send_enquiry',  [ClaimController::class, 'sendEnquiry'])->name('claim.send_enquiry');
+    Route::post('claim/send_enquiry',  [ClaimController::class, 'sendEnquiry'])->name('claim.send_enquiry')->middleware('throttle:10,1');
+
+    // Claim notification (public — no auth required)
+    Route::get('claim/notify',         [ClaimNotificationController::class, 'showLookup'])->name('claim.notify.lookup');
+    Route::post('claim/notify/lookup', [ClaimNotificationController::class, 'lookupPolicy'])->name('claim.notify.lookup.post')->middleware('throttle:5,1');
+    Route::get('claim/notify/form',    [ClaimNotificationController::class, 'showForm'])->name('claim.notify.form');
+    Route::post('claim/notify/submit', [ClaimNotificationController::class, 'submit'])->name('claim.notify.submit')->middleware('throttle:3,1');
 
 
 

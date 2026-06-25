@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Http\Controllers\LgaController;
 use Illuminate\Database\Eloquent\Model;
 
 class policy extends Model
@@ -56,6 +55,11 @@ class policy extends Model
     public function agentUser()
     {
         return $this->belongsTo(User::class, 'agent_id');
+    }
+
+    public function insuredUser()
+    {
+        return $this->belongsTo(User::class, 'insured_id');
     }
 
     public function getrisk()

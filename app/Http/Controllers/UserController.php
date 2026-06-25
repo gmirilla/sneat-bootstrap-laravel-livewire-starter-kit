@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\agentsdetailsModel;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 
 class UserController extends Controller
 {
@@ -110,51 +112,42 @@ class UserController extends Controller
 
 
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function pendingAccounts()
     {
-        //
+        $this->requireAdmin();
+
+        $users = User::where('account_status', 'pending')
+            ->with(['claimNotifications' => fn($q) => $q->latest()->limit(1)])
+            ->orderBy('created_at', 'desc')
+            ->paginate(30);
+
+        return view('usermgmgt.pending_accounts', compact('users'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function approveAccount(User $user)
     {
-        //
+        $this->requireAdmin();
+
+        $user->update(['account_status' => 'active']);
+
+        Password::broker()->sendResetLink(['email' => $user->email]);
+
+        return back()->with('success', "Account for {$user->name} approved. A password setup email has been sent.");
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function rejectAccount(User $user)
     {
-        //
+        $this->requireAdmin();
+
+        $user->update(['account_status' => 'rejected']);
+
+        return back()->with('success', "Account for {$user->name} has been rejected.");
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    private function requireAdmin(): void
     {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        if (!in_array(Auth::user()->role, ['admin', 'superadmin'])) {
+            abort(403);
+        }
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\ClaimNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -26,7 +27,7 @@ class User extends Authenticatable implements CanResetPassword
     protected $fillable = [
         'name',
         'email',
-        'password','role', 'firstname','lastname','telno','state','address', 'gender','dob', 'apitoken', 'parentid'
+        'password', 'account_status', 'role', 'firstname', 'lastname', 'telno', 'state', 'address', 'gender', 'dob', 'apitoken', 'parentid'
     ];
 
     /**
@@ -94,9 +95,14 @@ class User extends Authenticatable implements CanResetPassword
     }
 
     //Get all Sub Agents under and Agent and their Details
-    public function getsubagentdetails() 
-    { 
+    public function getsubagentdetails()
+    {
         return agentsdetailsModel::where('puid', $this->id)->first();
+    }
+
+    public function claimNotifications()
+    {
+        return $this->hasMany(ClaimNotification::class);
     }
 
     
