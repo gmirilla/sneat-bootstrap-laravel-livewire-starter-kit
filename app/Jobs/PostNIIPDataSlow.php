@@ -2,56 +2,51 @@
 
 namespace App\Jobs;
 
+use App\Models\policy;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Http\Request;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use App\Models\policy;
 use Illuminate\Support\Facades\Http;
-
-
+use Illuminate\Support\Facades\Log;
 
 class PostNIIPDataSlow implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $data;
+    public function __construct(public array $data) {}
 
-    public function __construct($data)
-    {
-        $this->data = $data; // Store the passed data
-    }
-
-    public function handle()
+    public function handle(): void
     {
         $policy = policy::where('policyno', $this->data['PolicyNumber'])->first();
-        $niipdata=$this->data;
-        $niipdatajSon=json_encode($niipdata);
 
-            try{
-                $niipresponse = Http::withBody($niipdatajSon)->timeout(180)->post(config('variables.NIIP_URL'));
-              // Set timeout to 180 seconds
-                //handle niip response
-            
-                $niipresponsedata = json_decode($niipresponse->body(), true);
+        if (!$policy) {
+            Log::error('PostNIIPDataSlow: policy not found', ['policyno' => $this->data['PolicyNumber']]);
+            return;
+        }
 
+        try {
+            $niipResponse     = Http::withBody(json_encode($this->data))->timeout(180)->post(config('variables.NIIP_URL'));
+            $niipResponseBody = $niipResponse->body();
+            $niipResponseData = json_decode($niipResponseBody, true);
+
+            $policy->niip_status = $niipResponseBody;
+            $policy->save();
+
+            Log::info('PostNIIPDataSlow: NIIP response received', ['policyno' => $policy->policyno]);
+
+            if ($niipResponseData['isSuccess'] ?? false) {
+                CheckEcmrJob::dispatch($this->data['RegNo'], $policy->id);
             }
-            catch (\Exception $e) {
-                # code...
-                $policy->niip_status='Error: '.$e->getMessage();
-                $policy->save();
 
-            }
-
-
-                $policy->niip_status=$niipresponsedata;
-                $policy->save();
-                
-        Log::info('Processing Data:', ['data' => $this->data]);
-       
+        } catch (\Exception $e) {
+            $policy->niip_status = 'Error: ' . $e->getMessage();
+            $policy->save();
+            Log::error('PostNIIPDataSlow: NIIP request failed', [
+                'policyno' => $policy->policyno,
+                'error'    => $e->getMessage(),
+            ]);
+        }
     }
-
 }
