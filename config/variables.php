@@ -27,11 +27,11 @@ return [
   "githubUrl" => "https://github.com/",
   "dribbbleUrl" => "https://dribbble.com/",
   "instagramUrl" => "https://www.instagram.com/",
-  "API_ELITE_TOKEN" =>"token_7fcc1dfa5eee58e7cc614ae2d4be00f9012e86df", //default agent token
-  "API_ELITE_URL"=>'http://elitepolicy.salamtakafulinsurance.com/api/v1/policy',
-  "NIIP_URL" => 'https://niip.ng/api/getPolicyByInsuranceCompany',
-  "NIIP_API_KEY" => "ef7c2e443f6a4ebba15477eeb38c42d16d2d6272aeb24f52b601154d517614c7", // niip token
-  "NIID_URL" => 'https://restapi.niid.org/NIIDRESTService/api/motorinsurance',
+  "API_ELITE_TOKEN" =>env('API_ELITE_TOKEN'), //default agent token
+  "API_ELITE_URL"=>env('API_ELITE_URL'),
+  "NIIP_URL" => env('NIIP_URL'),
+  "NIIP_API_KEY" => env('NIIP_API_KEY'), // niip token
+  "NIID_URL" => env('NIID_URL'),
 
   "PROXY_URL"    => env('PROXY_URL', ''),
   "PROXY_SECRET" => env('PROXY_SECRET', ''),
