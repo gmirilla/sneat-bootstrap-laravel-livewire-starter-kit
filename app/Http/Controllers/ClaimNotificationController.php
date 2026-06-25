@@ -56,6 +56,7 @@ class ClaimNotificationController extends Controller
         // 2. Fall back to Elite API
         $eliteData = $this->fetchFromElite($policyNo, $phone);
 
+
         if ($eliteData) {
             $request->session()->put('claim_lookup', [
                 'policy_no'   => $eliteData['policy_no'],
@@ -162,14 +163,14 @@ class ClaimNotificationController extends Controller
 
     private function fetchFromElite(string $policyNo, string $phone): ?array
     {
-        $baseUrl = rtrim(config('variables.API_ELITE_URL', ''), '/');
+        $baseUrl = rtrim(config('variables.PROXY_URL', ''), '/');
 
         if (empty($baseUrl)) {
             return null;
         }
 
         try {
-            $response = Http::timeout(15)->get($baseUrl . '/customer-lookup', [
+            $response = Http::timeout(15)->get($baseUrl . '/api/v1/policy/customer-lookup', [
                 'policy_no' => $policyNo,
                 'phone'     => $phone,
             ]);
