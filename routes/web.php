@@ -123,10 +123,11 @@ Route::middleware('auth')->group(function () {
     Route::post('claim/send_enquiry',  [ClaimController::class, 'sendEnquiry'])->name('claim.send_enquiry')->middleware('throttle:10,1');
 
     // Claim notification (public — no auth required)
-    Route::get('claim/notify',         [ClaimNotificationController::class, 'showLookup'])->name('claim.notify.lookup');
-    Route::post('claim/notify/lookup', [ClaimNotificationController::class, 'lookupPolicy'])->name('claim.notify.lookup.post')->middleware('throttle:5,1');
-    Route::get('claim/notify/form',    [ClaimNotificationController::class, 'showForm'])->name('claim.notify.form');
-    Route::post('claim/notify/submit', [ClaimNotificationController::class, 'submit'])->name('claim.notify.submit')->middleware('throttle:3,1');
+    Route::get('claim/notify',              [ClaimNotificationController::class, 'showLookup'])->name('claim.notify.lookup');
+    Route::post('claim/notify/lookup',      [ClaimNotificationController::class, 'lookupPolicy'])->name('claim.notify.lookup.post')->middleware('throttle:5,1');
+    Route::get('claim/notify/form',         [ClaimNotificationController::class, 'showForm'])->name('claim.notify.form');
+    Route::post('claim/notify/submit',      [ClaimNotificationController::class, 'submit'])->name('claim.notify.submit')->middleware('throttle:3,1');
+    Route::get('claim/notify/confirmation', [ClaimNotificationController::class, 'showConfirmation'])->name('claim.notify.confirmation');
 
     // Claim notification list (auth required)
     Route::middleware('auth')->group(function () {

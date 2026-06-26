@@ -57,7 +57,6 @@ class ClaimNotificationController extends Controller
         // 2. Fall back to Elite API
         $eliteData = $this->fetchFromElite($policyNo, $phone);
 
-
         if ($eliteData) {
             $request->session()->put('claim_lookup', [
                 'policy_no'   => $eliteData['policy_no'],
@@ -108,12 +107,23 @@ class ClaimNotificationController extends Controller
         $reference      = $this->generateReference();
         $accountCreated = false;
         $accountPending = false;
+        $newUser        = null; // Fix 5: always initialised before use
 
         $existingUser = User::where('email', $request->claimant_email)->first();
 
         if ($existingUser) {
-            $userId         = $existingUser->id;
-            $accountPending = $existingUser->account_status === 'pending';
+            if ($existingUser->account_status === 'rejected') {
+                // Fix 3: rejected users are re-opened as pending so they receive
+                // the same account-creation emails as a brand-new user
+                $existingUser->update(['account_status' => 'pending']);
+                $existingUser->refresh();
+                $userId         = $existingUser->id;
+                $accountCreated = true;
+                $newUser        = $existingUser;
+            } else {
+                $userId         = $existingUser->id;
+                $accountPending = $existingUser->account_status === 'pending';
+            }
         } else {
             $nameParts = explode(' ', trim($request->claimant_name), 2);
             $newUser = User::create([
@@ -147,17 +157,37 @@ class ClaimNotificationController extends Controller
             'status'         => 'submitted',
         ]);
 
-        // Send notification to claims team
         Mail::to(config('variables.CLAIMS_EMAIL'))
             ->send(new ClaimNotificationMail($notification, $accountCreated, $accountPending));
 
-        // If a new account was created, notify claimant and admin separately
         if ($accountCreated) {
             Mail::to($request->claimant_email)->send(new ClaimAccountCreatedMail($newUser, $reference));
             Mail::to(config('variables.CLAIMS_EMAIL'))->send(new ClaimNotificationAdminMail($newUser, $notification));
         }
 
         $request->session()->forget('claim_lookup');
+
+        // Fix 2: PRG — store in flash and redirect to a GET route so browser
+        // refresh cannot re-submit the form and create duplicate notifications
+        $request->session()->flash('claim_confirmation', [
+            'notification_id' => $notification->id,
+            'account_created' => $accountCreated,
+        ]);
+
+        return redirect()->route('claim.notify.confirmation');
+    }
+
+    // Fix 2: GET handler that reads the one-time flash data
+    public function showConfirmation(Request $request)
+    {
+        $data = $request->session()->get('claim_confirmation');
+
+        if (!$data) {
+            return redirect()->route('claim.notify.lookup');
+        }
+
+        $notification   = ClaimNotification::findOrFail($data['notification_id']);
+        $accountCreated = $data['account_created'];
 
         return view('claim.notify.confirmation', compact('notification', 'accountCreated'));
     }

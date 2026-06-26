@@ -37,6 +37,18 @@ new #[Layout('components.layouts.auth')] class extends Component {
             ]);
         }
 
+        // Fix: enforce account_status — blocks pending/rejected users even if
+        // they obtained a password via the "Forgot Password" flow
+        if (Auth::user()->account_status !== 'active') {
+            Auth::logout();
+            Session::invalidate();
+
+            throw ValidationException::withMessages([
+                'email' => 'Your account is pending verification or has been deactivated. '
+                         . 'Please contact the claims team and quote your reference number.',
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
         Session::regenerate();
 

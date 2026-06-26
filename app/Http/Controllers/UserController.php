@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ClaimAccountRejectedMail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\agentsdetailsModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 
 class UserController extends Controller
@@ -130,9 +132,14 @@ class UserController extends Controller
 
         $user->update(['account_status' => 'active']);
 
-        Password::broker()->sendResetLink(['email' => $user->email]);
+        // Fix 6: check whether the reset link was actually sent
+        $status = Password::broker()->sendResetLink(['email' => $user->email]);
 
-        return back()->with('success', "Account for {$user->name} approved. A password setup email has been sent.");
+        $msg = $status === Password::RESET_LINK_SENT
+            ? "Account for {$user->name} approved. A password setup email has been sent."
+            : "Account for {$user->name} approved, but the password email could not be sent (reason: {$status}). Please contact the claimant directly at {$user->email}.";
+
+        return back()->with('success', $msg);
     }
 
     public function rejectAccount(User $user)
@@ -141,7 +148,10 @@ class UserController extends Controller
 
         $user->update(['account_status' => 'rejected']);
 
-        return back()->with('success', "Account for {$user->name} has been rejected.");
+        // Fix 4: notify claimant so they are not left waiting indefinitely
+        Mail::to($user->email)->send(new ClaimAccountRejectedMail($user));
+
+        return back()->with('success', "Account for {$user->name} has been rejected. The claimant has been notified.");
     }
 
     private function requireAdmin(): void
