@@ -9,6 +9,7 @@ use App\Models\ClaimNotification;
 use App\Models\policy;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -159,6 +160,49 @@ class ClaimNotificationController extends Controller
         $request->session()->forget('claim_lookup');
 
         return view('claim.notify.confirmation', compact('notification', 'accountCreated'));
+    }
+
+    public function listNotifications(Request $request)
+    {
+        $user    = Auth::user();
+        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+
+        $query = ClaimNotification::query()->with('user')->latest();
+
+        if (!$isAdmin) {
+            $query->where('user_id', $user->id);
+        }
+
+        if ($isAdmin && $request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('reference_no', 'like', "%{$s}%")
+                  ->orWhere('policy_no', 'like', "%{$s}%")
+                  ->orWhere('claimant_name', 'like', "%{$s}%")
+                  ->orWhere('claimant_email', 'like', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $notifications = $query->paginate(15)->withQueryString();
+
+        return view('claim.notify.list', compact('notifications', 'isAdmin'));
+    }
+
+    public function updateStatus(Request $request, ClaimNotification $notification)
+    {
+        if (!in_array(Auth::user()->role, ['admin', 'superadmin'])) {
+            abort(403);
+        }
+
+        $request->validate(['status' => 'required|in:submitted,acknowledged,closed']);
+
+        $notification->update(['status' => $request->status]);
+
+        return back()->with('success', "Claim {$notification->reference_no} marked as {$request->status}.");
     }
 
     private function fetchFromElite(string $policyNo, string $phone): ?array

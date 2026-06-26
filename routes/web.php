@@ -128,6 +128,12 @@ Route::middleware('auth')->group(function () {
     Route::get('claim/notify/form',    [ClaimNotificationController::class, 'showForm'])->name('claim.notify.form');
     Route::post('claim/notify/submit', [ClaimNotificationController::class, 'submit'])->name('claim.notify.submit')->middleware('throttle:3,1');
 
+    // Claim notification list (auth required)
+    Route::middleware('auth')->group(function () {
+        Route::get('claim/notifications',                      [ClaimNotificationController::class, 'listNotifications'])->name('claim.notifications');
+        Route::post('claim/notifications/{notification}/status',[ClaimNotificationController::class, 'updateStatus'])->name('claim.notifications.status');
+    });
+
 
 
 
