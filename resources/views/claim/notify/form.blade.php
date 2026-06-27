@@ -42,7 +42,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body p-4">
-            <form action="{{ route('claim.notify.submit') }}" method="POST">
+            <form action="{{ route('claim.notify.submit') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
                 <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:.05em">Your Details</h6>
@@ -97,6 +97,23 @@
                     <div class="form-text text-end"><span id="descCount">0</span> / 3000</div>
                 </div>
 
+                <hr class="my-4">
+                <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:.05em">Supporting Documents <span class="fw-normal text-lowercase">(optional)</span></h6>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Attach Files</label>
+                    <input type="file" name="attachments[]" id="attachments"
+                           class="form-control @error('attachments') is-invalid @enderror @error('attachments.*') is-invalid @enderror"
+                           multiple accept=".pdf,.jpg,.jpeg,.png">
+                    @error('attachments')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    @error('attachments.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    <div class="form-text">
+                        Up to 5 files &nbsp;·&nbsp; PDF, JPG or PNG &nbsp;·&nbsp; Max 5 MB each.<br>
+                        Examples: photos of damage, police report extract, repair estimate.
+                    </div>
+                    <div id="fileList" class="mt-2 small text-muted"></div>
+                </div>
+
                 <div class="d-flex gap-2">
                     <a href="{{ route('claim.notify.lookup') }}" class="btn btn-outline-secondary">
                         <i class="bx bx-arrow-back me-1"></i> Back
@@ -119,6 +136,20 @@
     if (desc) {
         desc.addEventListener('input', () => counter.textContent = desc.value.length);
         counter.textContent = desc.value.length;
+    }
+
+    const fileInput = document.getElementById('attachments');
+    const fileList  = document.getElementById('fileList');
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            const files = Array.from(this.files);
+            if (!files.length) { fileList.textContent = ''; return; }
+            fileList.innerHTML = files.map(f =>
+                `<span class="badge bg-light text-dark border me-1 mb-1">
+                    <i class="bx bx-paperclip"></i> ${f.name} (${(f.size/1024).toFixed(0)} KB)
+                 </span>`
+            ).join('');
+        });
     }
 </script>
 @endpush

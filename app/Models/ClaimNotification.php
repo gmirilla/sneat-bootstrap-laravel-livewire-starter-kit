@@ -20,6 +20,7 @@ class ClaimNotification extends Model
         'description',
         'user_id',
         'status',
+        'elite_claim_no',
     ];
 
     protected $casts = [
@@ -31,5 +32,10 @@ class ClaimNotification extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function claimAttachments()
+    {
+        return $this->hasMany(ClaimAttachment::class);
     }
 }

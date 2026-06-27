@@ -131,8 +131,10 @@ Route::middleware('auth')->group(function () {
 
     // Claim notification list (auth required)
     Route::middleware('auth')->group(function () {
-        Route::get('claim/notifications',                      [ClaimNotificationController::class, 'listNotifications'])->name('claim.notifications');
-        Route::post('claim/notifications/{notification}/status',[ClaimNotificationController::class, 'updateStatus'])->name('claim.notifications.status');
+        Route::get('claim/notifications',                                [ClaimNotificationController::class, 'listNotifications'])->name('claim.notifications');
+        Route::post('claim/notifications/{notification}/status',         [ClaimNotificationController::class, 'updateStatus'])->name('claim.notifications.status');
+        Route::post('claim/notifications/{notification}/elite-claim-no', [ClaimNotificationController::class, 'recordEliteClaimNo'])->name('claim.notifications.elite');
+        Route::get('claim/attachments/{attachment}/download',            [ClaimNotificationController::class, 'downloadAttachment'])->name('claim.attachment.download');
     });
 
 

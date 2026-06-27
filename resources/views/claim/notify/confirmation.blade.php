@@ -12,11 +12,25 @@
             <h4 class="fw-bold mb-1">Claim Notification Submitted</h4>
             <p class="text-muted">Your notification has been sent to our claims team.</p>
 
-            <div class="bg-light rounded-3 p-3 my-4">
-                <div class="small text-muted text-uppercase fw-semibold mb-1">Your Reference Number</div>
-                <div class="fw-bold" style="font-size:1.4rem;letter-spacing:.05em;color:#1a56db">
+            {{-- Elite Claim Number (shown if already assigned, rare at submission time) --}}
+            @if ($notification->elite_claim_no)
+                <div class="rounded-3 p-3 my-3" style="background:#f0fdf4;border:1px solid #bbf7d0">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Elite Claim Number</div>
+                    <div class="fw-bold" style="font-size:1.4rem;letter-spacing:.05em;color:#16a34a">
+                        {{ $notification->elite_claim_no }}
+                    </div>
+                    <div class="small text-muted mt-1">Use this number in all correspondence with the claims team.</div>
+                </div>
+            @endif
+
+            <div class="bg-light rounded-3 p-3 my-3">
+                <div class="small text-muted text-uppercase fw-semibold mb-1">MySalam Reference</div>
+                <div class="fw-bold" style="font-size:1.3rem;letter-spacing:.05em;color:#1a56db">
                     {{ $notification->reference_no }}
                 </div>
+                @unless ($notification->elite_claim_no)
+                    <div class="small text-muted mt-1">Keep this reference until your Elite Claim Number is issued.</div>
+                @endunless
             </div>
 
             <table class="table table-sm text-start mb-4">
@@ -48,7 +62,7 @@
 
             <p class="text-muted small">
                 Our claims team will contact you at <strong>{{ $notification->claimant_email }}</strong>.
-                Please quote your reference number in all correspondence.
+                You will receive a separate email once your claim has been registered and an Elite Claim Number has been issued.
             </p>
 
             <a href="{{ route('home') }}" class="btn btn-outline-primary mt-2">

@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Mail\ClaimAccountCreatedMail;
 use App\Mail\ClaimNotificationAdminMail;
 use App\Mail\ClaimNotificationMail;
+use App\Mail\ClaimRegisteredMail;
+use App\Models\ClaimAttachment;
 use App\Models\ClaimNotification;
 use App\Models\policy;
 use App\Models\User;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ClaimNotificationController extends Controller
@@ -28,16 +31,16 @@ class ClaimNotificationController extends Controller
     {
         $request->validate([
             'policy_no' => 'required|string|max:50',
-            'phone'     => 'required|string|max:20',
+            'email'     => 'required|email|max:150',
         ]);
 
         $policyNo = trim($request->policy_no);
-        $phone    = trim($request->phone);
+        $email    = trim($request->email);
 
         // 1. Try local DB first
         $local = policy::where('policyno', $policyNo)
             ->where('status', 'approved')
-            ->whereHas('insuredUser', fn($q) => $q->where('telno', $phone))
+            ->whereHas('insuredUser', fn($q) => $q->where('email', $email))
             ->select('policyno', 'producttype', 'start_date', 'end_date')
             ->first();
 
@@ -55,7 +58,7 @@ class ClaimNotificationController extends Controller
         }
 
         // 2. Fall back to Elite API
-        $eliteData = $this->fetchFromElite($policyNo, $phone);
+        $eliteData = $this->fetchFromElite($policyNo, $email);
 
         if ($eliteData) {
             $request->session()->put('claim_lookup', [
@@ -70,7 +73,7 @@ class ClaimNotificationController extends Controller
             return redirect()->route('claim.notify.form');
         }
 
-        return back()->with('lookup_error', 'No active policy found matching this policy number and phone number. Please check your details and try again.');
+        return back()->with('lookup_error', 'No active policy found matching this policy number and email address. Please check your details and try again.');
     }
 
     public function showForm(Request $request)
@@ -102,19 +105,19 @@ class ClaimNotificationController extends Controller
             'claimant_phone' => 'required|string|max:20',
             'incident_date'  => 'required|date|before_or_equal:today',
             'description'    => 'required|string|min:20|max:3000',
+            'attachments'    => 'nullable|array|max:5',
+            'attachments.*'  => 'file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $reference      = $this->generateReference();
         $accountCreated = false;
         $accountPending = false;
-        $newUser        = null; // Fix 5: always initialised before use
+        $newUser        = null;
 
         $existingUser = User::where('email', $request->claimant_email)->first();
 
         if ($existingUser) {
             if ($existingUser->account_status === 'rejected') {
-                // Fix 3: rejected users are re-opened as pending so they receive
-                // the same account-creation emails as a brand-new user
                 $existingUser->update(['account_status' => 'pending']);
                 $existingUser->refresh();
                 $userId         = $existingUser->id;
@@ -154,8 +157,22 @@ class ClaimNotificationController extends Controller
             'incident_date'  => $request->incident_date,
             'description'    => $request->description,
             'user_id'        => $userId,
-            'status'         => 'submitted',
+            'status'         => 'received',
         ]);
+
+        // Store attachments in private disk — not publicly accessible
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $path = $file->store("claim-attachments/{$notification->id}", 'local');
+                ClaimAttachment::create([
+                    'claim_notification_id' => $notification->id,
+                    'original_name'         => $file->getClientOriginalName(),
+                    'path'                  => $path,
+                    'mime_type'             => $file->getMimeType(),
+                    'size'                  => $file->getSize(),
+                ]);
+            }
+        }
 
         Mail::to(config('variables.CLAIMS_EMAIL'))
             ->send(new ClaimNotificationMail($notification, $accountCreated, $accountPending));
@@ -167,8 +184,6 @@ class ClaimNotificationController extends Controller
 
         $request->session()->forget('claim_lookup');
 
-        // Fix 2: PRG — store in flash and redirect to a GET route so browser
-        // refresh cannot re-submit the form and create duplicate notifications
         $request->session()->flash('claim_confirmation', [
             'notification_id' => $notification->id,
             'account_created' => $accountCreated,
@@ -177,7 +192,6 @@ class ClaimNotificationController extends Controller
         return redirect()->route('claim.notify.confirmation');
     }
 
-    // Fix 2: GET handler that reads the one-time flash data
     public function showConfirmation(Request $request)
     {
         $data = $request->session()->get('claim_confirmation');
@@ -197,7 +211,10 @@ class ClaimNotificationController extends Controller
         $user    = Auth::user();
         $isAdmin = in_array($user->role, ['admin', 'superadmin']);
 
-        $query = ClaimNotification::query()->with('user')->latest();
+        $query = ClaimNotification::query()
+            ->with(['user', 'claimAttachments'])
+            ->withCount('claimAttachments')
+            ->latest();
 
         if (!$isAdmin) {
             $query->where('user_id', $user->id);
@@ -208,6 +225,7 @@ class ClaimNotificationController extends Controller
             $query->where(function ($q) use ($s) {
                 $q->where('reference_no', 'like', "%{$s}%")
                   ->orWhere('policy_no', 'like', "%{$s}%")
+                  ->orWhere('elite_claim_no', 'like', "%{$s}%")
                   ->orWhere('claimant_name', 'like', "%{$s}%")
                   ->orWhere('claimant_email', 'like', "%{$s}%");
             });
@@ -228,14 +246,60 @@ class ClaimNotificationController extends Controller
             abort(403);
         }
 
-        $request->validate(['status' => 'required|in:submitted,acknowledged,closed']);
+        $request->validate(['status' => 'required|in:received,registered,closed']);
+
+        if ($request->status === 'registered' && !$notification->elite_claim_no) {
+            return back()->with('error', "Cannot mark claim {$notification->reference_no} as Registered without an Elite Claim Number. Record the Elite Claim Number first.");
+        }
 
         $notification->update(['status' => $request->status]);
 
         return back()->with('success', "Claim {$notification->reference_no} marked as {$request->status}.");
     }
 
-    private function fetchFromElite(string $policyNo, string $phone): ?array
+    public function recordEliteClaimNo(Request $request, ClaimNotification $notification)
+    {
+        if (!in_array(Auth::user()->role, ['admin', 'superadmin'])) {
+            abort(403);
+        }
+
+        $request->validate([
+            'elite_claim_no' => [
+                'required', 'string', 'max:50',
+                // unique across all rows except this one
+                "unique:claim_notifications,elite_claim_no,{$notification->id}",
+            ],
+        ]);
+
+        $isFirstAssignment = empty($notification->elite_claim_no);
+
+        $notification->update([
+            'elite_claim_no' => $request->elite_claim_no,
+            'status'         => 'registered',
+        ]);
+
+        if ($isFirstAssignment) {
+            Mail::to($notification->claimant_email)->send(new ClaimRegisteredMail($notification));
+        }
+
+        return back()->with('success', "Elite Claim Number recorded for {$notification->reference_no}. Claimant has been notified.");
+    }
+
+    public function downloadAttachment(ClaimAttachment $attachment)
+    {
+        $user    = Auth::user();
+        $isAdmin = in_array($user->role, ['admin', 'superadmin']);
+        $isOwner = $attachment->claimNotification->user_id === $user->id;
+
+        if (!$isAdmin && !$isOwner) {
+            abort(403);
+        }
+
+        $fullPath = Storage::disk('local')->path($attachment->path);
+        return response()->download($fullPath, $attachment->original_name);
+    }
+
+    private function fetchFromElite(string $policyNo, string $email): ?array
     {
         $baseUrl = rtrim(config('variables.PROXY_URL', ''), '/');
 
@@ -246,7 +310,7 @@ class ClaimNotificationController extends Controller
         try {
             $response = Http::timeout(15)->get($baseUrl . '/api/v1/policy/customer-lookup', [
                 'policy_no' => $policyNo,
-                'phone'     => $phone,
+                'email'     => $email,
             ]);
 
             $data = $response->json();

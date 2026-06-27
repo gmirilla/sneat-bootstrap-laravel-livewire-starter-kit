@@ -4,7 +4,7 @@
 
     <div class="text-center mb-4">
         <h4 class="fw-bold">Submit a Claim Notification</h4>
-        <p class="text-muted small">Enter your policy number and the phone number registered on the policy to continue.</p>
+        <p class="text-muted small">Enter your policy number and the email address registered on the policy to continue.</p>
     </div>
 
     @if (session('lookup_error'))
@@ -35,11 +35,11 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label fw-semibold">Registered Phone Number <span class="text-danger">*</span></label>
-                    <input type="tel" name="phone" class="form-control @error('phone') is-invalid @enderror"
-                           value="{{ old('phone') }}" placeholder="e.g. 08012345678" required>
-                    @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    <div class="form-text">Must match the phone number on your policy.</div>
+                    <label class="form-label fw-semibold">Registered Email Address <span class="text-danger">*</span></label>
+                    <input type="email" name="email" class="form-control @error('email') is-invalid @enderror"
+                           value="{{ old('email') }}" placeholder="e.g. you@example.com" required>
+                    @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    <div class="form-text">Must match the email address on your policy.</div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100">
