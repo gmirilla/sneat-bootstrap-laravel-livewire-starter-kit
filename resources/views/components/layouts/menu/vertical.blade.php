@@ -139,6 +139,12 @@
                                 <i class="menu-icon fa fa-desktop"></i>{{ __('NIIP Code Mgmt') }}
                             </a>
                         </li>
+                        <!-- Elite Broker Portfolio -->
+                        <li class="menu-item {{ request()->routeIs('elite.brokers', 'elite.broker.policies') ? 'active' : '' }}">
+                            <a class="menu-link" href="{{ route('elite.brokers') }}" wire:navigate>
+                                <i class="menu-icon bx bx-buildings"></i>{{ __('Elite Brokers') }}
+                            </a>
+                        </li>
                         @endif
 
                         <!-- Settings -->

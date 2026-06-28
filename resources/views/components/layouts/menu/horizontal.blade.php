@@ -154,6 +154,14 @@
                 </a>
             </li>
 
+            {{-- Elite Broker Portfolio --}}
+            <li class="nav-item">
+                <a class="nav-link{{ request()->routeIs('elite.brokers', 'elite.broker.policies') ? ' active' : '' }}"
+                   href="{{ route('elite.brokers') }}" wire:navigate>
+                    <i class="bx bx-buildings me-1"></i>{{ __('Elite Brokers') }}
+                </a>
+            </li>
+
             @endif
 
         </ul>

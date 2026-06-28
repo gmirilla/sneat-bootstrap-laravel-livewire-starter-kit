@@ -16,6 +16,7 @@ use App\Http\Controllers\VehicleModelController;
 use App\Http\Controllers\PolicyPaymentController;
 use App\Http\Controllers\ClaimNotificationController;
 use App\Http\Controllers\EcmrController;
+use App\Http\Controllers\EliteBrokerController;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
@@ -79,6 +80,13 @@ Route::middleware('auth')->group(function () {
 Route::get('error', function () {
   return view('user_errors');
 })->name('uerror');
+
+// Elite Broker/Agent portfolio (admin only)
+Route::middleware('auth')->group(function () {
+    Route::get('elite/brokers',                    [EliteBrokerController::class, 'index'])->name('elite.brokers');
+    Route::get('elite/broker/policies',            [EliteBrokerController::class, 'policies'])->name('elite.broker.policies');
+    Route::post('elite/brokers/create-account',    [EliteBrokerController::class, 'createBrokerAccount'])->name('elite.broker.create-account');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('list_users',  [UserController::class, 'index'])->name('list_users');
