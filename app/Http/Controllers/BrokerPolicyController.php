@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\BrokerTicket;
 use App\Services\ProxyClient;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
@@ -11,12 +13,30 @@ class BrokerPolicyController extends Controller
 {
     public function __construct(private readonly ProxyClient $proxy) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $user     = Auth::user();
-        $policies = $this->fetchPolicies($user->broker_id);
+        $user  = Auth::user();
+        $all   = $this->fetchPolicies($user->broker_id);
+        $today = Carbon::today();
+        $in30  = Carbon::today()->addDays(30);
 
-        return view('broker.policies.index', compact('policies'));
+        $collection = collect($all);
+
+        $counts = [
+            'all'      => $collection->count(),
+            'active'   => $collection->filter(fn($p) => Carbon::parse($p['date_to'])->gte($today))->count(),
+            'expiring' => $collection->filter(fn($p) => Carbon::parse($p['date_to'])->between($today, $in30))->count(),
+        ];
+
+        $view = in_array($request->get('view'), ['active', 'expiring']) ? $request->get('view') : 'all';
+
+        $policies = match ($view) {
+            'active'   => $collection->filter(fn($p) => Carbon::parse($p['date_to'])->gte($today))->values()->all(),
+            'expiring' => $collection->filter(fn($p) => Carbon::parse($p['date_to'])->between($today, $in30))->values()->all(),
+            default    => $all,
+        };
+
+        return view('broker.policies.index', compact('policies', 'view', 'counts'));
     }
 
     public function show(string $policyNo)

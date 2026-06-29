@@ -4,19 +4,22 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\agentsdetailsModel;
+use App\Models\BrokerTicket;
 use App\Models\policy;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Services\ProxyClient;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use App\Models\vehicleMake;
 use App\Models\vehiclecolor;
 use App\Models\states;
-use App\Models\User;
 
 class DashboardController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    public function __construct(private readonly ProxyClient $proxy) {}
+
     public function index(Request $request)
     {
         //
@@ -27,6 +30,30 @@ class DashboardController extends Controller
         $agentslist = agentsdetailsModel::all();
         $query = Policy::query();
         $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
+
+        // Broker gets a completely different dashboard driven by the Elite API
+        if ($usercheck->role === 'broker') {
+            return view('dashboardnew', array_merge(
+                $this->buildBrokerDashboard($usercheck),
+                [
+                    'user'           => $user,
+                    'usercheck'      => $usercheck,
+                    'products'       => $products,
+                    'agentslist'     => collect(),
+                    'searchParams'   => [],
+                    'answers'        => [],
+                    'policygroup'    => collect(),
+                    'creditleft'     => 0,
+                    'creditassigned' => 0,
+                    'creditused'     => 0,
+                    'totalpolcount'  => 0,
+                    'totalpoldraft'  => 0,
+                    'totalpolfailed' => 0,
+                    'totalpolapproved' => 0,
+                    'approachingrenewal' => 0,
+                ]
+            ));
+        }
 
         switch ($usercheck->role) {
             case in_array($usercheck->role, ['agent', 'subagent']):
@@ -310,6 +337,71 @@ class DashboardController extends Controller
     public function update(Request $request, string $id)
     {
         //
+    }
+
+    private function buildBrokerDashboard(User $user): array
+    {
+        $brokerId = $user->broker_id;
+
+        $policies = Cache::remember("elite_policies_{$brokerId}", 900, function () use ($brokerId) {
+            if (!$this->proxy->isConfigured()) return [];
+            $raw = $this->proxy->call(
+                'GET',
+                $this->proxy->getBaseUrl() . '/api/elite/broker/policies?broker_id=' . $brokerId
+            );
+            if (!$raw) return [];
+            $json = json_decode($raw, true);
+            return ($json['status'] ?? '') === 'success' ? ($json['data'] ?? []) : [];
+        });
+
+        $collection = collect($policies);
+        $today      = Carbon::today();
+        $in30       = Carbon::today()->addDays(30);
+
+        $activeCollection = $collection->filter(fn($p) => Carbon::parse($p['date_to'])->gte($today));
+
+        $totalPolicies  = $collection->count();
+        $activePolicies = $activeCollection->count();
+        $activePremium  = $activeCollection->sum(fn($p) => (float) ($p['actual_gross_premium_lc'] ?? 0));
+        $expiring30     = $collection->filter(
+            fn($p) => Carbon::parse($p['date_to'])->between($today, $in30)
+        )->count();
+        $openTickets    = BrokerTicket::where('user_id', $user->id)
+            ->whereNotIn('status', ['resolved', 'closed'])
+            ->count();
+
+        // Doughnut: portfolio by product type
+        $portfolioByType = $collection
+            ->groupBy('product_type')
+            ->map->count()
+            ->sortDesc()
+            ->all();
+
+        // Bar: expirations bucketed into the next 6 calendar months
+        $expiryByMonth = [];
+        for ($i = 0; $i < 6; $i++) {
+            $expiryByMonth[Carbon::today()->addMonths($i)->format('M Y')] = 0;
+        }
+        foreach ($policies as $p) {
+            $expDate = Carbon::parse($p['date_to']);
+            if ($expDate->gte($today) && $expDate->lte(Carbon::today()->addMonths(6))) {
+                $key = $expDate->format('M Y');
+                if (array_key_exists($key, $expiryByMonth)) {
+                    $expiryByMonth[$key]++;
+                }
+            }
+        }
+
+        return [
+            'brokerTotalPolicies'   => $totalPolicies,
+            'brokerActivePolicies'  => $activePolicies,
+            'brokerActivePremium'   => $activePremium,
+            'brokerExpiring30'      => $expiring30,
+            'brokerOpenTickets'     => $openTickets,
+            'brokerPortfolioByType' => $portfolioByType,
+            'brokerExpiryByMonth'   => $expiryByMonth,
+            'brokerApiAvailable'    => !empty($policies),
+        ];
     }
 
     /**

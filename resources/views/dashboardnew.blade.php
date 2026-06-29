@@ -28,7 +28,27 @@
             </div>
         </div>
 
-        {{-- ── Filters ── --}}
+        {{-- ── Broker quick-links (replaces filters for brokers) ── --}}
+        @if ($user->role === 'broker')
+        <div class="d-flex gap-3 mb-4 flex-wrap">
+            <a href="{{ route('broker.policies') }}" class="btn btn-sm px-4 py-2 fw-semibold"
+               style="background:#161616;color:#B18752;border-radius:10px;">
+                <i class="bx bx-file-blank me-1"></i>My Policies
+            </a>
+            <a href="{{ route('broker.tickets') }}" class="btn btn-sm px-4 py-2 fw-semibold"
+               style="background:#161616;color:#B18752;border-radius:10px;">
+                <i class="bx bx-support me-1"></i>My Tickets
+            </a>
+            @if (!($brokerApiAvailable ?? true))
+                <span class="badge bg-warning text-dark align-self-center ms-2">
+                    <i class="bx bx-wifi-off me-1"></i>Policy data unavailable
+                </span>
+            @endif
+        </div>
+        @endif
+
+        {{-- ── Filters (hidden for brokers) ── --}}
+        @if ($user->role !== 'broker')
         <div class="section-card">
             <div class="section-header">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"
@@ -153,8 +173,112 @@
                 </div>
             @endif
         </div>
+        @endif {{-- end @if role !== broker --}}
 
-        {{-- ── Stat cards ── --}}
+        {{-- ══════════════════════════════════════════
+             BROKER DASHBOARD
+        ══════════════════════════════════════════ --}}
+        @if ($user->role === 'broker')
+
+        {{-- Broker stat cards --}}
+        <div class="stats-grid" style="--cols:4">
+
+            <div class="stat-card" style="animation-delay:.05s">
+                <div class="stat-card-body">
+                    <div class="stat-icon stat-icon-blue">
+                        <i class="bx bx-file-blank" style="font-size:1.4rem;"></i>
+                    </div>
+                    <div class="stat-value stat-value-blue">{{ $brokerTotalPolicies ?? 0 }}</div>
+                </div>
+                <div class="stat-card-footer">Total Policies</div>
+            </div>
+
+            <a class="stat-card" href="{{ route('broker.policies', ['view' => 'active']) }}" style="animation-delay:.08s">
+                <div class="stat-card-body">
+                    <div class="stat-icon stat-icon-green">
+                        <i class="bx bx-check-shield" style="font-size:1.4rem;"></i>
+                    </div>
+                    <div class="stat-value stat-value-green">{{ $brokerActivePolicies ?? 0 }}</div>
+                </div>
+                <div class="stat-card-footer">Active Policies →</div>
+            </a>
+
+            <div class="stat-card" style="animation-delay:.11s">
+                <div class="stat-card-body">
+                    <div class="stat-icon stat-icon-purple">
+                        <i class="bx bx-money" style="font-size:1.4rem;"></i>
+                    </div>
+                    <div class="stat-value stat-value-purple" style="font-size:1.1rem;">
+                        ₦{{ number_format($brokerActivePremium ?? 0, 2) }}
+                    </div>
+                </div>
+                <div class="stat-card-footer">Active Premium (₦)</div>
+            </div>
+
+            <a class="stat-card" href="{{ route('broker.policies', ['view' => 'expiring']) }}" style="animation-delay:.17s">
+                <div class="stat-card-body">
+                    <div class="stat-icon stat-icon-amber">
+                        <i class="bx bx-time-five" style="font-size:1.4rem;"></i>
+                    </div>
+                    <div class="stat-value stat-value-amber">{{ $brokerExpiring30 ?? 0 }}</div>
+                </div>
+                <div class="stat-card-footer">Expiring in 30 Days →</div>
+            </a>
+
+            <a class="stat-card" href="{{ route('broker.tickets') }}" style="animation-delay:.20s">
+                <div class="stat-card-body">
+                    <div class="stat-icon stat-icon-red">
+                        <i class="bx bx-support" style="font-size:1.4rem;"></i>
+                    </div>
+                    <div class="stat-value stat-value-red">{{ $brokerOpenTickets ?? 0 }}</div>
+                </div>
+                <div class="stat-card-footer">Open Tickets →</div>
+            </a>
+
+        </div>
+
+        {{-- Broker charts --}}
+        @if (!empty($brokerPortfolioByType) || !empty($brokerExpiryByMonth))
+        <div class="row g-4 mt-1 mb-4">
+
+            {{-- Doughnut: Portfolio Mix --}}
+            <div class="col-md-5">
+                <div class="section-card h-100">
+                    <div class="section-header">
+                        <i class="bx bx-pie-chart-alt-2" style="font-size:1rem;color:#B18752;"></i>
+                        <h2>Portfolio Mix</h2>
+                    </div>
+                    <div class="section-body d-flex align-items-center justify-content-center" style="min-height:260px;">
+                        <canvas id="portfolioChart" style="max-height:260px;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Bar: Upcoming Expirations --}}
+            <div class="col-md-7">
+                <div class="section-card h-100">
+                    <div class="section-header">
+                        <i class="bx bx-bar-chart-alt-2" style="font-size:1rem;color:#B18752;"></i>
+                        <h2>Upcoming Expirations (6 months)</h2>
+                    </div>
+                    <div class="section-body" style="min-height:260px;">
+                        <canvas id="expiryChart" style="max-height:260px;width:100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        @else
+            <div class="alert alert-warning mt-3">
+                <i class="bx bx-wifi-off me-2"></i>
+                Portfolio data could not be loaded from Elite ERP. Please try again later or contact your administrator.
+            </div>
+        @endif
+
+        @endif {{-- end broker dashboard --}}
+
+        {{-- ── Stat cards (non-broker) ── --}}
+        @if ($user->role !== 'broker')
         <div class="stats-grid">
             <div class="stat-card" style="animation-delay:.05s">
 
@@ -271,8 +395,10 @@
             </a>
 
         </div>
+        @endif {{-- end @if role !== broker --}}
 
-        {{-- ── Tables ── --}}
+        {{-- ── Tables (non-broker only) ── --}}
+        @if ($user->role !== 'broker')
         @if ($isAdmin)
             <div class="tables-grid">
 
@@ -347,8 +473,94 @@
             </div>
 
         @endif
+        @endif {{-- end @if role !== broker --}}
 
     </div>
+
+    {{-- Chart.js (broker only) --}}
+    @if ($user->role === 'broker' && !empty($brokerPortfolioByType))
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+    (function () {
+        const gold  = '#B18752';
+        const dark  = '#161616';
+        const palette = [
+            '#B18752','#2563eb','#16a34a','#dc2626','#7c3aed',
+            '#0891b2','#d97706','#db2777','#65a30d','#9333ea'
+        ];
+
+        // ── Doughnut: Portfolio Mix ──
+        const portfolioData = @json(array_values($brokerPortfolioByType));
+        const portfolioLabels = @json(array_keys($brokerPortfolioByType));
+
+        new Chart(document.getElementById('portfolioChart'), {
+            type: 'doughnut',
+            data: {
+                labels: portfolioLabels,
+                datasets: [{
+                    data: portfolioData,
+                    backgroundColor: palette.slice(0, portfolioLabels.length),
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { padding: 16, font: { size: 12 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${ctx.parsed} polic${ctx.parsed === 1 ? 'y' : 'ies'}`
+                        }
+                    }
+                },
+                cutout: '62%',
+                maintainAspectRatio: true,
+            }
+        });
+
+        // ── Bar: Upcoming Expirations ──
+        const expiryLabels = @json(array_keys($brokerExpiryByMonth));
+        const expiryData   = @json(array_values($brokerExpiryByMonth));
+
+        new Chart(document.getElementById('expiryChart'), {
+            type: 'bar',
+            data: {
+                labels: expiryLabels,
+                datasets: [{
+                    label: 'Policies Expiring',
+                    data: expiryData,
+                    backgroundColor: expiryData.map((v, i) => i === 0 ? '#dc2626' : gold),
+                    borderRadius: 6,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.y} polic${ctx.parsed.y === 1 ? 'y' : 'ies'} expiring`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, precision: 0 },
+                        grid: { color: '#f0f0f0' }
+                    },
+                    x: { grid: { display: false } }
+                },
+                maintainAspectRatio: true,
+            }
+        });
+    })();
+    </script>
+    @endif
 
     <script>
         // Only initialise DataTable if the table exists (admin view)
