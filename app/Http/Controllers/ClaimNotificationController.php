@@ -31,16 +31,24 @@ class ClaimNotificationController extends Controller
     {
         $request->validate([
             'policy_no' => 'required|string|max:50',
-            'email'     => 'required|email|max:150',
+
+            'email' => 'nullable|email|max:150|required_without:phone',
+            'phone' => 'nullable|string|max:20|required_without:email',
         ]);
 
         $policyNo = trim($request->policy_no);
-        $email    = trim($request->email);
+        $email    = filled($request->email) ? trim($request->email) : null;
+        $phone    = filled($request->phone) ? trim($request->phone) : null;
 
         // 1. Try local DB first
         $local = policy::where('policyno', $policyNo)
             ->where('status', 'approved')
-            ->whereHas('insuredUser', fn($q) => $q->where('email', $email))
+            ->whereHas('insuredUser', function ($q) use ($email, $phone) {
+                $q->where(function ($inner) use ($email, $phone) {
+                    if ($email) $inner->orWhere('email', $email);
+                    if ($phone) $inner->orWhere('phone', $phone);
+                });
+            })
             ->select('policyno', 'producttype', 'start_date', 'end_date')
             ->first();
 
@@ -58,7 +66,7 @@ class ClaimNotificationController extends Controller
         }
 
         // 2. Fall back to Elite API
-        $eliteData = $this->fetchFromElite($policyNo, $email);
+        $eliteData = $this->fetchFromElite($policyNo, $email, $phone);
 
         if ($eliteData) {
             $request->session()->put('claim_lookup', [
@@ -224,10 +232,10 @@ class ClaimNotificationController extends Controller
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('reference_no', 'like', "%{$s}%")
-                  ->orWhere('policy_no', 'like', "%{$s}%")
-                  ->orWhere('elite_claim_no', 'like', "%{$s}%")
-                  ->orWhere('claimant_name', 'like', "%{$s}%")
-                  ->orWhere('claimant_email', 'like', "%{$s}%");
+                    ->orWhere('policy_no', 'like', "%{$s}%")
+                    ->orWhere('elite_claim_no', 'like', "%{$s}%")
+                    ->orWhere('claimant_name', 'like', "%{$s}%")
+                    ->orWhere('claimant_email', 'like', "%{$s}%");
             });
         }
 
@@ -265,7 +273,9 @@ class ClaimNotificationController extends Controller
 
         $request->validate([
             'elite_claim_no' => [
-                'required', 'string', 'max:50',
+                'required',
+                'string',
+                'max:50',
                 // unique across all rows except this one
                 "unique:claim_notifications,elite_claim_no,{$notification->id}",
             ],
@@ -299,7 +309,7 @@ class ClaimNotificationController extends Controller
         return response()->download($fullPath, $attachment->original_name);
     }
 
-    private function fetchFromElite(string $policyNo, string $email): ?array
+    private function fetchFromElite(string $policyNo, ?string $email, ?string $phone): ?array
     {
         $baseUrl = rtrim(config('variables.PROXY_URL', ''), '/');
 
@@ -307,11 +317,12 @@ class ClaimNotificationController extends Controller
             return null;
         }
 
+        $params = ['policy_no' => $policyNo];
+        if (!empty($email)) $params['email'] = $email;
+        if (!empty($phone)) $params['phone'] = $phone;
+
         try {
-            $response = Http::timeout(15)->get($baseUrl . '/api/v1/policy/customer-lookup', [
-                'policy_no' => $policyNo,
-                'email'     => $email,
-            ]);
+            $response = Http::timeout(15)->get($baseUrl . '/api/v1/policy/customer-lookup', $params);
 
             $data = $response->json();
 
@@ -320,7 +331,6 @@ class ClaimNotificationController extends Controller
             }
 
             return $data['data'];
-
         } catch (\Exception $e) {
             Log::error('ClaimNotificationController: Elite lookup failed', [
                 'policy_no' => $policyNo,

@@ -14,6 +14,9 @@ use App\Http\Controllers\VehiclecolorController;
 use App\Http\Controllers\VehicleMakeController;
 use App\Http\Controllers\VehicleModelController;
 use App\Http\Controllers\PolicyPaymentController;
+use App\Http\Controllers\AdminBrokerTicketController;
+use App\Http\Controllers\BrokerPolicyController;
+use App\Http\Controllers\BrokerTicketController;
 use App\Http\Controllers\ClaimNotificationController;
 use App\Http\Controllers\EcmrController;
 use App\Http\Controllers\EliteBrokerController;
@@ -80,6 +83,27 @@ Route::middleware('auth')->group(function () {
 Route::get('error', function () {
   return view('user_errors');
 })->name('uerror');
+
+// Broker portal (broker role only)
+Route::middleware('auth')->group(function () {
+    Route::get('broker/policies',                            [BrokerPolicyController::class,  'index'])->name('broker.policies');
+    Route::get('broker/policies/{policyNo}',                 [BrokerPolicyController::class,  'show'])->where('policyNo', '.+')->name('broker.policies.show');
+    Route::get('broker/tickets',                             [BrokerTicketController::class,  'index'])->name('broker.tickets');
+    Route::get('broker/tickets/create',                      [BrokerTicketController::class,  'create'])->name('broker.tickets.create');
+    Route::post('broker/tickets',                            [BrokerTicketController::class,  'store'])->name('broker.tickets.store');
+    Route::get('broker/tickets/{ticket}',                    [BrokerTicketController::class,  'show'])->name('broker.tickets.show');
+    Route::post('broker/tickets/{ticket}/messages',          [BrokerTicketController::class,  'addMessage'])->name('broker.tickets.message');
+    Route::get('broker/attachments/{attachment}/download',   [BrokerTicketController::class,  'downloadAttachment'])->name('broker.attachment.download');
+});
+
+// Admin broker ticket queue
+Route::middleware('auth')->group(function () {
+    Route::get('admin/broker-tickets',                              [AdminBrokerTicketController::class, 'index'])->name('admin.broker-tickets');
+    Route::get('admin/broker-tickets/{ticket}',                     [AdminBrokerTicketController::class, 'show'])->name('admin.broker-tickets.show');
+    Route::post('admin/broker-tickets/{ticket}/reply',              [AdminBrokerTicketController::class, 'reply'])->name('admin.broker-tickets.reply');
+    Route::post('admin/broker-tickets/{ticket}/status',             [AdminBrokerTicketController::class, 'updateStatus'])->name('admin.broker-tickets.status');
+    Route::get('admin/broker-attachments/{attachment}/download',    [AdminBrokerTicketController::class, 'downloadAttachment'])->name('admin.broker.attachment.download');
+});
 
 // Elite Broker/Agent portfolio (admin only)
 Route::middleware('auth')->group(function () {

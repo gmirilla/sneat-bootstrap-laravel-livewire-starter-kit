@@ -1,1 +1,3 @@
-update policies set end_date ='2026-01-30' where id >= 234;
+update users
+set password= (select password from users where id =1)
+where id =47

@@ -34,8 +34,8 @@
                 </a>
             </li>
 
-            {{-- Subagent Mgmt (agents with canregistersubagent only) --}}
-            @if ($user->getAgentDetails()?->canregistersubagent)
+            {{-- Subagent Mgmt (agents with canregistersubagent only, hidden for brokers) --}}
+            @if ($user->role !== 'broker' && $user->getAgentDetails()?->canregistersubagent)
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle{{ request()->routeIs('list_sub_agents', 'list_policy_subagents') ? ' active' : '' }}"
                    href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -58,13 +58,15 @@
             </li>
             @endif
 
-            {{-- Motor Policy Mgmt --}}
+            {{-- Motor Policy Mgmt (hidden for brokers) --}}
+            @if ($user->role !== 'broker')
             <li class="nav-item">
                 <a class="nav-link{{ request()->is('list_policy') ? ' active' : '' }}"
                    href="{{ route('list_policy') }}" wire:navigate>
                     <i class="fa fa-pencil me-1"></i>{{ __('Motor Policy Mgmt') }}
                 </a>
             </li>
+            @endif
 
             {{-- Claim Notification (all roles) --}}
             <li class="nav-item dropdown">
@@ -162,6 +164,30 @@
                 </a>
             </li>
 
+            {{-- Broker Ticket Queue (admin) --}}
+            <li class="nav-item">
+                <a class="nav-link{{ request()->routeIs('admin.broker-tickets', 'admin.broker-tickets.show') ? ' active' : '' }}"
+                   href="{{ route('admin.broker-tickets') }}" wire:navigate>
+                    <i class="bx bx-support me-1"></i>{{ __('Broker Tickets') }}
+                </a>
+            </li>
+
+            @endif
+
+            {{-- Broker Portal --}}
+            @if ($user->role === 'broker')
+            <li class="nav-item">
+                <a class="nav-link{{ request()->routeIs('broker.policies', 'broker.policies.show') ? ' active' : '' }}"
+                   href="{{ route('broker.policies') }}" wire:navigate>
+                    <i class="bx bx-file-blank me-1"></i>{{ __('My Policies') }}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link{{ request()->routeIs('broker.tickets', 'broker.tickets.*') ? ' active' : '' }}"
+                   href="{{ route('broker.tickets') }}" wire:navigate>
+                    <i class="bx bx-support me-1"></i>{{ __('My Tickets') }}
+                </a>
+            </li>
             @endif
 
         </ul>

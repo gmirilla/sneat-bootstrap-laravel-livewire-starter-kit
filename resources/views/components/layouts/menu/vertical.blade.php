@@ -44,7 +44,7 @@
                             </a>
                         </li>
 
-                        @if ($user->getAgentDetails()?->canregistersubagent)
+                        @if ($user->role !== 'broker' && $user->getAgentDetails()?->canregistersubagent)
                         <!-- Subagent Management -->
                         <li class="menu-item {{ request()->routeIs('list_sub_agents') || request()->routeIs('list_policy_subagents') ? 'active open' : '' }}">
                             <a href="javascript:void(0);" class="menu-link menu-toggle">
@@ -62,12 +62,14 @@
                         </li>
                         @endif
 
+                        @if ($user->role !== 'broker')
                         <!-- Policy Management -->
                         <li class="menu-item {{ request()->is('list_policy') ? 'active' : '' }}">
                             <a class="menu-link" href="{{ route('list_policy') }}" wire:navigate>
                                 <i class="menu-icon fa fa-pencil"></i>{{ __('Motor Policy Mgmt') }}
                             </a>
                         </li>
+                        @endif
 
                         <!-- Claim Notification (all roles) -->
                         <li class="menu-item {{ request()->routeIs('claim.notify.*') || request()->routeIs('claim.notifications') ? 'active open' : '' }}">
@@ -143,6 +145,26 @@
                         <li class="menu-item {{ request()->routeIs('elite.brokers', 'elite.broker.policies') ? 'active' : '' }}">
                             <a class="menu-link" href="{{ route('elite.brokers') }}" wire:navigate>
                                 <i class="menu-icon bx bx-buildings"></i>{{ __('Elite Brokers') }}
+                            </a>
+                        </li>
+                        <!-- Broker Ticket Queue (admin) -->
+                        <li class="menu-item {{ request()->routeIs('admin.broker-tickets', 'admin.broker-tickets.show') ? 'active' : '' }}">
+                            <a class="menu-link" href="{{ route('admin.broker-tickets') }}" wire:navigate>
+                                <i class="menu-icon bx bx-support"></i>{{ __('Broker Tickets') }}
+                            </a>
+                        </li>
+                        @endif
+
+                        @if ($user->role === 'broker')
+                        <!-- Broker Portal -->
+                        <li class="menu-item {{ request()->routeIs('broker.policies', 'broker.policies.show') ? 'active' : '' }}">
+                            <a class="menu-link" href="{{ route('broker.policies') }}" wire:navigate>
+                                <i class="menu-icon bx bx-file-blank"></i>{{ __('My Policies') }}
+                            </a>
+                        </li>
+                        <li class="menu-item {{ request()->routeIs('broker.tickets', 'broker.tickets.*') ? 'active' : '' }}">
+                            <a class="menu-link" href="{{ route('broker.tickets') }}" wire:navigate>
+                                <i class="menu-icon bx bx-support"></i>{{ __('My Tickets') }}
                             </a>
                         </li>
                         @endif

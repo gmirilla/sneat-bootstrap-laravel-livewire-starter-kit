@@ -1,15 +1,18 @@
 @php
     use App\Models\agentsdetailsModel;
-    $usercheck   = Auth::user();
-    $isAdmin     = in_array($usercheck->role, ['admin', 'superadmin']);
-    $agent       = agentsdetailsModel::where('uid', $usercheck->id)->first();
-    $creditleft  = null;
+    $usercheck       = Auth::user();
+    $isAdmin         = in_array($usercheck->role, ['admin', 'superadmin']);
+    $agent           = agentsdetailsModel::where('uid', $usercheck->id)->first();
+    $creditleft      = null;
     if (in_array($usercheck->role, ['agent', 'subagent']) && $agent) {
         $creditleft = $usercheck->role === 'agent'
             ? $agent->noallocated - $agent->noused
             : $agent->subcreditassigned - $agent->subcreditused;
     }
-    $pendingCount = $isAdmin ? \App\Models\User::where('account_status', 'pending')->count() : 0;
+    $pendingCount   = $isAdmin ? \App\Models\User::where('account_status', 'pending')->count() : 0;
+    $unreadBell     = $usercheck->role === 'broker'
+        ? $usercheck->unreadNotifications()->count()
+        : 0;
 @endphp
 
 <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme"
@@ -35,6 +38,22 @@
                     <a href="{{ route('admin.pending_accounts') }}" wire:navigate
                        class="btn btn-sm btn-warning text-dark fw-semibold">
                         <i class="bx bx-user-check me-1"></i>{{ $pendingCount }} Pending
+                    </a>
+                </li>
+            @endif
+
+            {{-- Broker notification bell --}}
+            @if ($usercheck->role === 'broker')
+                <li class="nav-item me-3">
+                    <a href="{{ route('broker.tickets') }}" class="nav-link position-relative p-1" wire:navigate
+                       title="{{ $unreadBell }} unread notification(s)">
+                        <i class="bx bx-bell" style="font-size:1.4rem;"></i>
+                        @if ($unreadBell > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                  style="font-size:.6rem;margin-top:4px;margin-left:-10px;">
+                                {{ $unreadBell > 99 ? '99+' : $unreadBell }}
+                            </span>
+                        @endif
                     </a>
                 </li>
             @endif

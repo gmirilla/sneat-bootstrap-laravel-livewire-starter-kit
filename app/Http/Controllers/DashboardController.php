@@ -70,7 +70,7 @@ class DashboardController extends Controller
                 #get No of Policies
                 $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')->where('agent_id', $usercheck->id)
                     ->groupBy('producttype')->get();
-                    //dd($policygroup);//
+                //dd($policygroup);//
 
 
                 #get policies approaching renewal
@@ -121,8 +121,8 @@ class DashboardController extends Controller
                 }
 
                 $policies = $query->get();
-             $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')
-            ->groupBy('producttype')->get();
+                $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')
+                    ->groupBy('producttype')->get();
 
                 #get No of Policies
 
@@ -147,23 +147,60 @@ class DashboardController extends Controller
                 $approachingrenewal = policy::whereBetween('end_date', [now(), now()->addDays(30)])->where('insured_id', $usercheck->id)
                     ->where('status', 'approved')
                     ->count();
+            case 'broker':
+                # code...
+                $creditleft = 0;
+                $creditassigned = 0;
+                $creditused = 0;
+
+                #get No of Policies
+                $policygroup = policy::select('producttype', DB::raw('count(*) as total'))->where('status', 'approved')->where('insured_id', $usercheck->id)
+                    ->groupBy('producttype')->get();
+
+
+                #get policies approaching renewal
+                $approachingrenewal = policy::whereBetween('end_date', [now(), now()->addDays(30)])->where('insured_id', $usercheck->id)
+                    ->where('status', 'approved')
+                    ->count();
                 break;
             default:
                 # code...
                 break;
         }
 
-        if ($usercheck->role == 'user') {
-                $totalpolcount = policy::where('insured_id', $usercheck->id)->count();
-                $totalpoldraft = policy::where('insured_id', $usercheck->id)->where('status', 'draft')->count();
-                $totalpolfailed = policy::where('insured_id', $usercheck->id)->where('status', 'failed')->count();
-                $totalpolapproved = policy::where('insured_id', $usercheck->id)->where('status', 'approved')->count();
-        }else{
-                    $totalpolcount = $policies->count();
-        $totalpoldraft = $policies->where('status', 'draft')->count();
-        $totalpolfailed = $policies->where('status', 'failed')->count();
-        $totalpolapproved = $policies->where('status', 'approved')->count();
+        if (in_array($usercheck->role, ['user', 'broker'])) {
 
+            $baseQuery = Policy::where('insured_id', $usercheck->id);
+
+            $totalpolcount     = $baseQuery->count();
+
+            $statusCounts = $baseQuery->select('status', DB::raw('COUNT(*) as total'))
+                ->whereIn('status', ['draft', 'failed', 'approved'])
+                ->groupBy('status')
+                ->pluck('total', 'status');
+
+            $totalpoldraft     = $statusCounts['draft'] ?? 0;
+            $totalpolfailed    = $statusCounts['failed'] ?? 0;
+            $totalpolapproved  = $statusCounts['approved'] ?? 0;
+        }
+        /**   if ($usercheck->role=='broker'){
+            
+            $totalpolcount = 0;
+            $totalpoldraft = 0;
+            $totalpolfailed = 0;
+            $totalpolapproved = 0;
+            $creditleft = 0;
+            $creditassigned = 0;
+            $policygroup = [];
+            $creditused = 0;
+            $approachingrenewal = 0;
+        }
+         **/
+        else {
+            $totalpolcount = $policies->count();
+            $totalpoldraft = $policies->where('status', 'draft')->count();
+            $totalpolfailed = $policies->where('status', 'failed')->count();
+            $totalpolapproved = $policies->where('status', 'approved')->count();
         }
 
 
@@ -204,8 +241,8 @@ class DashboardController extends Controller
         }
 
 
-        #End of report build
-        /* Debug renewal date
+            #End of report build
+            /* Debug renewal date
                     $renewals = policy::where('end_date', '<=', $approachingrenewaldate)
                         ->where('status', 'approved')
                         ->get(); 
@@ -214,8 +251,8 @@ class DashboardController extends Controller
 
                     
                     */
-                        //dd($totalpolcount)
-;
+            //dd($totalpolcount)
+        ;
         return view('dashboardnew', compact(
             'creditleft',
             'totalpolcount',
@@ -287,10 +324,10 @@ class DashboardController extends Controller
             ->where('policyno', '!=', '')
             ->where(function ($q) {
                 $q->whereNull('niip_status')
-                  ->orWhere('niip_status', '')
-                  ->orWhere('niip_status', 'Array')
-                  ->orWhere('niip_status', 'like', 'Error:%')
-                  ->orWhere('niip_status', 'retry_queued');
+                    ->orWhere('niip_status', '')
+                    ->orWhere('niip_status', 'Array')
+                    ->orWhere('niip_status', 'like', 'Error:%')
+                    ->orWhere('niip_status', 'retry_queued');
             })
             ->count();
 

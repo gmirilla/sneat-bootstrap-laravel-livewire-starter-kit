@@ -35,5 +35,6 @@ return [
 
   "PROXY_URL"    => env('PROXY_URL', ''),
   "PROXY_SECRET" => env('PROXY_SECRET', ''),
-  "CLAIMS_EMAIL" => env('CLAIMS_EMAIL', 'claims@salamtakafulinsurance.com'),
+  "CLAIMS_EMAIL"     => env('CLAIMS_EMAIL',     'claims@salamtakafulinsurance.com'),
+  "TECHNICAL_EMAIL"  => env('TECHNICAL_EMAIL',  'technical@salamtakafulinsurance.com'),
 ];
