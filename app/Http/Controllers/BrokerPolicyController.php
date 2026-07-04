@@ -58,18 +58,27 @@ class BrokerPolicyController extends Controller
 
     private function fetchPolicies(int $brokerId): array
     {
-        return Cache::remember("elite_policies_{$brokerId}", 900, function () use ($brokerId) {
-            if (!$this->proxy->isConfigured()) return [];
+        $cacheKey = "elite_policies_{$brokerId}";
 
-            $raw = $this->proxy->call(
-                'GET',
-                $this->proxy->getBaseUrl() . '/api/elite/broker/policies?broker_id=' . $brokerId
-            );
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) return $cached;
 
-            if (!$raw) return [];
+        if (!$this->proxy->isConfigured()) return [];
 
-            $json = json_decode($raw, true);
-            return ($json['status'] ?? '') === 'success' ? ($json['data'] ?? []) : [];
-        });
+        $raw = $this->proxy->call(
+            'GET',
+            $this->proxy->getBaseUrl() . '/api/elite/broker/policies?broker_id=' . $brokerId
+        );
+
+        if (!$raw) return [];
+
+        $json = json_decode($raw, true);
+        $data = ($json['status'] ?? '') === 'success' ? ($json['data'] ?? []) : [];
+
+        if (!empty($data)) {
+            Cache::put($cacheKey, $data, 900);
+        }
+
+        return $data;
     }
 }

@@ -167,6 +167,11 @@
                                 <i class="menu-icon bx bx-support"></i>{{ __('My Tickets') }}
                             </a>
                         </li>
+                        <li class="menu-item {{ request()->routeIs('broker.claims', 'broker.claims.*') ? 'active' : '' }}">
+                            <a class="menu-link" href="{{ route('broker.claims') }}" wire:navigate>
+                                <i class="menu-icon bx bx-bell-plus"></i>{{ __('My Claims') }}
+                            </a>
+                        </li>
                         @endif
 
                         <!-- Settings -->

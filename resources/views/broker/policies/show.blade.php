@@ -11,10 +11,16 @@
         <h4 class="fw-bold mb-0">{{ $policy['policy_no'] }}</h4>
         <p class="text-muted small mb-0">{{ $policy['product_type'] }}</p>
     </div>
-    <a href="{{ route('broker.tickets.create', ['policy_no' => $policy['policy_no']]) }}"
-       class="btn btn-sm" style="background:#161616;color:#B18752;font-weight:700;">
-        <i class="bx bx-plus me-1"></i>Open Ticket
-    </a>
+    <div class="d-flex gap-2">
+        <a href="{{ route('broker.claims.create', ['policy_no' => $policy['policy_no']]) }}"
+           class="btn btn-sm btn-outline-danger">
+            <i class="bx bx-bell-plus me-1"></i>Submit Claim
+        </a>
+        <a href="{{ route('broker.tickets.create', ['policy_no' => $policy['policy_no']]) }}"
+           class="btn btn-sm" style="background:#161616;color:#B18752;font-weight:700;">
+            <i class="bx bx-plus me-1"></i>Open Ticket
+        </a>
+    </div>
 </div>
 
 {{-- Policy summary card --}}

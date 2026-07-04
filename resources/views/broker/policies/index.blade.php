@@ -112,6 +112,10 @@
                                class="btn btn-sm flex-grow-1" style="background:#161616;color:#B18752;font-weight:600;">
                                 <i class="bx bx-file me-1"></i>View & Tickets
                             </a>
+                            <a href="{{ route('broker.claims.create', ['policy_no' => $p['policy_no']]) }}"
+                               class="btn btn-sm btn-outline-danger" title="Submit claim notification">
+                                <i class="bx bx-bell-plus"></i>
+                            </a>
                             <a href="{{ route('broker.tickets.create', ['policy_no' => $p['policy_no']]) }}"
                                class="btn btn-sm btn-outline-secondary" title="Open ticket for this policy">
                                 <i class="bx bx-message-add"></i>

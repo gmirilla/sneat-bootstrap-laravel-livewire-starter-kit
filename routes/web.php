@@ -15,6 +15,7 @@ use App\Http\Controllers\VehicleMakeController;
 use App\Http\Controllers\VehicleModelController;
 use App\Http\Controllers\PolicyPaymentController;
 use App\Http\Controllers\AdminBrokerTicketController;
+use App\Http\Controllers\BrokerClaimNotificationController;
 use App\Http\Controllers\BrokerPolicyController;
 use App\Http\Controllers\BrokerTicketController;
 use App\Http\Controllers\ClaimNotificationController;
@@ -93,7 +94,12 @@ Route::middleware('auth')->group(function () {
     Route::post('broker/tickets',                            [BrokerTicketController::class,  'store'])->name('broker.tickets.store');
     Route::get('broker/tickets/{ticket}',                    [BrokerTicketController::class,  'show'])->name('broker.tickets.show');
     Route::post('broker/tickets/{ticket}/messages',          [BrokerTicketController::class,  'addMessage'])->name('broker.tickets.message');
-    Route::get('broker/attachments/{attachment}/download',   [BrokerTicketController::class,  'downloadAttachment'])->name('broker.attachment.download');
+    Route::get('broker/attachments/{attachment}/download',   [BrokerTicketController::class,            'downloadAttachment'])->name('broker.attachment.download');
+    Route::get('broker/claims',                              [BrokerClaimNotificationController::class,  'index'])->name('broker.claims');
+    Route::get('broker/claims/create',                       [BrokerClaimNotificationController::class,  'create'])->name('broker.claims.create');
+    Route::post('broker/claims',                             [BrokerClaimNotificationController::class,  'store'])->name('broker.claims.store');
+    Route::get('broker/claims/{referenceNo}/confirmation',   [BrokerClaimNotificationController::class,  'confirmation'])->name('broker.claims.confirmation');
+    Route::get('broker/claim-attachments/{attachment}/download', [BrokerClaimNotificationController::class, 'downloadAttachment'])->name('broker.claim.attachment.download');
 });
 
 // Admin broker ticket queue

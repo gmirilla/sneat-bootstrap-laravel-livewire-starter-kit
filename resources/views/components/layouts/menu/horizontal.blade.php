@@ -188,6 +188,12 @@
                     <i class="bx bx-support me-1"></i>{{ __('My Tickets') }}
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link{{ request()->routeIs('broker.claims', 'broker.claims.*') ? ' active' : '' }}"
+                   href="{{ route('broker.claims') }}" wire:navigate>
+                    <i class="bx bx-bell-plus me-1"></i>{{ __('My Claims') }}
+                </a>
+            </li>
             @endif
 
         </ul>

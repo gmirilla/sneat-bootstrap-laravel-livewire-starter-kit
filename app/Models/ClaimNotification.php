@@ -16,7 +16,10 @@ class ClaimNotification extends Model
         'claimant_name',
         'claimant_email',
         'claimant_phone',
+        'is_third_party',
         'incident_date',
+        'incident_time',
+        'incident_location',
         'description',
         'user_id',
         'status',
@@ -24,9 +27,10 @@ class ClaimNotification extends Model
     ];
 
     protected $casts = [
-        'policy_start'  => 'date',
-        'policy_end'    => 'date',
-        'incident_date' => 'date',
+        'policy_start'   => 'date',
+        'policy_end'     => 'date',
+        'incident_date'  => 'date',
+        'is_third_party' => 'boolean',
     ];
 
     public function user()

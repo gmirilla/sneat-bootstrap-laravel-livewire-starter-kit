@@ -28,7 +28,8 @@ class DashboardController extends Controller
         $user = Auth::user();
         $products = policy::select('producttype')->distinct()->pluck('producttype');
         $agentslist = agentsdetailsModel::all();
-        $query = Policy::query();
+        $query    = Policy::query();
+        $policies = collect();   // default; overwritten by agent/admin switch cases
         $searchParams = $request->only(['policytype', 'status', 'datefrom', 'dateto', 'agentcode']);
 
         // Broker gets a completely different dashboard driven by the Elite API
@@ -209,21 +210,7 @@ class DashboardController extends Controller
             $totalpoldraft     = $statusCounts['draft'] ?? 0;
             $totalpolfailed    = $statusCounts['failed'] ?? 0;
             $totalpolapproved  = $statusCounts['approved'] ?? 0;
-        }
-        /**   if ($usercheck->role=='broker'){
-            
-            $totalpolcount = 0;
-            $totalpoldraft = 0;
-            $totalpolfailed = 0;
-            $totalpolapproved = 0;
-            $creditleft = 0;
-            $creditassigned = 0;
-            $policygroup = [];
-            $creditused = 0;
-            $approachingrenewal = 0;
-        }
-         **/
-        else {
+        } else {
             $totalpolcount = $policies->count();
             $totalpoldraft = $policies->where('status', 'draft')->count();
             $totalpolfailed = $policies->where('status', 'failed')->count();
@@ -343,16 +330,25 @@ class DashboardController extends Controller
     {
         $brokerId = $user->broker_id;
 
-        $policies = Cache::remember("elite_policies_{$brokerId}", 900, function () use ($brokerId) {
-            if (!$this->proxy->isConfigured()) return [];
-            $raw = $this->proxy->call(
-                'GET',
-                $this->proxy->getBaseUrl() . '/api/elite/broker/policies?broker_id=' . $brokerId
-            );
-            if (!$raw) return [];
-            $json = json_decode($raw, true);
-            return ($json['status'] ?? '') === 'success' ? ($json['data'] ?? []) : [];
-        });
+        $cacheKey = "elite_policies_{$brokerId}";
+        $policies = Cache::get($cacheKey);
+
+        if ($policies === null) {
+            $policies = [];
+            if ($this->proxy->isConfigured()) {
+                $raw = $this->proxy->call(
+                    'GET',
+                    $this->proxy->getBaseUrl() . '/api/elite/broker/policies?broker_id=' . $brokerId
+                );
+                if ($raw) {
+                    $json     = json_decode($raw, true);
+                    $policies = ($json['status'] ?? '') === 'success' ? ($json['data'] ?? []) : [];
+                }
+            }
+            if (!empty($policies)) {
+                Cache::put($cacheKey, $policies, 900);
+            }
+        }
 
         $collection = collect($policies);
         $today      = Carbon::today();
