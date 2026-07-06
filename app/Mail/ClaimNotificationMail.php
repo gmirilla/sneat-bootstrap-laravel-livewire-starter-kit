@@ -21,8 +21,10 @@ class ClaimNotificationMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $replyTo = array_filter([$this->notification->claimant_email]);
+
         return new Envelope(
-            replyTo: [$this->notification->claimant_email],
+            replyTo: array_values($replyTo),
             subject: 'Claim Notification — Ref: ' . $this->notification->reference_no
                    . ' [Policy: ' . $this->notification->policy_no . ']',
         );

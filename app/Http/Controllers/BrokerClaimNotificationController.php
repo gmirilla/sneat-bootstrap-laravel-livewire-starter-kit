@@ -100,8 +100,10 @@ class BrokerClaimNotificationController extends Controller
             }
         }
 
-        Mail::to(config('variables.CLAIMS_EMAIL'))
-            ->send(new ClaimNotificationMail($notification, false, false));
+        $claimsEmail = config('variables.CLAIMS_EMAIL') ?: null;
+        if ($claimsEmail) {
+            Mail::to($claimsEmail)->send(new ClaimNotificationMail($notification, false, false));
+        }
 
         return redirect()->route('broker.claims.confirmation', $notification->reference_no)
             ->with('claim_submitted', true);

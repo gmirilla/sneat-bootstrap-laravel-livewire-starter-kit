@@ -182,12 +182,17 @@ class ClaimNotificationController extends Controller
             }
         }
 
-        Mail::to(config('variables.CLAIMS_EMAIL'))
-            ->send(new ClaimNotificationMail($notification, $accountCreated, $accountPending));
+        $claimsEmail = config('variables.CLAIMS_EMAIL') ?: null;
+        if ($claimsEmail) {
+            Mail::to($claimsEmail)
+                ->send(new ClaimNotificationMail($notification, $accountCreated, $accountPending));
+        }
 
         if ($accountCreated) {
             Mail::to($request->claimant_email)->send(new ClaimAccountCreatedMail($newUser, $reference));
-            Mail::to(config('variables.CLAIMS_EMAIL'))->send(new ClaimNotificationAdminMail($newUser, $notification));
+            if ($claimsEmail) {
+                Mail::to($claimsEmail)->send(new ClaimNotificationAdminMail($newUser, $notification));
+            }
         }
 
         $request->session()->forget('claim_lookup');
