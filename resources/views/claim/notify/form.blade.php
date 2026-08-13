@@ -47,19 +47,26 @@
 
                 <h6 class="fw-semibold text-muted text-uppercase mb-3" style="font-size:.75rem;letter-spacing:.05em">Your Details</h6>
 
+                @if (!empty($lookup['claimant_name']) || !empty($lookup['claimant_email']) || !empty($lookup['claimant_phone']))
+                    <div class="alert alert-light border small py-2 mb-3">
+                        <i class="bx bx-info-circle me-1 text-muted"></i>
+                        Fields have been pre-filled from your policy record. Please review and correct if needed.
+                    </div>
+                @endif
+
                 <div class="row g-3 mb-3">
                     <div class="col-sm-6">
                         <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
                         <input type="text" name="claimant_name"
                                class="form-control @error('claimant_name') is-invalid @enderror"
-                               value="{{ old('claimant_name') }}" required>
+                               value="{{ old('claimant_name', $lookup['claimant_name'] ?? '') }}" required>
                         @error('claimant_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-sm-6">
                         <label class="form-label fw-semibold">Phone Number <span class="text-danger">*</span></label>
                         <input type="tel" name="claimant_phone"
                                class="form-control @error('claimant_phone') is-invalid @enderror"
-                               value="{{ old('claimant_phone') }}" required>
+                               value="{{ old('claimant_phone', $lookup['claimant_phone'] ?? '') }}" required>
                         @error('claimant_phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -68,7 +75,7 @@
                     <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
                     <input type="email" name="claimant_email"
                            class="form-control @error('claimant_email') is-invalid @enderror"
-                           value="{{ old('claimant_email') }}" required>
+                           value="{{ old('claimant_email', $lookup['claimant_email'] ?? '') }}" required>
                     @error('claimant_email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     <div class="form-text">
                         The claims team will use this address to contact you. A MySalam account will be created if you don't already have one.

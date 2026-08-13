@@ -49,17 +49,22 @@ class ClaimNotificationController extends Controller
                     if ($phone) $inner->orWhere('telno', $phone);
                 });
             })
-            ->select('policyno', 'producttype', 'start_date', 'end_date')
+            ->with('insuredUser:id,name,email,telno')
+            ->select('policyno', 'producttype', 'start_date', 'end_date', 'insured_id')
             ->first();
 
         if ($local) {
+            $insured = $local->insuredUser;
             $request->session()->put('claim_lookup', [
-                'policy_no'   => $local->policyno,
-                'policy_type' => $local->producttype,
-                'start_date'  => $local->start_date,
-                'end_date'    => $local->end_date,
-                'source'      => 'local',
-                'expires_at'  => now()->addMinutes(30)->timestamp,
+                'policy_no'      => $local->policyno,
+                'policy_type'    => $local->producttype,
+                'start_date'     => $local->start_date,
+                'end_date'       => $local->end_date,
+                'source'         => 'local',
+                'expires_at'     => now()->addMinutes(30)->timestamp,
+                'claimant_name'  => $insured?->name,
+                'claimant_email' => $insured?->email,
+                'claimant_phone' => $insured?->telno,
             ]);
 
             return redirect()->route('claim.notify.form');
@@ -70,12 +75,15 @@ class ClaimNotificationController extends Controller
 
         if ($eliteData) {
             $request->session()->put('claim_lookup', [
-                'policy_no'   => $eliteData['policy_no'],
-                'policy_type' => $eliteData['policy_type'],
-                'start_date'  => $eliteData['start_date'],
-                'end_date'    => $eliteData['end_date'],
-                'source'      => 'remote',
-                'expires_at'  => now()->addMinutes(30)->timestamp,
+                'policy_no'      => $eliteData['policy_no'],
+                'policy_type'    => $eliteData['policy_type'],
+                'start_date'     => $eliteData['start_date'],
+                'end_date'       => $eliteData['end_date'],
+                'source'         => 'remote',
+                'expires_at'     => now()->addMinutes(30)->timestamp,
+                'claimant_name'  => $eliteData['name']  ?? null,
+                'claimant_email' => $eliteData['email'] ?? null,
+                'claimant_phone' => $eliteData['phone'] ?? null,
             ]);
 
             return redirect()->route('claim.notify.form');
