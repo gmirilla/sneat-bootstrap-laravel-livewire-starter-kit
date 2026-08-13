@@ -53,4 +53,34 @@ class ProxyClient
 
         return ($output !== null && $output !== '') ? $output : null;
     }
+
+    public function postJson(string $url, array $data): ?string
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            try {
+                $response = Http::withHeaders([
+                    'X-Proxy-Secret' => $this->secret,
+                    'Accept'         => 'application/json',
+                ])->timeout(30)->post($url, $data);
+
+                $body = $response->body();
+                return ($body !== '') ? $body : null;
+            } catch (\Exception $e) {
+                Log::error('ProxyClient postJson Http error', ['url' => $url, 'error' => $e->getMessage()]);
+                return null;
+            }
+        }
+
+        $escapedUrl    = escapeshellarg($url);
+        $escapedSecret = escapeshellarg('X-Proxy-Secret: ' . $this->secret);
+        $escapedBody   = escapeshellarg(json_encode($data));
+        $cmd           = 'curl -s --max-time 30 -X POST ' . $escapedUrl
+                       . ' -H ' . $escapedSecret
+                       . ' -H ' . escapeshellarg('Accept: application/json')
+                       . ' -H ' . escapeshellarg('Content-Type: application/json')
+                       . ' -d ' . $escapedBody;
+        $output        = shell_exec($cmd);
+
+        return ($output !== null && $output !== '') ? $output : null;
+    }
 }
