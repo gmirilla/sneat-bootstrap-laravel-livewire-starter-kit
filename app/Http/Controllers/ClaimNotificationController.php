@@ -46,7 +46,7 @@ class ClaimNotificationController extends Controller
             ->whereHas('insuredUser', function ($q) use ($email, $phone) {
                 $q->where(function ($inner) use ($email, $phone) {
                     if ($email) $inner->orWhere('email', $email);
-                    if ($phone) $inner->orWhere('phone', $phone);
+                    if ($phone) $inner->orWhere('telno', $phone);
                 });
             })
             ->select('policyno', 'producttype', 'start_date', 'end_date')
