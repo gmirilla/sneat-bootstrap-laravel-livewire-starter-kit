@@ -269,7 +269,7 @@
         <div class="row g-4">
 
             {{-- Manage Policies --}}
-            <div class="col-md-4">
+            <div class="col-md-6 col-lg-3">
                 <div class="card wlc-feature-card">
                     <div class="card-body p-4">
                         <div class="wlc-icon-wrap" style="background:#161616;">
@@ -296,7 +296,7 @@
             </div>
 
             {{-- Report a Claim — highlighted card --}}
-            <div class="col-md-4">
+            <div class="col-md-6 col-lg-3">
                 <div class="card wlc-feature-card dark">
                     <div class="card-body p-4">
                         <div class="wlc-icon-wrap" style="background:#B18752;">
@@ -316,7 +316,7 @@
             </div>
 
             {{-- Policy Certificate --}}
-            <div class="col-md-4">
+            <div class="col-md-6 col-lg-3">
                 <div class="card wlc-feature-card">
                     <div class="card-body p-4">
                         <div class="wlc-icon-wrap" style="background:#161616;">
@@ -331,6 +331,26 @@
                                 class="btn btn-sm" style="background:#161616;color:#B18752;font-weight:700;">
                             Get Certificate <i class="bx bx-chevron-right ms-1"></i>
                         </button>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Brown Card --}}
+            <div class="col-md-6 col-lg-3">
+                <div class="card wlc-feature-card">
+                    <div class="card-body p-4">
+                        <div class="wlc-icon-wrap" style="background:#161616;">
+                            <i class="bx bx-id-card" style="color:#B18752;"></i>
+                        </div>
+                        <h5 style="font-weight:700;color:#161616;margin-bottom:.5rem;">Brown Card</h5>
+                        <p style="color:#6b7280;font-size:.9rem;line-height:1.65;margin-bottom:1.5rem;">
+                            Retrieve your ECOWAS Brown Card certificate using your policy or
+                            registration number. No login required.
+                        </p>
+                        <a href="{{ route('browncard.lookup') }}"
+                           class="btn btn-sm" style="background:#161616;color:#B18752;font-weight:700;">
+                            Get Brown Card <i class="bx bx-chevron-right ms-1"></i>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -352,7 +372,7 @@
         <div class="row g-4 justify-content-center">
 
             {{-- Policy Certificate Reprint --}}
-            <div class="col-md-6 col-lg-5" id="policyvalidation">
+            <div class="col-md-6 col-lg-4" id="policyvalidation">
                 <div class="card wlc-tool-card">
                     <div class="card-body p-4 p-md-5">
                         <div class="d-flex align-items-center gap-3 mb-4">
@@ -378,7 +398,7 @@
             </div>
 
             {{-- Claim Status Check --}}
-            <div class="col-md-6 col-lg-5" id="claimcheck">
+            <div class="col-md-6 col-lg-4" id="claimcheck">
                 <div class="card wlc-tool-card">
                     <div class="card-body p-4 p-md-5">
                         <div class="d-flex align-items-center gap-3 mb-4">
@@ -403,6 +423,26 @@
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Brown Card Lookup --}}
+            <div class="col-md-6 col-lg-4" id="browncard">
+                <div class="card wlc-tool-card">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="d-flex align-items-center gap-3 mb-4">
+                            <div class="wlc-icon-wrap mb-0" style="background:#161616;">
+                                <i class="bx bx-id-card" style="color:#B18752;"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0" style="font-weight:700;color:#161616;">Retrieve Brown Card</h5>
+                                <p class="mb-0 small" style="color:#6b7280;">By policy or registration number</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('browncard.lookup') }}" class="btn wlc-tool-btn wlc-btn-gold w-100">
+                            <i class="bx bx-download me-1"></i>Get Brown Card
+                        </a>
                     </div>
                 </div>
             </div>
