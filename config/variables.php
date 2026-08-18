@@ -32,6 +32,8 @@ return [
   "NIIP_URL" => env('NIIP_URL'),
   "NIIP_API_KEY" => env('NIIP_API_KEY'), // niip token
   "NIID_URL" => env('NIID_URL'),
+  "NIID_USERNAME" => env('NIID_USERNAME'),
+  "NIID_PASSWORD" => env('NIID_PASSWORD'),
 
   "PROXY_URL"    => env('PROXY_URL', ''),
   "PROXY_SECRET" => env('PROXY_SECRET', ''),
