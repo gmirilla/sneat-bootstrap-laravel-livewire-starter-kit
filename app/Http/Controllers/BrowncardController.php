@@ -179,20 +179,34 @@ class BrowncardController extends Controller
 
     private function fetchLiveByRegNo(string $regNo): ?array
     {
-        $baseUrl = config('variables.NIIP_URL');
-        $apiKey  = config('variables.NIIP_API_KEY');
+        $configuredUrl = config('variables.NIIP_URL');
+        $apiKey        = config('variables.NIIP_API_KEY');
 
-        if (empty($baseUrl) || empty($apiKey)) {
+        if (empty($configuredUrl) || empty($apiKey)) {
             return null;
         }
 
+        // NIIP_URL is configured as the full "generate policy" endpoint (e.g.
+        // https://niip.ng/api/getPolicyByInsuranceCompany), not a bare base URL —
+        // derive scheme+host so this hits the correct NIIP host regardless of that path.
+        $parsed = parse_url($configuredUrl);
+        if (empty($parsed['scheme']) || empty($parsed['host'])) {
+            return null;
+        }
+        $baseUrl = $parsed['scheme'] . '://' . $parsed['host'];
+
         try {
-            $response = Http::timeout(15)->get(rtrim($baseUrl, '/') . '/api/getActiveInsurancePolicy', [
+            $response = Http::timeout(15)->get($baseUrl . '/api/getActiveInsurancePolicy', [
                 'apiKey' => $apiKey,
                 'regNo'  => $regNo,
             ]);
 
-            return $response->successful() ? $response->json() : null;
+            // NIIP encodes success/failure in the body's isSuccess field, not purely via
+            // HTTP status — error responses (e.g. "Registration Number is invalid") come
+            // back as HTTP 400 with a valid JSON body, so parse regardless of status code.
+            $data = $response->json();
+
+            return is_array($data) ? $data : null;
         } catch (\Exception $e) {
             Log::error('BrowncardController: NIIP live lookup failed', ['regNo' => $regNo, 'error' => $e->getMessage()]);
             return null;
