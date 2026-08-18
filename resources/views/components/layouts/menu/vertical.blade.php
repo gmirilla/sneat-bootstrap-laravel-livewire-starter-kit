@@ -126,6 +126,13 @@
                                 <i class="menu-icon fa fa-user"></i>{{ __('User Mgmt') }}
                             </a>
                         </li>
+
+                        <!-- Queue Jobs Monitor -->
+                        <li class="menu-item {{ request()->routeIs('admin.jobs') ? 'active' : '' }}">
+                            <a class="menu-link" href="{{ route('admin.jobs') }}" wire:navigate>
+                                <i class="menu-icon bx bx-cog"></i>{{ __('Queue Jobs') }}
+                            </a>
+                        </li>
                         @endif
 
                         @if ($user->role === 'superadmin')

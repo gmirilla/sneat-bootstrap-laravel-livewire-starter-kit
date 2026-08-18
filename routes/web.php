@@ -15,7 +15,9 @@ use App\Http\Controllers\VehicleMakeController;
 use App\Http\Controllers\VehicleModelController;
 use App\Http\Controllers\PolicyPaymentController;
 use App\Http\Controllers\AdminBrokerTicketController;
+use App\Http\Controllers\AdminJobController;
 use App\Http\Controllers\BrokerClaimNotificationController;
+use App\Http\Controllers\BrowncardController;
 use App\Http\Controllers\BrokerPolicyController;
 use App\Http\Controllers\BrokerTicketController;
 use App\Http\Controllers\ClaimNotificationController;
@@ -111,6 +113,13 @@ Route::middleware('auth')->group(function () {
     Route::get('admin/broker-attachments/{attachment}/download',    [AdminBrokerTicketController::class, 'downloadAttachment'])->name('admin.broker.attachment.download');
 });
 
+// Admin — queue jobs monitor
+Route::middleware('auth')->group(function () {
+    Route::get('admin/jobs',                          [AdminJobController::class, 'index'])->name('admin.jobs');
+    Route::post('admin/jobs/failed/{uuid}/retry',      [AdminJobController::class, 'retry'])->name('admin.jobs.retry');
+    Route::post('admin/jobs/failed/{uuid}/delete',     [AdminJobController::class, 'destroy'])->name('admin.jobs.delete');
+});
+
 // Elite Broker/Agent portfolio (admin only)
 Route::middleware('auth')->group(function () {
     Route::get('elite/brokers',                    [EliteBrokerController::class, 'index'])->name('elite.brokers');
@@ -166,6 +175,11 @@ Route::middleware('auth')->group(function () {
     Route::get('claim/notify/form',         [ClaimNotificationController::class, 'showForm'])->name('claim.notify.form');
     Route::post('claim/notify/submit',      [ClaimNotificationController::class, 'submit'])->name('claim.notify.submit')->middleware('throttle:3,1');
     Route::get('claim/notify/confirmation', [ClaimNotificationController::class, 'showConfirmation'])->name('claim.notify.confirmation');
+
+    // Brown card lookup (public — no auth required)
+    Route::get('browncard',         [BrowncardController::class, 'showLookup'])->name('browncard.lookup');
+    Route::post('browncard/lookup', [BrowncardController::class, 'lookup'])->name('browncard.lookup.post')->middleware('throttle:5,1');
+    Route::get('browncard/download', [BrowncardController::class, 'download'])->name('browncard.download')->middleware('throttle:10,1');
 
     // Claim notification list (auth required)
     Route::middleware('auth')->group(function () {

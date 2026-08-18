@@ -22,4 +22,5 @@ yarn-error.log
 /.zed
 .env
 .sql
+.sqlite
 elite-broker-apis.md
