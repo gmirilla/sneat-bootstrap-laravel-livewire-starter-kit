@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AgentsdetailsModelController extends Controller
 {
@@ -42,6 +43,13 @@ class AgentsdetailsModelController extends Controller
 
     public function subagentsprofile(User $sid)
     {
+        $actor = Auth::user();
+        abort_unless(
+            in_array($actor->role, ['admin', 'superadmin'], true)
+                || ($sid->role === 'subagent' && (int) $sid->parentid === (int) $actor->id),
+            403
+        );
+
         $user  = $sid;
         $agent = agentsdetailsModel::where('uid', $sid->id)->first();
 
@@ -52,29 +60,41 @@ class AgentsdetailsModelController extends Controller
 
     public function agentupdate(Request $request)
     {
-        try {
-            $agent = agentsdetailsModel::where('uid', $request->userid)->first();
-            if (!$agent) {
-                $agent      = new agentsdetailsModel();
-                $agent->uid = $request->userid;
-            }
+        $data = $request->validate([
+            'userid'               => 'required|integer|exists:users,id',
+            'private_allocated'    => 'required|integer|min:0|max:1000000',
+            'commercial_allocated' => 'required|integer|min:0|max:1000000',
+            'status'               => 'required|in:activated,deactivated',
+            'authtoken'            => 'nullable|string|max:255',
+        ]);
 
-            $agent->private_allocated    = (int) $request->private_allocated;
-            $agent->commercial_allocated = (int) $request->commercial_allocated;
-            // Keep total in sync
-            $agent->noallocated = $agent->private_allocated + $agent->commercial_allocated;
-
-            $agent->status              = $request->status;
-            $agent->auth_token          = $request->authtoken;
-            $agent->canregistersubagent = $request->has('agentregistersubagentchk');
-            $agent->allowcredit         = $request->has('agentcreditchk');
-
-            $agent->save();
-        } catch (\Throwable $th) {
-            //
+        $agent = agentsdetailsModel::where('uid', $data['userid'])->first();
+        if (!$agent) {
+            $agent      = new agentsdetailsModel();
+            $agent->uid = $data['userid'];
         }
 
-        return redirect()->route('list_agents');
+        $before = $agent->exists ? $agent->only(['private_allocated', 'commercial_allocated', 'status', 'allowcredit']) : [];
+
+        $agent->private_allocated    = (int) $data['private_allocated'];
+        $agent->commercial_allocated = (int) $data['commercial_allocated'];
+        $agent->syncTotals();
+
+        $agent->status              = $data['status'];
+        $agent->auth_token          = $data['authtoken'] ?? null;
+        $agent->canregistersubagent = $request->has('agentregistersubagentchk');
+        $agent->allowcredit         = $request->has('agentcreditchk');
+
+        $agent->save();
+
+        Log::info('Agent credit/config updated', [
+            'actor_id' => Auth::id(),
+            'agent_uid' => $agent->uid,
+            'before'   => $before,
+            'after'    => $agent->only(['private_allocated', 'commercial_allocated', 'status', 'allowcredit']),
+        ]);
+
+        return redirect()->route('list_agents')->with('success', 'Agent updated.');
     }
 
     // ── Sub-agent list ─────────────────────────────────────────────────────
@@ -99,6 +119,9 @@ class AgentsdetailsModelController extends Controller
 
     public function registerSubAgent(User $agent, Request $request)
     {
+        // The route parameter is attacker-controlled: only the logged-in agent may register under themselves.
+        abort_unless($agent->id === Auth::id() && $agent->role === 'agent', 403);
+
         $agentDetails = agentsdetailsModel::where('uid', $agent->id)->first();
         $poolMode     = $agentDetails && $agentDetails->pool_enabled;
 
@@ -107,7 +130,7 @@ class AgentsdetailsModelController extends Controller
             'lastname'             => 'required',
             'phone'                => 'required',
             'email'                => 'required|email|unique:users,email',
-            'password'             => 'required|min:6',
+            'password'             => 'required|string|min:8|max:64',
             'address'              => 'nullable|string|max:255',
             'subcredit_private'    => 'required|integer|min:0',
             'subcredit_commercial' => 'required|integer|min:0',
@@ -120,68 +143,80 @@ class AgentsdetailsModelController extends Controller
         $reqPrivate    = (int) $validatedData['subcredit_private'];
         $reqCommercial = (int) $validatedData['subcredit_commercial'];
 
-        if (!$poolMode) {
-            // Individual mode: both credit types must be available on parent
-            if ($agentDetails->availablePrivate() < $reqPrivate) {
-                return back()->withErrors(['subcredit_private' => 'Insufficient private credits available.']);
+        // Check-and-reserve under a row lock so concurrent requests cannot over-allocate the parent's credit.
+        $error = DB::transaction(function () use ($agent, $validatedData, $reqPrivate, $reqCommercial, &$poolMode) {
+            $agentDetails = agentsdetailsModel::where('uid', $agent->id)->lockForUpdate()->first();
+            $poolMode     = (bool) $agentDetails->pool_enabled;
+
+            if (!$poolMode) {
+                // Individual mode: both credit types must be available on parent
+                if ($agentDetails->availablePrivate() < $reqPrivate) {
+                    return ['subcredit_private' => 'Insufficient private credits available.'];
+                }
+                if ($agentDetails->availableCommercial() < $reqCommercial) {
+                    return ['subcredit_commercial' => 'Insufficient commercial credits available.'];
+                }
             }
-            if ($agentDetails->availableCommercial() < $reqCommercial) {
-                return back()->withErrors(['subcredit_commercial' => 'Insufficient commercial credits available.']);
+
+            $newSubAgent = User::create([
+                'name'      => $validatedData['firstname'] . ' ' . $validatedData['lastname'],
+                'telno'     => $validatedData['phone'],
+                'address'   => $validatedData['address'] ?? '',
+                'firstname' => $validatedData['firstname'],
+                'lastname'  => $validatedData['lastname'],
+                'email'     => $validatedData['email'],
+                'password'  => $validatedData['password'],
+                'role'      => 'subagent',
+                'parentid'  => $agent->id,
+            ]);
+
+            $subRecord = [
+                'uid'         => $newSubAgent->id,
+                'noallocated' => 0,
+                'noused'      => 0,
+                'allowcredit' => true,
+                'status'      => 'active',
+                'puid'        => $agent->id,
+                'issubagent'  => true,
+            ];
+
+            if ($poolMode) {
+                // Pool mode: caps only — no parent credit cost
+                $subRecord['pool_cap_private']         = $reqPrivate;
+                $subRecord['pool_cap_used_private']     = 0;
+                $subRecord['pool_cap_commercial']       = $reqCommercial;
+                $subRecord['pool_cap_used_commercial']  = 0;
+                $subRecord['subcreditassigned_private']    = 0;
+                $subRecord['subcreditassigned_commercial'] = 0;
+            } else {
+                // Individual mode: allocate from parent's typed balances
+                $subRecord['subcreditassigned_private']    = $reqPrivate;
+                $subRecord['subcreditassigned_commercial'] = $reqCommercial;
+                $subRecord['subcreditused_private']        = 0;
+                $subRecord['subcreditused_commercial']     = 0;
+                $subRecord['subcreditassigned']            = $reqPrivate + $reqCommercial;
+                $subRecord['subcreditused']                = 0;
             }
-        }
 
-        $newSubAgent = User::create([
-            'name'      => $validatedData['firstname'] . ' ' . $validatedData['lastname'],
-            'telno'     => $validatedData['phone'],
-            'adress'    => $validatedData['address'] ?? '',
-            'firstname' => $validatedData['firstname'],
-            'lastname'  => $validatedData['lastname'],
-            'email'     => $validatedData['email'],
-            'password'  => $validatedData['password'],
-            'role'      => 'subagent',
-            'parentid'  => $agent->id,
-        ]);
+            agentsdetailsModel::create($subRecord);
 
-        $subRecord = [
-            'uid'         => $newSubAgent->id,
-            'noallocated' => 0,
-            'noused'      => 0,
-            'allowcredit' => true,
-            'status'      => 'active',
-            'puid'        => $agent->id,
-            'issubagent'  => true,
-        ];
-
-        if ($poolMode) {
-            // Pool mode: caps only — no parent credit cost
-            $subRecord['pool_cap_private']         = $reqPrivate;
-            $subRecord['pool_cap_used_private']     = 0;
-            $subRecord['pool_cap_commercial']       = $reqCommercial;
-            $subRecord['pool_cap_used_commercial']  = 0;
-            $subRecord['subcreditassigned_private']    = 0;
-            $subRecord['subcreditassigned_commercial'] = 0;
-        } else {
-            // Individual mode: allocate from parent's typed balances
-            $subRecord['subcreditassigned_private']    = $reqPrivate;
-            $subRecord['subcreditassigned_commercial'] = $reqCommercial;
-            $subRecord['subcreditused_private']        = 0;
-            $subRecord['subcreditused_commercial']     = 0;
-            $subRecord['subcreditassigned']            = $reqPrivate + $reqCommercial;
-            $subRecord['subcreditused']                = 0;
-        }
-
-        agentsdetailsModel::create($subRecord);
-
-        if (!$poolMode) {
-            // Reserve allocated credits in parent's typed used counters
-            if ($reqPrivate > 0) {
-                $agentDetails->private_used += $reqPrivate;
+            if (!$poolMode) {
+                // Reserve allocated credits in parent's typed used counters
+                if ($reqPrivate > 0) {
+                    $agentDetails->private_used += $reqPrivate;
+                }
+                if ($reqCommercial > 0) {
+                    $agentDetails->commercial_used += $reqCommercial;
+                }
+                $agentDetails->syncTotals();
+                $agentDetails->save();
             }
-            if ($reqCommercial > 0) {
-                $agentDetails->commercial_used += $reqCommercial;
-            }
-            $agentDetails->syncTotals();
-            $agentDetails->save();
+
+            return null;
+        });
+
+        if ($error) {
+            return back()->withErrors($error);
         }
 
         return redirect()->route('list_sub_agents')->with('success', 'Sub agent registered successfully.');

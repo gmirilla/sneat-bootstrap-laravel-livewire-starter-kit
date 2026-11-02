@@ -68,9 +68,10 @@ Route::middleware('auth')->group(function () {
     Route::get('upcoming_renewals', [PolicyController::class, 'renewalslist'])->name('renewalslist');
 
     // Misc
-    Route::get('test_async', [PolicyController::class, 'testasync'])->name('test_async');
-    Route::get('retry_niip', [PolicyController::class, 'retryniip'])->name('retry_niip');
-    Route::post('niip/retry_all_failed', [PolicyController::class, 'retryAllFailedNiip'])->name('niip.retry_all_failed');
+    Route::middleware('role:admin,superadmin')->group(function () {
+        Route::get('retry_niip', [PolicyController::class, 'retryniip'])->name('retry_niip');
+        Route::post('niip/retry_all_failed', [PolicyController::class, 'retryAllFailedNiip'])->name('niip.retry_all_failed');
+    });
 
     // Paystack
     Route::get('init_paystack/{policy}', [PolicyController::class, 'init_paystack'])->name('init_paystack');
@@ -88,7 +89,7 @@ Route::get('error', function () {
 })->name('uerror');
 
 // Broker portal (broker role only)
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:broker'])->group(function () {
     Route::get('broker/policies',                            [BrokerPolicyController::class,  'index'])->name('broker.policies');
     Route::get('broker/policies/{policyNo}',                 [BrokerPolicyController::class,  'show'])->where('policyNo', '.+')->name('broker.policies.show');
     Route::get('broker/tickets',                             [BrokerTicketController::class,  'index'])->name('broker.tickets');
@@ -105,7 +106,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Admin broker ticket queue
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:admin,superadmin'])->group(function () {
     Route::get('admin/broker-tickets',                              [AdminBrokerTicketController::class, 'index'])->name('admin.broker-tickets');
     Route::get('admin/broker-tickets/{ticket}',                     [AdminBrokerTicketController::class, 'show'])->name('admin.broker-tickets.show');
     Route::post('admin/broker-tickets/{ticket}/reply',              [AdminBrokerTicketController::class, 'reply'])->name('admin.broker-tickets.reply');
@@ -114,20 +115,20 @@ Route::middleware('auth')->group(function () {
 });
 
 // Admin — queue jobs monitor
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:admin,superadmin'])->group(function () {
     Route::get('admin/jobs',                          [AdminJobController::class, 'index'])->name('admin.jobs');
     Route::post('admin/jobs/failed/{uuid}/retry',      [AdminJobController::class, 'retry'])->name('admin.jobs.retry');
     Route::post('admin/jobs/failed/{uuid}/delete',     [AdminJobController::class, 'destroy'])->name('admin.jobs.delete');
 });
 
-// Elite Broker/Agent portfolio (admin only)
-Route::middleware('auth')->group(function () {
+// Elite Broker/Agent portfolio (superadmin only)
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('elite/brokers',                    [EliteBrokerController::class, 'index'])->name('elite.brokers');
     Route::get('elite/broker/policies',            [EliteBrokerController::class, 'policies'])->name('elite.broker.policies');
     Route::post('elite/brokers/create-account',    [EliteBrokerController::class, 'createBrokerAccount'])->name('elite.broker.create-account');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:admin,superadmin'])->group(function () {
     Route::get('list_users',  [UserController::class, 'index'])->name('list_users');
     Route::post('update_user', [UserController::class, 'updateuser'])->name('update_user');
 
@@ -138,17 +139,22 @@ Route::middleware('auth')->group(function () {
 });
 
 
-Route::middleware('auth')->group(function () {
-    Route::get('ecmr_index',[ECMRController::class, 'index'])->name('ecmrs.index'); 
+Route::middleware(['auth', 'role:admin,superadmin'])->group(function () {
+    Route::get('ecmr_index',[EcmrController::class, 'index'])->name('ecmrs.index'); 
     Route::get('emcr_check',[EcmrController::class, 'validateCMR'])->name('ecmr.check'); 
 
 });
 
-Route::middleware('auth')->group(function () {
+// Agent administration (superadmin only)
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('list_agents',[AgentsdetailsModelController::class, 'index'])->name('list_agents'); 
     Route::get('agent_profile',[AgentsdetailsModelController::class, 'agentprofile'])->name('agentprofile');  
     Route::post('agent_update',[AgentsdetailsModelController::class, 'agentupdate'])->name('agentupdate'); 
     Route::get('generate-api-token',[UserController::class, 'generateeapitoken'])->name('generateeapitoken');
+});
+
+// Sub-agent management; ownership (parent agent) is enforced in the controllers
+Route::middleware(['auth', 'role:agent,subagent,admin,superadmin'])->group(function () {
     Route::get('sub_agents',[AgentsdetailsModelController::class, 'subagentsList'])->name('list_sub_agents');
     Route::get('sub_agent/profile/{sid}',[AgentsdetailsModelController::class, 'subagentsprofile'])->name('subagent.profile');
     Route::post('sub_agents/register_new/{agent}',[AgentsdetailsModelController::class, 'registerSubAgent'])->name('register_sub_agent');
@@ -159,7 +165,7 @@ Route::middleware('auth')->group(function () {
 
 
 });
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('niip_code_mgmt', [DashboardController::class, 'niipmgtdashboard'])->name('niip_code_mgmt'); 
 });
 
@@ -193,43 +199,40 @@ Route::middleware('auth')->group(function () {
 
 
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('list_state',[StatesController::class, 'index'])->name('list_states'); 
     Route::post('import_states',[StatesController::class, 'importstates'])->name('importstates');
     Route::get('/update-states', [StatesController::class, 'updatestates'])->name('updatestates');   
 
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('list_color',[VehiclecolorController::class, 'index'])->name('list_colors'); 
     Route::post('import_color',[VehiclecolorController::class, 'importvcolor'])->name('importcolor'); 
-    Route::get('/get-colors', [VehiclecolorController::class, 'getColors']);  
     Route::get('/update-colors', [VehiclecolorController::class, 'updateColors'])->name('updatecolors'); 
 
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('list_vuse',[NiipvehicleuseController::class, 'index'])->name('list_vuse'); 
     Route::post('import_vuse',[NiipvehicleuseController::class, 'importvuse'])->name('importvuse');   
 
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('list_lga',[LgaController::class, 'index'])->name('list_lga'); 
     Route::post('import_lga',[LgaController::class, 'importlga'])->name('importlga');  
-    Route::get('/get-lga/{state}', [LgaController::class, 'getlgas']);
     Route::get('/update-lgas', [LgaController::class, 'updatelgas'])->name('updatelgas');    
 
 });
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('list_vmake',[VehicleMakeController::class, 'index'])->name('list_vmake'); 
     Route::post('import_vmakes',[VehicleMakeController::class, 'importvmake'])->name('importvmake');  
-    Route::get('/get-vehicle-models/{make}', [VehicleMakeController::class, 'getModels']);  
     Route::get('/update-vmake', [VehicleMakeController::class, 'updatevmake'])->name('updatevmake');   
 
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role:superadmin'])->group(function () {
     Route::get('list_vmodel',[VehicleModelController::class, 'index'])->name('list_vmodel'); 
     Route::post('import_vmodel',[VehicleModelController::class, 'importvmodel'])->name('importvmodel'); 
     Route::post('/niip-manual-import/import', [NiipManualController::class, 'uploadExcel'])->name('niipmanual.import');
@@ -247,5 +250,12 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
+
+// Form look-ups used by the policy forms (any signed-in user)
+Route::middleware('auth')->group(function () {
+    Route::get('/get-colors', [VehiclecolorController::class, 'getColors']);
+    Route::get('/get-lga/{state}', [LgaController::class, 'getlgas']);
+    Route::get('/get-vehicle-models/{make}', [VehicleMakeController::class, 'getModels']);
+});
 
 require __DIR__ . '/auth.php';

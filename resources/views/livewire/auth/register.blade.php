@@ -32,9 +32,6 @@ new #[Layout('components.layouts.auth')] class extends Component {
 
         event(new Registered(($user = User::create($validated))));
 
-        $token = $user->createToken('API Token')->plainTextToken;
-
-
         Auth::login($user);
 
         $this->redirectIntended(route('dashboard', absolute: false), navigate: true);

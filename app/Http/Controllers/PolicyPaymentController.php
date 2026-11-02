@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Services\PolicyPaymentService;
 use Illuminate\Http\Request;
+use App\Models\policy;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class PolicyPaymentController extends Controller
 {
     public function confirm($policyId, PolicyPaymentService $service)
     {
+
+        abort_unless(Gate::allows('view', policy::findOrFail($policyId)), 403);
 
         $user=Auth::user(); 
         

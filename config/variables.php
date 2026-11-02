@@ -35,6 +35,9 @@ return [
   "NIID_USERNAME" => env('NIID_USERNAME'),
   "NIID_PASSWORD" => env('NIID_PASSWORD'),
 
+  "PAYSTACK_SECRET_KEY"  => env('PAYSTACK_SECRET_KEY'),
+  "PAYSTACK_ELITE_TOKEN" => env('PAYSTACK_ELITE_TOKEN'), // Elite token used for direct (card) sales
+
   "PROXY_URL"    => env('PROXY_URL', ''),
   "PROXY_SECRET" => env('PROXY_SECRET', ''),
   "CLAIMS_EMAIL"     => env('CLAIMS_EMAIL',     'claims@salamtakafulinsurance.com'),

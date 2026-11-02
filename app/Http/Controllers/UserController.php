@@ -8,8 +8,10 @@ use Illuminate\Http\Request;
 use App\Models\agentsdetailsModel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -40,74 +42,100 @@ class UserController extends Controller
         return view('usermgmgt.listusers', compact('users', 'searchParams'));
     }
 
-        public function updateuser(Request $request)
+    public const ROLES = ['superadmin', 'admin', 'agent', 'subagent', 'user', 'broker'];
+
+    /**
+     * Change a user's role. Route is admin/superadmin only; only a superadmin may
+     * grant or alter the admin/superadmin roles.
+     */
+    public function updateuser(Request $request)
     {
-        //
-        $user=User::where('id',$request->uid)->first();
+        $data = $request->validate([
+            'uid'  => 'required|integer|exists:users,id',
+            'role' => ['required', Rule::in(self::ROLES)],
+        ]);
 
-        $adetail=agentsdetailsModel::where('uid',$user->id)->first();
+        $actor  = Auth::user();
+        $user   = User::findOrFail($data['uid']);
+        $newRole = $data['role'];
 
-        if ($request->role!=='agent' && !empty($adetail) ){
-            
-            $adetail->status='deactivated';
-            $adetail->save();
-
+        $privileged = ['admin', 'superadmin'];
+        if ($actor->role !== 'superadmin' && (in_array($newRole, $privileged, true) || in_array($user->role, $privileged, true))) {
+            abort(403, 'Only a superadmin can grant or change admin roles.');
         }
 
-        
+        // Never let the last superadmin (or yourself) be demoted by accident.
+        if ($user->id === $actor->id && $newRole !== $user->role) {
+            return back()->with('error', 'You cannot change your own role.');
+        }
 
-        $user->role=$request->role;
+        $oldRole = $user->role;
+        $adetail = agentsdetailsModel::where('uid', $user->id)->first();
+
+        $user->role = $newRole;
         $user->save();
-        if ($user->role=='agent') {
-            # check if a record exists in the agents table and create
-            if (empty($adetail)) {
-                # no agent record exist create...
-                $agentdetail=new agentsdetailsModel();
-                $agentdetail->uid=$user->id;
-                $agentdetail->status='activated';
-                 $agentdetail->save();
 
-            } else {
-                # code...
-                $adetail->status='deactivated';
+        if ($newRole === 'agent') {
+            if ($adetail) {
+                $adetail->status = 'activated';
                 $adetail->save();
+            } else {
+                $agentdetail         = new agentsdetailsModel();
+                $agentdetail->uid    = $user->id;
+                $agentdetail->status = 'activated';
+                $agentdetail->save();
             }
-           
+        } elseif ($adetail) {
+            $adetail->status = 'deactivated';
+            $adetail->save();
         }
 
-
-       
+        Log::info('User role changed', [
+            'actor_id' => $actor->id,
+            'user_id'  => $user->id,
+            'from'     => $oldRole,
+            'to'       => $newRole,
+        ]);
 
         return redirect()->route('list_users');
     }
 
 
     /**
-     * Set the user's API Token.
+     * Set the user's API Token (superadmin only, enforced by route middleware).
      */
     public function generateeapitoken(Request $request)
     {
-        //
-        $user=User::where('id', $request->auid)->first();
-        $token=$user->setApiToken();
+        $request->validate(['auid' => 'required|integer|exists:users,id']);
+
+        $user  = User::findOrFail($request->auid);
+        $token = $user->setApiToken();
+
+        Log::info('API token generated', ['actor_id' => Auth::id(), 'user_id' => $user->id]);
+
         return response()->json(['token' => $token]);
     }
 
-        /**
-     * Reset the User password     */
+    /**
+     * Reset a sub-agent's password. Allowed for the sub-agent's parent agent or an admin.
+     */
     public function resetPassword(User $id, Request $request)
     {
-        //
+        $actor   = Auth::user();
+        $isAdmin = in_array($actor->role, ['admin', 'superadmin'], true);
+
+        $isParent = $id->role === 'subagent' && (int) $id->parentid === (int) $actor->id;
+        abort_unless($isParent || ($isAdmin && ! in_array($id->role, ['admin', 'superadmin'], true)) || $actor->role === 'superadmin', 403);
+
         $request->validate([
-    'password' => 'required|string|min:6|max:16',
-    'password_confirmation' => 'required|same:password',
-]);
+            'password'              => ['required', 'string', 'min:8', 'max:64'],
+            'password_confirmation' => 'required|same:password',
+        ]);
 
-
-        $id->password=Hash::make($request->password);
-
-
+        $id->password = Hash::make($request->password);
         $id->save();
+
+        Log::info('Password reset', ['actor_id' => $actor->id, 'user_id' => $id->id]);
 
         return back()->with('Success', 'Password updated');
     }

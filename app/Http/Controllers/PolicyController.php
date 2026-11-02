@@ -19,6 +19,9 @@ use App\Models\vehicleModel;
 use App\Models\paystacktransaction;
 use App\Jobs\PostNIIPDataSlow; // Import the job class
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Exception;
 
 use App\Http\Controllers\PaystacktransactionController; //import the paystack controller. Not ideal but works for now. To do convert to service class later.
@@ -295,9 +298,13 @@ class PolicyController extends Controller
     |--------------------------------------------------------------------------
     */
 
-        $policy = $request->has('policyid')
-            ? policy::find($request->policyid)
-            : new policy();
+        if ($request->filled('policyid')) {
+            $policy = policy::findOrFail($request->policyid);
+            // Only the owner (or an admin) may edit, and only before the policy is issued.
+            $this->authorizePolicy('update', $policy);
+        } else {
+            $policy = new policy();
+        }
 
         $start_date = $request->start_date ? \Carbon\Carbon::parse($request->start_date) : now();
         $end_date = $start_date->copy()->addYear()->subDay();
@@ -427,6 +434,8 @@ class PolicyController extends Controller
     # INITIATE THE PAYSTACK PAYMENT PROCESSING
     public function init_paystack(policy $policy)
     {
+        $this->authorizePolicy('update', $policy);
+
 
         // Prepare Paystack Data for Online processing if selected later
         $paystackcontroller = new PaystacktransactionController();
@@ -460,226 +469,315 @@ class PolicyController extends Controller
 
     public function paypolicy(Request $request)
     {
-        //
-        Auth::check();
         $user = Auth::user();
-        $policy = policy::where('id', $request->policyid)->first();
-        $policyrisk = policyrisk::where('policyid', $request->policyid)->first();
-        $insured = User::where('id', $policy->insured_id)->first();
-        $transaction = null;
-        $creditType = $this->creditType($policy->producttype);
-        #Validation of mandatory Field with default values
-        $gsm = $insured->telno;
-        if (empty($gsm)) {
-            # change Gsm to company number
-            $gsm = '+234 806 565 7291';
+
+        $request->validate(['policyid' => 'required|integer|exists:policies,id']);
+
+        // Serialise issuance per policy so a double-click / replay cannot issue it twice.
+        $lock = Cache::lock('pay-policy-' . $request->policyid, 120);
+        if (!$lock->get()) {
+            return $this->paymentError('This policy is already being processed. Please wait a moment and check the policy list.', '409-002');
         }
 
-
-        #Handle Payment Method
-        switch (true) {
-            case $request->has('agencycredit'):
-                $agent = agentsdetailsModel::where('uid', $user->id)->first();
-                if ($user->role == 'agent') {
-                    $creditleft = $agent->availableByType($creditType);
-                    $token      = $agent->auth_token;
-                } elseif ($user->role == 'subagent') {
-                    $subagentdetails = agentsdetailsModel::where('uid', $user->id)->first();
-                    $parentagent     = agentsdetailsModel::where('uid', $subagentdetails->puid)->first();
-                    $token           = $parentagent->auth_token;
-
-                    if ($parentagent->pool_enabled) {
-                        if ($creditType === 'private') {
-                            $poolAvailable = $parentagent->pool_private_size - $parentagent->pool_private_used;
-                            $cap     = $subagentdetails->pool_cap_private;
-                            $capUsed = $subagentdetails->pool_cap_used_private;
-                        } else {
-                            $poolAvailable = $parentagent->pool_commercial_size - $parentagent->pool_commercial_used;
-                            $cap     = $subagentdetails->pool_cap_commercial;
-                            $capUsed = $subagentdetails->pool_cap_used_commercial;
-                        }
-                        $creditleft = $cap > 0 ? min($poolAvailable, $cap - $capUsed) : $poolAvailable;
-                    } else {
-                        $creditleft = $creditType === 'private'
-                            ? $subagentdetails->subcreditassigned_private - $subagentdetails->subcreditused_private
-                            : $subagentdetails->subcreditassigned_commercial - $subagentdetails->subcreditused_commercial;
-                    }
-                }
-
-                if (($creditleft ?? 0) <= 0) {
-                    $typeLabel = $creditType === 'commercial' ? 'Commercial' : 'Private';
-                    $message   = "You do not have sufficient {$typeLabel} credits to make this purchase";
-                    $error     = 'error';
-                    $errorcode = '402-004';
-                    return view('user_errors', compact('error', 'errorcode', 'message'));
-                }
-                break;
-
-            case $request->has('paystack'):
-                $token = env('PAYSTACK_ELITE_TOKEN'); //No agency token used for Direct payments 
-                // Handle Paystack Pament Menthod
-                //First initiate payment and get access code
-                $paystackData = json_decode($request->paystack);
-                // Paystack Payment Verification: check if payment was sucessful and the amount paid is correct
-                $paystackcontroller = new PaystacktransactionController();
-                $paystackresponse = $paystackcontroller->verify_payment($paystackData->reference);
-                $paystackresponseData = json_decode($paystackresponse->getContent());
-                $transaction = paystacktransaction::where('reference_code', $paystackData->reference)->where('policy_id', $policy->id)->first();
-                $transaction->status = $paystackresponseData->data->status;
-                $transaction->policyno = $policy->policyno;
-
-                if ($policy->contribution == $paystackresponseData->data->amount / 100 && $paystackresponseData->data->status == 'success') {
-                    #Payment is successful and matches the contribution amount
-                    $transaction->status = 'Payment Sucessful';
-
-                    # code...
-                } else {
-                    # code...
-                    $transaction->status = 'Payment Error Contact Administrator';
-                    $transaction->save();
-                    $message = "There was an error processing your payment. Please contact support with Error Code 402-PS001";
-                    $error = 'error';
-                    $errorcode = '402-PS001';
-                    $message;
-                    return view('user_errors', compact('error', 'errorcode', 'message'));
-                }
-
-                $transaction->save();
-                break;
-
-
-            default:
-                # code...
-                break;
-        }
-        #push Data to Elite API for Processing
-        #Use the ELite API and push data
-
-
-        $policydata = [
-            "fullName" => $policy->insured_name,
-            "ContactAddress" => $insured->address,
-            "mobileNumber" => $gsm,
-            "Email" => $insured->email,
-            "engineNumber" => $policyrisk->engineno,
-            "chassisNumber" => $policyrisk->chassisno,
-            "vehicleColor" => $policyrisk->vehiclecolor,
-            "yearOfMake" => strval($policyrisk->yearofmake),
-            "vehicleMake" => $policyrisk->vehiclemake,
-            "registrationNumber" => $policyrisk->regno,
-            "vehicleType" => $policy->vehicleuse,
-            "engineCapacity" => "1.6L",
-            "vehicleModel" => $policyrisk->vehiclemodel,
-            "useOFVehicle" => 'n/a',
-            "insuranceType" => $policy->usekey
-        ];
-
-        $policydatajSon = json_encode($policydata);
-
-
-
-        if (empty($token)) {
-            $accesstoken = config('variables.API_ELITE_TOKEN');
-        } else {
-            $accesstoken = $token;
-        }
-
+        $reservation = null;
 
         try {
-            $response = Http::withHeader('Auth-Token', $accesstoken)
-                ->withBody($policydatajSon)
-                ->timeout(30)
-                ->retry(3, 3000, fn (\Exception $e) => $e instanceof \Illuminate\Http\Client\ConnectionException)
-                ->post(config('variables.API_ELITE_URL'));
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            // Elite API unreachable or timed out after 3 attempts — leave policy as draft, no credit deducted
-            \Illuminate\Support\Facades\Log::error('Elite API timeout after 3 attempts in paypolicy', [
-                'policy_id' => $policy->id,
-                'message'   => $e->getMessage(),
-            ]);
-            $policy->elite_msg = 'Elite API timeout: ' . $e->getMessage();
-            $policy->status    = 'draft';
-            $policy->save();
+            $policy = policy::findOrFail($request->policyid);
 
-            $errors = 'The insurance server did not respond in time. Your policy has NOT been issued. Please try again shortly.';
-            $id     = $policy->id;
-            return redirect()->route('view_policy', compact('errors', 'id'));
-        }
-
-        $policy->elite_msg = $response->body();
-
-        // Decode JSON string into an associative array
-        $data = json_decode($response->body(), true);
-
-        if (($data['data']['status'] ?? '') == 'success') {
-
-            $policy->elite_msg = $data['data']['status'] . $data['data']['message'];
-            $policy->policyno  = $data['data']['policy_number'];
-
-            if ($transaction) {
-                $transaction->policyno = $policy->policyno;
-                $transaction->save();
+            // Ownership (creator, insured, parent agent or admin) AND still unissued (draft/failed).
+            abort_unless(Gate::allows('view', $policy), 403);
+            if (!Gate::allows('update', $policy)) {
+                return $this->paymentError('This policy has already been issued or can no longer be paid for.', '409-001');
             }
-            $policy->status = 'approved';
-            $policy->save();
 
-            // Deduct credit on Elite approval
+            $policyrisk = policyrisk::where('policyid', $policy->id)->first();
+            $insured    = User::find($policy->insured_id);
+            if (!$policyrisk || !$insured) {
+                return $this->paymentError('This policy is incomplete (missing risk or insured details).', '422-001');
+            }
+
+            $transaction = null;
+            $token       = null;
+            $creditType  = $this->creditType($policy->producttype);
+
+            #Validation of mandatory Field with default values
+            $gsm = $insured->telno;
+            if (empty($gsm)) {
+                # change Gsm to company number
+                $gsm = '+234 806 565 7291';
+            }
+
+            #Handle Payment Method — exactly one valid method is required
             if ($request->has('agencycredit')) {
-                if ($user->role == 'subagent') {
-                    if ($parentagent->pool_enabled) {
-                        // Pool mode — atomic deduction to prevent race conditions
-                        DB::transaction(function () use ($parentagent, $subagentdetails, $creditType) {
-                            if ($creditType === 'private') {
-                                $parentagent->lockForUpdate()->increment('pool_private_used');
-                                if ($subagentdetails->pool_cap_private > 0) {
-                                    $subagentdetails->increment('pool_cap_used_private');
-                                }
-                            } else {
-                                $parentagent->lockForUpdate()->increment('pool_commercial_used');
-                                if ($subagentdetails->pool_cap_commercial > 0) {
-                                    $subagentdetails->increment('pool_cap_used_commercial');
-                                }
-                            }
-                        });
-                    } else {
-                        // Individual allocation mode — typed counters only
-                        if ($creditType === 'private') {
-                            $subagentdetails->subcreditused_private += 1;
-                        } else {
-                            $subagentdetails->subcreditused_commercial += 1;
-                        }
-                        $subagentdetails->syncSubcreditTotals();
-                        $subagentdetails->save();
-                    }
-                } else {
-                    // Direct agent deduction
-                    if ($creditType === 'private') {
-                        $agent->private_used += 1;
-                    } else {
-                        $agent->commercial_used += 1;
-                    }
-                    $agent->syncTotals();
-                    $agent->save();
+                $reservation = $this->reserveCredit($user, $creditType);
+
+                if (!$reservation['ok']) {
+                    $typeLabel = $creditType === 'commercial' ? 'Commercial' : 'Private';
+                    return $this->paymentError("You do not have sufficient {$typeLabel} credits to make this purchase", '402-004');
                 }
+                $token = $reservation['token'];
+
+            } elseif ($request->has('paystack')) {
+                $token = config('variables.PAYSTACK_ELITE_TOKEN'); //No agency token used for Direct payments
+
+                $paystackData = json_decode((string) $request->paystack);
+                $reference    = is_object($paystackData) ? ($paystackData->reference ?? null) : null;
+                if (!is_string($reference) || $reference === '') {
+                    return $this->paymentError('Invalid payment reference.', '402-PS002');
+                }
+
+                // The reference must belong to a transaction we created for THIS policy.
+                $transaction = paystacktransaction::where('reference_code', $reference)->where('policy_id', $policy->id)->first();
+                if (!$transaction) {
+                    return $this->paymentError('Payment reference not recognised for this policy.', '402-PS002');
+                }
+
+                // A reference is single-use: refuse if it is also recorded against any other policy.
+                if (paystacktransaction::where('reference_code', $reference)->where('id', '!=', $transaction->id)->exists()) {
+                    return $this->paymentError('This payment reference has already been used.', '402-PS003');
+                }
+
+                $paystackresponse     = (new PaystacktransactionController())->verify_payment($reference);
+                $paystackresponseData = json_decode($paystackresponse->getContent());
+                $paidData             = $paystackresponseData->data ?? null;
+
+                // Compare integer kobo, never floats.
+                $expectedKobo = (int) round($policy->contribution * 100);
+                $verified     = $paidData
+                    && ($paidData->status ?? null) === 'success'
+                    && (int) ($paidData->amount ?? -1) === $expectedKobo
+                    && (($paidData->currency ?? 'NGN') === 'NGN');
+
+                if (!$verified) {
+                    $transaction->status = 'Payment Error Contact Administrator';
+                    $transaction->save();
+                    return $this->paymentError('There was an error processing your payment. Please contact support with Error Code 402-PS001', '402-PS001');
+                }
+
+                $transaction->status = 'Payment Sucessful';
+                $transaction->save();
+
+            } else {
+                return $this->paymentError('No payment method was selected.', '402-000');
             }
-            $policy->save();
 
-            // Upload policy to NIIP
-            PostNIIPDataSlow::dispatch($this->buildNiipData($policy, $policyrisk)); // Non-blocking
-        } else {
-            // Elite returned a failure response
-            $policy->elite_msg = ($data['data']['status'] ?? '') . ($data['data']['message'] ?? $response->body());
-            $policy->policyno  = '';
-            $policy->status    = 'failed';
-            $policy->save();
+            #push Data to Elite API for Processing
+            $policydata = [
+                "fullName" => $policy->insured_name,
+                "ContactAddress" => $insured->address,
+                "mobileNumber" => $gsm,
+                "Email" => $insured->email,
+                "engineNumber" => $policyrisk->engineno,
+                "chassisNumber" => $policyrisk->chassisno,
+                "vehicleColor" => $policyrisk->vehiclecolor,
+                "yearOfMake" => strval($policyrisk->yearofmake),
+                "vehicleMake" => $policyrisk->vehiclemake,
+                "registrationNumber" => $policyrisk->regno,
+                "vehicleType" => $policy->vehicleuse,
+                "engineCapacity" => "1.6L",
+                "vehicleModel" => $policyrisk->vehiclemodel,
+                "useOFVehicle" => 'n/a',
+                "insuranceType" => $policy->usekey
+            ];
 
-            $errors = $policy->elite_msg;
-            $id     = $policy->id;
+            $policydatajSon = json_encode($policydata);
 
-            return redirect()->route('view_policy', compact('errors', 'id'));
+            $accesstoken = empty($token) ? config('variables.API_ELITE_TOKEN') : $token;
+
+            try {
+                $response = Http::withHeader('Auth-Token', $accesstoken)
+                    ->withBody($policydatajSon)
+                    ->timeout(30)
+                    ->retry(3, 3000, fn (\Exception $e) => $e instanceof \Illuminate\Http\Client\ConnectionException)
+                    ->post(config('variables.API_ELITE_URL'));
+            } catch (\Illuminate\Http\Client\ConnectionException $e) {
+                // Elite API unreachable or timed out after 3 attempts — leave policy as draft, release the reserved credit
+                Log::error('Elite API timeout after 3 attempts in paypolicy', [
+                    'policy_id' => $policy->id,
+                    'message'   => $e->getMessage(),
+                ]);
+                $this->releaseCredit($reservation);
+                $reservation = null;
+
+                $policy->elite_msg = 'Elite API timeout: ' . $e->getMessage();
+                $policy->status    = 'draft';
+                $policy->save();
+
+                $errors = 'The insurance server did not respond in time. Your policy has NOT been issued. Please try again shortly.';
+                $id     = $policy->id;
+                return redirect()->route('view_policy', compact('errors', 'id'));
+            }
+
+            $policy->elite_msg = $response->body();
+
+            // Decode JSON string into an associative array
+            $data = json_decode($response->body(), true);
+
+            if (($data['data']['status'] ?? '') == 'success') {
+
+                $policy->elite_msg = $data['data']['status'] . $data['data']['message'];
+                $policy->policyno  = $data['data']['policy_number'];
+
+                if ($transaction) {
+                    $transaction->policyno = $policy->policyno;
+                    $transaction->save();
+                }
+                $policy->status = 'approved';
+                $policy->save();
+
+                // Credit was reserved before the Elite call; it is now permanently consumed.
+                $reservation = null;
+
+                // Upload policy to NIIP
+                PostNIIPDataSlow::dispatch($this->buildNiipData($policy, $policyrisk)); // Non-blocking
+            } else {
+                // Elite returned a failure response — give the reserved credit back
+                $this->releaseCredit($reservation);
+                $reservation = null;
+
+                $policy->elite_msg = ($data['data']['status'] ?? '') . ($data['data']['message'] ?? $response->body());
+                $policy->policyno  = '';
+                $policy->status    = 'failed';
+                $policy->save();
+
+                $errors = $policy->elite_msg;
+                $id     = $policy->id;
+
+                return redirect()->route('view_policy', compact('errors', 'id'));
+            }
+
+            return redirect()->route('list_policy');
+        } catch (\Throwable $e) {
+            // Any unexpected failure after a reservation must not leak the credit.
+            $this->releaseCredit($reservation);
+            throw $e;
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function paymentError(string $message, string $errorcode)
+    {
+        $error = 'error';
+        return view('user_errors', compact('error', 'errorcode', 'message'));
+    }
+
+    /**
+     * Atomically check and reserve one credit of $creditType for $user.
+     * Row locks make check + increment a single critical section.
+     *
+     * @return array{ok: bool, token?: ?string, undo?: callable}
+     */
+    private function reserveCredit(User $user, string $creditType): array
+    {
+        if (!in_array($user->role, ['agent', 'subagent'], true)) {
+            return ['ok' => false];
         }
 
-        return redirect()->route('list_policy');
+        return DB::transaction(function () use ($user, $creditType) {
+            $own = agentsdetailsModel::where('uid', $user->id)->lockForUpdate()->first();
+
+            if (!$own || !$own->allowcredit || $own->status === 'deactivated') {
+                return ['ok' => false];
+            }
+
+            $isPrivate = $creditType === 'private';
+
+            if ($user->role === 'agent') {
+                if ($own->availableByType($creditType) <= 0) {
+                    return ['ok' => false];
+                }
+
+                $col = $isPrivate ? 'private_used' : 'commercial_used';
+                $own->$col += 1;
+                $own->syncTotals();
+                $own->save();
+
+                return [
+                    'ok'    => true,
+                    'token' => $own->auth_token,
+                    'undo'  => function () use ($own, $col) {
+                        $row = agentsdetailsModel::where('id', $own->id)->lockForUpdate()->first();
+                        $row->$col = max(0, $row->$col - 1);
+                        $row->syncTotals();
+                        $row->save();
+                    },
+                ];
+            }
+
+            // Sub-agent: draws on the parent's pool or on its own allocation.
+            $parent = agentsdetailsModel::where('uid', $own->puid)->lockForUpdate()->first();
+            if (!$parent || $parent->status === 'deactivated') {
+                return ['ok' => false];
+            }
+
+            if ($parent->pool_enabled) {
+                $poolCol = $isPrivate ? 'pool_private_used' : 'pool_commercial_used';
+                $capCol  = $isPrivate ? 'pool_cap_used_private' : 'pool_cap_used_commercial';
+                $cap     = $isPrivate ? $own->pool_cap_private : $own->pool_cap_commercial;
+                $capUsed = $isPrivate ? $own->pool_cap_used_private : $own->pool_cap_used_commercial;
+                $poolAvailable = $isPrivate
+                    ? $parent->pool_private_size - $parent->pool_private_used
+                    : $parent->pool_commercial_size - $parent->pool_commercial_used;
+
+                $left = $cap > 0 ? min($poolAvailable, $cap - $capUsed) : $poolAvailable;
+                if ($left <= 0) {
+                    return ['ok' => false];
+                }
+
+                $parent->$poolCol += 1;
+                $parent->save();
+                if ($cap > 0) {
+                    $own->$capCol += 1;
+                    $own->save();
+                }
+
+                return [
+                    'ok'    => true,
+                    'token' => $parent->auth_token,
+                    'undo'  => function () use ($parent, $own, $poolCol, $capCol, $cap) {
+                        $p = agentsdetailsModel::where('id', $parent->id)->lockForUpdate()->first();
+                        $p->$poolCol = max(0, $p->$poolCol - 1);
+                        $p->save();
+                        if ($cap > 0) {
+                            $o = agentsdetailsModel::where('id', $own->id)->lockForUpdate()->first();
+                            $o->$capCol = max(0, $o->$capCol - 1);
+                            $o->save();
+                        }
+                    },
+                ];
+            }
+
+            $assigned = $isPrivate ? $own->subcreditassigned_private : $own->subcreditassigned_commercial;
+            $used     = $isPrivate ? $own->subcreditused_private : $own->subcreditused_commercial;
+            if ($assigned - $used <= 0) {
+                return ['ok' => false];
+            }
+
+            $usedCol = $isPrivate ? 'subcreditused_private' : 'subcreditused_commercial';
+            $own->$usedCol += 1;
+            $own->syncSubcreditTotals();
+            $own->save();
+
+            return [
+                'ok'    => true,
+                'token' => $parent->auth_token,
+                'undo'  => function () use ($own, $usedCol) {
+                    $row = agentsdetailsModel::where('id', $own->id)->lockForUpdate()->first();
+                    $row->$usedCol = max(0, $row->$usedCol - 1);
+                    $row->syncSubcreditTotals();
+                    $row->save();
+                },
+            ];
+        });
+    }
+
+    /** Give back a credit taken by reserveCredit() (no-op when nothing was reserved). */
+    private function releaseCredit(?array $reservation): void
+    {
+        if ($reservation && ($reservation['ok'] ?? false) && isset($reservation['undo'])) {
+            DB::transaction($reservation['undo']);
+        }
     }
 
 
@@ -690,7 +788,8 @@ class PolicyController extends Controller
 
 
         $producttype = 'TO DO';
-        $policy = policy::where('id', $request->id)->first();
+        $policy = policy::findOrFail($request->id);
+        $this->authorizePolicy('view', $policy);
         $insured = User::where('id', $policy->insured_id)->first();
         $policyrisk = policyrisk::where('policyid', $policy->id)->first();
         $vmakes = vehicleMake::orderBy('vmake')->get();
@@ -783,42 +882,11 @@ class PolicyController extends Controller
         //
         return view('api.apitest');
     }
-    public function testasync()
-    {
-        // Test asynchronous job dispatching
-        $niipdata = [
-            //"APIKey" => config('variables.NIIP_API_KEY'),
-            "Purpose" => 3, // Example purpose code
-            "VehicleColor" => 1, // Example color ID
-            "VehicleMake" => 1, // Example make ID
-            "VehicleModel" => 1, // Example model ID
-            "EngineCap" => 3,
-            "State" => 1,
-            "LGA" => 1,
-            "RegNo" => 'ABC123',
-            "ChassisNo" => 'CHASSIS123',
-            "EngineNo" => 'ENGINE123',
-            "PolicyHolderFirstName" => 'John',
-            "PolicyHolderLastName" => 'Doe',
-            "PolicyHolderMiddleName" => 'M',
-            "PolicyHolderMobileNo" => '08012345678',
-            "PolicyHolderEmail" => 'john.doe@example.com',
-            "PolicyHolderNIN" => '12345678901',
-            "IssueDate" => date('Y-m-d'),
-            "PolicyHolderAddress" => '123 Main St, City, State',
-            "PolicyNumber" => 'P/2025/KN-HQ/010401/016242'
-        ];
-
-        //PostNIIPDataSlow::dispatch($niipdata); // Non-blocking
-        echo "NIIP data dispatched successfully.";
-
-        PostNIIPDataSlow::dispatch($niipdata);
-    }
-
     public function retryniip(Request $request)
     {
-        $policy     = policy::where('policyno', $request->policyno)->first();
+        $policy     = policy::where('policyno', $request->policyno)->firstOrFail();
         $policyrisk = $policy->getrisk();
+        abort_unless($policyrisk, 422, 'Policy has no risk record.');
 
         $policy->niip_status = 'retry_queued';
         $policy->save();
@@ -1307,5 +1375,11 @@ class PolicyController extends Controller
         return redirect()->route('list_policy')->with('error', 'Unauthorized Access');
     }
 
+    }
+
+    /** Abort 403 unless the signed-in user may perform $ability on $policy (see PolicyPolicy). */
+    private function authorizePolicy(string $ability, policy $policy): void
+    {
+        abort_unless(Gate::allows($ability, $policy), 403);
     }
 }

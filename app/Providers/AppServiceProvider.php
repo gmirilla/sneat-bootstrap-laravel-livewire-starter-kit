@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Services\ProxyClient;
+use App\Models\policy;
+use App\Policies\PolicyPolicy;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,5 +25,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        Gate::policy(policy::class, PolicyPolicy::class);
     }
 }
