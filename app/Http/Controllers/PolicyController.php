@@ -263,7 +263,8 @@ class PolicyController extends Controller
         if ($user->role === 'agent' or $user->role === 'subagent') {
 
             // Check if insured exists
-            $insured = User::where('telno', $request->phone)->first();
+            // Match only end-customer accounts: an agent must never attach policies to staff/broker accounts by phone number.
+            $insured = User::where('telno', $request->phone)->where('role', 'user')->first();
 
             if (!$insured) {
 
@@ -282,7 +283,7 @@ class PolicyController extends Controller
                 $insured->address   = $request->address;
                 $insured->stateid   = $request->state;
                 $insured->lgaid     = $request->lgas;
-                $insured->password  = Hash::make('Password');
+                $insured->password  = Hash::make(\Illuminate\Support\Str::random(40)); // unguessable; insured can claim the account via "forgot password"
 
                 $insured->save();
             }

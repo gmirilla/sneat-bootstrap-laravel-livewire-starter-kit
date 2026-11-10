@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
@@ -26,12 +28,20 @@ class ThirdPartyController extends Controller
     public function newpolicy(Request $request)
     {
 
-        // LOG API CALLS
-        $jsonData = json_encode($request->all());
-        $logData = date('Y-m-d H:i:s') . ' - ' . $_SERVER['REQUEST_METHOD'] . ' ' . $_SERVER['REQUEST_URI'] . "\n" . $jsonData . "\n";
-        file_put_contents(storage_path('logs/api_log.txt'), $logData, FILE_APPEND);
+        // Only agents / sub-agents with an agent record may issue through this channel.
+        $caller = Auth::user();
+        $agent  = agentsdetailsModel::where('uid', $caller->id)->first();
+        if (!in_array($caller->role, ['agent', 'subagent'], true) || !$agent || $agent->status === 'deactivated') {
+            return response()->json(['status' => false, 'message' => 'This account is not permitted to issue policies.'], 403);
+        }
 
-
+        // Audit trail without the request body (PII); support only needs who/what/when.
+        Log::info('Third-party API call', [
+            'caller_id' => $caller->id,
+            'ip'        => $request->ip(),
+            'regno'     => $request->input('regno'),
+            'use'       => $request->input('vehicleuse'),
+        ]);
 
         //TO DO:Validate the request data
         $rules = [
@@ -40,7 +50,8 @@ class ThirdPartyController extends Controller
     'email' => 'required|email',
     'gender' => 'required|in:Male,Female,Other',
     'dob' => 'required|date_format:Y-m-d',
-    'phone' => 'required|string',
+    'phone' => 'required|string|max:20',
+    'address' => 'nullable|string|max:250',
     'state' => 'required|integer|exists:states,stateid',
     'lga' => 'required|integer|exists:lgas,lgaid',
     'vehicleuse' => 'required|string|in:privatemotor,commercialmotor,motorcycle',
@@ -75,7 +86,9 @@ if ($validator->fails()) {
 
             if (empty($insured)) {
 
-                $genpassword='Password';
+                // Unguessable: the insured never logs in through this channel and can
+                // claim the account later via "forgot password".
+                $genpassword=Str::random(40);
                 
                 # create new insured user profile
                 $insured= new User();
@@ -136,9 +149,7 @@ if ($validator->fails()) {
                 $niipusecode= 4;  // Motorcycle
                 break;
             default:
-                # To Do  create a default 
-                return back()->with('Error', 'Product not Configured imported successfully.');
-                break;
+                return response()->json(['status' => false, 'message' => 'Product not configured.'], 422);
         }    
              
         // Third Create Motor Policy 
@@ -149,8 +160,13 @@ if ($validator->fails()) {
             $vmake=vehicleMake::where('niipvmid',$request->vehiclemakeid )->first();
             $vmodel=vehicleModel::where('vmodelid',$request->vehiclemodelid)->first();
 
+            $color=vehiclecolor::where('colorid',$request->vehiclecolor)->first();
+            if (!$vmake || !$vmodel || !$color) {
+                return response()->json(['status' => false, 'message' => 'Unknown vehicle make, model or colour.'], 422);
+            }
+
             #Get name of Agent using this channel
-            $user=Auth::user();
+            $user=$caller;
 
             $policy= new policy();
 
@@ -191,7 +207,7 @@ if ($validator->fails()) {
             $policyrisk->vehiclemodel=$vmodel->vmodelname;
             $policyrisk->yearofmake=$request->yearofmake;
             $policyrisk->vechiclecolorid=$request->vehiclecolor;
-            $policyrisk->vehiclecolor=vehiclecolor::where('colorid',$request->vehiclecolor)->first()->color;
+            $policyrisk->vehiclecolor=$color->color;
 
             if ($policy->producttype=='Private Motor Third Party') {
                 # code...
@@ -244,7 +260,6 @@ if ($validator->fails()) {
                 #To Get individual AUTH TOKEN
                 #1.  Check if the Agent has an Access Token From Elite
                 #2.  IF no AUTH TOKEN USE default users TOKEN
-                $agent=agentsdetailsModel::where('uid', $user->id)->first();
                 $token=$agent->auth_token;
                
                 if (empty($token)) {

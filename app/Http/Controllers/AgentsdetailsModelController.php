@@ -26,8 +26,7 @@ class AgentsdetailsModelController extends Controller
                 'private_used',
                 'commercial_allocated',
                 'commercial_used',
-                'status',
-                'auth_token'
+                'status'
             )->where('role', 'agent')->get();
 
         return view('usermgmgt.listagent', compact('agents'));
@@ -81,7 +80,12 @@ class AgentsdetailsModelController extends Controller
         $agent->syncTotals();
 
         $agent->status              = $data['status'];
-        $agent->auth_token          = $data['authtoken'] ?? null;
+        // Blank keeps the stored token (it is never echoed back to the form); tick "clear" to remove it.
+        if ($request->boolean('clear_authtoken')) {
+            $agent->auth_token = null;
+        } elseif (!empty($data['authtoken'])) {
+            $agent->auth_token = $data['authtoken'];
+        }
         $agent->canregistersubagent = $request->has('agentregistersubagentchk');
         $agent->allowcredit         = $request->has('agentcreditchk');
 

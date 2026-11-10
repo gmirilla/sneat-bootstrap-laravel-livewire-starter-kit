@@ -164,7 +164,8 @@ class BrowncardController extends Controller
             'policyNumber'    => $policyNumber,
             'regNo'           => $regNo,
             'brownCardNumber' => $brownCardNumber,
-            'policyHolder'    => $policyHolder,
+            // Public, unauthenticated page: show a masked name, never the full holder identity.
+            'policyHolder'    => $this->maskName($policyHolder),
             'vehicleMake'     => $vehicleMake,
             'vehicleModel'    => $vehicleModel,
             'issueDate'       => $issueDate,
@@ -287,6 +288,18 @@ class BrowncardController extends Controller
             'issueDate'       => $data['IssueDate'] ?? null,
             'expiryDate'      => $data['ExpiryDate'] ?? null,
         ];
+    }
+
+    /** "Adaeze Okonkwo" => "A***** O******" (first letter of each word kept). */
+    private function maskName(?string $name): ?string
+    {
+        if ($name === null || trim($name) === '') {
+            return null;
+        }
+
+        return collect(preg_split('/\s+/', trim($name)))
+            ->map(fn ($part) => mb_substr($part, 0, 1) . str_repeat('*', max(mb_strlen($part) - 1, 0)))
+            ->implode(' ');
     }
 
     private function normalizeRegNo(string $value): string

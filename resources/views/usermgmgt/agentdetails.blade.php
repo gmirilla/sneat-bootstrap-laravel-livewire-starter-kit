@@ -76,8 +76,14 @@
                         </div>
                         <div class="col-auto">
                             <label class='form-label' for="agentname">AUTH_TOKEN** (ELITE)</label>
-                            <input type="text" class="form-control form-control-lg" name="authtoken"
-                                value="{{ $agent->auth_token }}">
+                            <input type="password" autocomplete="off" class="form-control form-control-lg" name="authtoken"
+                                placeholder="{{ $agent?->auth_token ? 'Token is set - leave blank to keep' : 'No token set' }}" value="">
+                            @if ($agent?->auth_token)
+                                <div class="form-check mt-1">
+                                    <input type="checkbox" class="form-check-input" name="clear_authtoken" id="clear_authtoken" value="1">
+                                    <label class="form-check-label small" for="clear_authtoken">Remove stored token</label>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="col-auto">

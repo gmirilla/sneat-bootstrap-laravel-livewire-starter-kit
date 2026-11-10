@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -39,6 +40,14 @@ class ClaimNotificationController extends Controller
         $policyNo = trim($request->policy_no);
         $email    = filled($request->email) ? trim($request->email) : null;
         $phone    = filled($request->phone) ? trim($request->phone) : null;
+
+        // Per-policy throttle (in addition to the per-IP route throttle): email/phone are
+        // low-entropy secrets, so stop one policy number being guessed from many addresses.
+        $limiterKey = 'claim-lookup:' . strtoupper($policyNo);
+        if (RateLimiter::tooManyAttempts($limiterKey, 10)) {
+            return back()->withInput()->with('lookup_error', 'Too many attempts for this policy number. Please try again later or contact support.');
+        }
+        RateLimiter::hit($limiterKey, 3600);
 
         // 1. Try local DB first
         $local = policy::where('policyno', $policyNo)

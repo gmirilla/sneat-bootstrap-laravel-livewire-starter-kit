@@ -32,6 +32,14 @@ class agentsdetailsModel extends Model
         'pool_cap_commercial', 'pool_cap_used_commercial',
     ];
 
+    /** Elite auth tokens are credentials: encrypted at rest (see the encrypt_agent_auth_tokens migration). */
+    protected function casts(): array
+    {
+        return [
+            'auth_token' => 'encrypted',
+        ];
+    }
+
     // ── Relationships ──────────────────────────────────────────────────────
 
     public function getuserinfo()

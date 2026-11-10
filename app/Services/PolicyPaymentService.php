@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\policy;
 use App\Models\agentsdetailsModel;
 use App\Services\Payments\PaystackService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class PolicyPaymentService
@@ -67,13 +68,25 @@ class PolicyPaymentService
 
     private function payWithCredit($policyId, $user)
     {
-        // deduct credit
-        return $this->activatePolicy($policyId, $user);
+        // Credit deduction is not implemented on this path. Refuse rather than issue for free;
+        // agency-credit purchases go through PolicyController::paypolicy (reserveCredit()).
+        throw ValidationException::withMessages([
+            'payment' => 'Agency credit payment is not available on this route yet.'
+        ]);
     }
 
     private function activatePolicy($policyId, $user)
     {
         $policy = Policy::findOrFail($policyId);
+
+        // Owner/admin only, and only while the policy is still unissued.
+        abort_unless(Gate::forUser($user)->allows('update', $policy), 403);
+
+        if (!method_exists($policy, 'activate')) {
+            throw ValidationException::withMessages([
+                'payment' => 'Online activation is not available for this product yet.'
+            ]);
+        }
 
         $policy->activate($user);
 

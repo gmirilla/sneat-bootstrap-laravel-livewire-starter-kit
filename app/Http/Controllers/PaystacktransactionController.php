@@ -2,167 +2,81 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\policy;
 use App\Models\paystacktransaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class PaystacktransactionController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Create a new Paystack transaction.
+     * Create a new Paystack transaction. Called internally by PolicyController with server-built
+     * data; the amount is always taken from the policy, never from the request.
      */
     public function create_paystack_transaction(Request $request)
     {
-
-
-            $validatedData = $request->validate([
+        $validatedData = $request->validate([
             'email' => 'required|email|max:255',
             'amount' => 'required|numeric',
             'policy_id' => 'required|integer|exists:policies,id',
         ]);
-        //create unique ref_id
-        $validatedData['ref_id'] = uniqid('paystack_');
+
+        $validatedData['amount'] = policy::findOrFail($validatedData['policy_id'])->contribution;
+        $validatedData['ref_id'] = 'paystack_' . Str::uuid()->toString();
 
         $transaction = paystacktransaction::create($validatedData);
 
         // Init Transaction with paystack and get access code for transaction
-        $url = "https://api.paystack.co/transaction/initialize";
-        $fields = [
-            'email' => $transaction->email,
-            'amount' => $transaction->amount*100
-        ];
+        try {
+            $response = Http::withToken(config('variables.PAYSTACK_SECRET_KEY'))
+                ->asForm()
+                ->timeout(30)
+                ->post('https://api.paystack.co/transaction/initialize', [
+                    'email'  => $transaction->email,
+                    'amount' => (int) round($transaction->amount * 100),
+                ]);
+            $paystackresponse = $response->object();
+        } catch (\Exception $e) {
+            Log::error('Paystack initialize failed', ['policy_id' => $transaction->policy_id, 'error' => $e->getMessage()]);
+            $paystackresponse = null;
+        }
 
-        $fields_string = http_build_query($fields);
+        if (($paystackresponse->status ?? false) === true && !empty($paystackresponse->data->access_code)) {
+            $transaction->access_code = $paystackresponse->data->access_code;
+            $transaction->reference_code = $paystackresponse->data->reference;
+            $transaction->save();
+            return response($transaction->access_code, 201);
+        }
 
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $fields_string);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            "Authorization: Bearer " . config('variables.PAYSTACK_SECRET_KEY'),
-            "Cache-Control: no-cache",
-        ));
-
-        //So that curl_exec returns the contents of the cURL; rather than echoing it
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-
-        //To do : process result and store transaction access code for uselater
-
-         //test to convert result to jsonbjec
-        $paystackresponse=json_decode($result);
-        
-    if ($paystackresponse->status == true) {
-        $transaction->access_code=$paystackresponse->data->access_code;
-        $transaction->reference_code=$paystackresponse->data->reference;
+        $transaction->access_code = "N/A";
+        $transaction->reference_code = "N/A";
         $transaction->save();
-        return response($transaction->access_code,201);
-    }
-    else{
-                $transaction->access_code="N/A";
-        $transaction->reference_code="N/A";
-        $transaction->save();
-        return response("Error initializing transaction",500);
-        
+        return response("Error initializing transaction", 500);
     }
 
-
-    }
-      /**
-     * Verify & Update the payment status for resource.
+    /**
+     * Ask Paystack for the status of a reference. Always returns a JSON body shaped like
+     * Paystack's ({status, data:{status, amount, currency, ...}}); on any failure `data` is absent.
      */
     public function verify_payment(string $reference_code)
     {
-        $transaction=paystacktransaction::where('reference_code', $reference_code)->first();
-          $curl = curl_init();
-          $url="https://api.paystack.co/transaction/verify/".$transaction->reference_code;
-  
-  curl_setopt_array($curl, array(
-    CURLOPT_URL => $url,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_ENCODING => "",
-    CURLOPT_MAXREDIRS => 10,
-    CURLOPT_TIMEOUT => 30,
-    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-    CURLOPT_CUSTOMREQUEST => "GET",
-    CURLOPT_HTTPHEADER => array(
-      "Authorization: Bearer " . config('variables.PAYSTACK_SECRET_KEY'),
-      "Cache-Control: no-cache",
-    ),
-  ));
-  
-  $response = curl_exec($curl);
-  $err = curl_error($curl);
+        $transaction = paystacktransaction::where('reference_code', $reference_code)->first();
 
-  curl_close($curl);
-  
-  if ($err) {
-    $result=$err;
-  } else {
-    $result= $response;
-  }
-  return response($result);
-    }
+        if (!$transaction) {
+            return response()->json(['status' => false, 'message' => 'Unknown transaction reference'], 404);
+        }
 
+        try {
+            $response = Http::withToken(config('variables.PAYSTACK_SECRET_KEY'))
+                ->timeout(30)
+                ->get('https://api.paystack.co/transaction/verify/' . rawurlencode($transaction->reference_code));
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(paystacktransaction $paystacktransaction)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(paystacktransaction $paystacktransaction)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, paystacktransaction $paystacktransaction)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(paystacktransaction $paystacktransaction)
-    {
-        //
+            return response($response->body(), 200)->header('Content-Type', 'application/json');
+        } catch (\Exception $e) {
+            Log::error('Paystack verify failed', ['reference' => $reference_code, 'error' => $e->getMessage()]);
+            return response()->json(['status' => false, 'message' => 'Could not reach Paystack'], 502);
+        }
     }
 }

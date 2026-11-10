@@ -24,6 +24,8 @@ The second theme is **payment and credit integrity**: policies can be issued on 
 | Medium   | 12 |
 | Low / Code quality | 12 |
 
+**Progress (Fix #2, 2026-11-02):** High items H-1 to H-9 worked through (see each item; H-2, H-4 and H-6 essentially done; H-1, H-3, H-5, H-7, H-8 and H-9 partial with open decisions listed). Medium and Low items untouched.
+
 **Progress (Fix #1, 2026-11-02):** Critical items C-1…C-8 are addressed in the working tree (uncommitted); C-4 is partial pending a business decision on public registration. High/Medium/Low items are untouched.
 
 **Recommended order of attack:** C-1 through C-3 first (a single middleware plus a policy layer closes most of the Critical items), then C-4 to C-8, then High, then the rest.
@@ -121,23 +123,23 @@ All reachable by any authenticated account, including `user` and `broker` roles:
   - `certificate_url` uses plain `http://` to the Elite host.
   - No idempotency: a client retry creates duplicate policies. Add an idempotency key.
   - Sanctum tokens never expire (check `config/sanctum.php` `expiration`), and there is no token ability scoping or throttle on `/api/*`.
-- **Status:** OPEN
+- **Status:** **PARTIALLY FIXED (2026-11-02, uncommitted).** Done: caller must be an active `agent`/`subagent` with an agent record (403 otherwise; no more null-dereference); new insureds get `Str::random(40)` instead of `'Password'`; request-body dump to `api_log.txt` replaced by a PII-free `Log::info`; unknown make/model/colour return 422 instead of a 500; JSON error (not `back()`) for an unknown product; `address`/`phone` validated. *Correction to the original finding:* the in-memory `insurancetype`/`vehicleuse` changes are persisted by the later `save()` on success, so they are not lost. *Open - needs a decision:* the API still issues **without deducting credit or taking payment** (confirm this is intended for integrators); no idempotency key; Sanctum tokens never expire (`config/sanctum.php`); no `throttle` on `/api/*`; contribution amounts still hard-coded; `certificate_url` is `http://`.
 
 ### H-2 Hard-coded default password `'Password'` for agent-created insureds
 - **Where:** `PolicyController::submitmpolicy:278` (and H-1). Same remediation. Also, matching existing insureds **by phone number only** (`User::where('telno', ...)->first()`) means an agent can attach a policy to any existing user (including staff) by typing their phone, and the existing record's details are silently reused/not updated.
-- **Status:** OPEN
+- **Status:** **FIXED (2026-11-02, uncommitted).** `submitmpolicy` uses an unguessable password and only reuses an existing account by phone when it is a `role = 'user'` account (an agent can no longer attach a policy to staff/broker accounts). **Clean-up of existing data:** new command `php artisan users:reset-default-passwords --dry-run` lists accounts still using `Password`; run without `--dry-run` to reset them (owners use "forgot password"). Run it once in production (a dry run on the local database found 0).
 
 ### H-3 Unauthenticated information disclosure and abuse surface
 - **Brown card lookup** (`/browncard`): searching by registration number returns policyholder name, vehicle and policy number to anonymous users and also queries NIIP/NIID with company credentials, 5/min per IP only. Lookups by plate enumerate policyholders. Consider showing only masked holder name, adding CAPTCHA, and keeping the PII behind the existing signed download.
 - **Claim lookup** (`claim/notify`): policy number + *either* email or phone is enough to retrieve policy details and open a claim. Phone numbers and emails are low-entropy secrets. Add rate limiting per policy number (not just IP) and consider an OTP to the registered contact.
 - `GET /ninverification` is public and unthrottled (view only; confirm it has no backend).
-- **Status:** OPEN
+- **Status:** **PARTIALLY FIXED (2026-11-02, uncommitted).** Brown-card result now shows a masked holder name (`A***** O******`); claim lookup has a per-policy-number limiter (10/hour) on top of the per-IP route throttle. *Open:* CAPTCHA / OTP to the registered contact for claim lookup, whether plate-based brown-card lookup should return holder/vehicle details at all, and `GET /ninverification` (public view - confirm no backend).
 
 ### H-4 `ProxyClient` shell execution on Linux
 - **Where:** `app/Services/ProxyClient.php:44-48, 75-80`
 - **Problem:** Uses `shell_exec` + `curl`. Arguments are `escapeshellarg`-ed (good), but: the **proxy secret appears on the process command line** (visible via `ps` to other local users), the HTTP status is never checked so error pages come back as "successful" bodies, `-s` hides errors, and only `GET`/`POST` are supported (any other method silently becomes GET). The Windows/Linux behavioural split means dev never tests the prod path.
 - **Fix:** Use Laravel's `Http` client on both platforms and fix the CA bundle (`curl.cainfo` / `openssl.cafile` in `php.ini`, or update the `ca-certificates` package). If curl must stay, pass headers via `-H @file`/stdin config (`curl -K -`) rather than argv, and check `-w '%{http_code}'`.
-- **Status:** OPEN
+- **Status:** **FIXED (2026-11-02, uncommitted).** `ProxyClient` no longer uses `shell_exec`: curl is run via `proc_open` (no shell) with the URL, `X-Proxy-Secret` header and JSON body supplied as a curl config on **stdin**, so the secret is not visible in `ps`. The HTTP status is read back and logged, non-GET/POST methods throw, and both OS paths share one `request()` entry point. Verified manually against a local server with `curl.exe` (quotes/backslashes/unicode in the secret and body round-trip; a 422 body is returned; a dead host returns `null`). *Not changed:* the stale-CA-bundle root cause; `curl` must be on the PATH of the PHP user in production; the Linux path is not exercised by the test suite.
 
 ### H-5 Secrets and configuration
 - `env()` is called directly in controllers (`PAYSTACK_SECRET_KEY`, `PAYSTACK_ELITE_TOKEN`) — returns `null` once `php artisan config:cache` is used in production, silently breaking payments. Move to `config/services.php` (a half-built `PaystackService` already references `config('services.paystack.secret')`, which probably does not exist). Contradicts the project convention in `CLAUDE.md`.
@@ -145,28 +147,28 @@ All reachable by any authenticated account, including `user` and `broker` roles:
 - `SESSION_ENCRYPT=false`, sessions in DB. Consider `true`, plus `SESSION_SECURE_COOKIE=true` and `SESSION_SAME_SITE=lax|strict` for production.
 - Agents' Elite `auth_token`s are stored **in plaintext** in `agentsdetails_models.auth_token`. Cast with `encrypted`.
 - `config/variables.php` still carries unused template boilerplate (ThemeSelection URLs, a signed S3 `ogImage` URL with an embedded access key ID and signature). Remove it.
-- **Status:** OPEN
+- **Status:** **PARTIALLY FIXED (2026-11-02, uncommitted).** Done: `PAYSTACK_SECRET_KEY`/`PAYSTACK_ELITE_TOKEN` read from `config('variables')` (no `env()` in controllers); `agentsdetailsModel.auth_token` is `encrypted` at rest via a new migration (`2026_11_02_000001_encrypt_agent_auth_tokens`, idempotent, widens the column) and is no longer echoed to the admin form (blank keeps, checkbox clears) or selected in the agent list; the expired signed S3 `ogImage` URL (with embedded key id) was blanked in `config/variables.php`; `.env.example` now defaults to `APP_ENV=production`, `APP_DEBUG=false`, `SESSION_ENCRYPT=true` and lists the integration keys. **Deploy notes:** run `php artisan migrate` together with this code (plaintext tokens would otherwise fail to decrypt), and back up `APP_KEY` - rotating it makes stored tokens unreadable. *Open:* production `.env` must be checked (`APP_DEBUG`, `SESSION_SECURE_COOKIE`, `SESSION_SAME_SITE`); `users.apitoken` still plaintext (M-5); template boilerplate keys remain in `config/variables.php` because the Blade `<head>` still reads some of them.
 
 ### H-6 Race / duplicate handling and error-swallowing in the payment pipeline
 - `paypolicy` null-derefs on `$transaction` / `$paystackData` (see C-5).
 - `create_paystack_transaction` (`PaystacktransactionController`): raw `curl_*` with **no timeout**, no `curl_error` handling, `$paystackresponse->status` dereferenced on `null` if curl fails, `env()` use (H-5), and `$ref_id = uniqid()` (predictable, not unique under concurrency). The `amount` is taken from `Request`, **but the controller is invoked internally with a hand-built `Request`**, so validation still runs only on the policy_id existence. Use `Http::` with timeout/retry and the policy's server-side contribution.
 - `init_paystack` is a `GET` that creates DB rows and an external transaction — should be `POST` with CSRF and ownership checks.
 - `verify_payment` returns the raw Paystack body to the caller and is also invoked without validating `$transaction` exists.
-- **Status:** OPEN
+- **Status:** **FIXED except the HTTP verb (2026-11-02, uncommitted).** `PaystacktransactionController` rewritten on Laravel's `Http` client with timeouts and error handling; references are UUIDs; the charged amount always comes from the policy (not the request); `verify_payment` returns a 404/502 JSON body instead of dereferencing null, so `paypolicy` fails closed. Dead resource stubs removed. *Open:* `init_paystack` is still a state-changing `GET` (the SIP view uses it as a link/AJAX URL) - convert to `POST` together with those views.
 
 ### H-7 `PolicyPaymentService` / `PolicyPaymentController` are broken but routed
 - `Policy::findOrFail` in `activatePolicy` — the model class is `policy` (lower-case) and `Policy` is not imported: `Class not found` on Linux (case-sensitive autoload). `$policy->activate($user)` does not exist on the model. `route('policy.success')` is not defined. `payWithCredit` has a `// deduct credit` comment and no deduction (**a free-policy path if it were ever wired up**). `paystack_reference` is verified, but the policy id is taken from Paystack `metadata` that the app never sets. The routes `policy/{id}/confirm` and `policy/pay` are live now.
 - **Fix:** Either finish and test this refactor or remove the routes/classes until ready. Do not leave a credit-less payment path reachable.
-- **Status:** OPEN
+- **Status:** **MITIGATED (2026-11-02, uncommitted).** *Correction:* PHP class names are case-insensitive and `use App\Models\policy` aliases `Policy`, so `Policy::findOrFail` resolves; the real defects were the missing `activate()` method, the undefined `policy.success` route, and the credit path with no deduction. Now: `payWithCredit` refuses outright (no free issuance), `activatePolicy` requires `PolicyPolicy::update` (403 otherwise) and fails with a clear validation message while `activate()` does not exist. **Product decision needed:** the SIP (Salam Investment Plan) views POST `policyid` + a JSON `paystack` field to `pay_policy` -> `PolicyPaymentController::pay`, which expects `paystack_reference`/`agency_credit`; online SIP payment therefore does not work today (it already failed before these changes). Either finish this service or point SIP at `PolicyController::paypolicy`.
 
 ### H-8 Excel/CSV import endpoints
 - `NiipManualController::uploadExcel` stores uploads under `uploads/` and never deletes them; relies on `mimes:` (extension/MIME based); path built as `storage_path('app/private/'.$path)` (breaks if the disk root changes); the loop POSTs each row synchronously with a 180 s timeout inside a web request (will hit PHP/FPM timeouts and cannot be retried) and has no per-row validation, `$row[3]` undefined-index errors, and logs full PII payloads. Missing admin authorization (C-3). Move to a queued job with row validation and a result report.
 - The reference-data import/update endpoints (`updatestates` etc.) call external APIs in a loop of N+1 HTTP requests inside a GET request.
-- **Status:** OPEN
+- **Status:** **PARTIALLY FIXED (2026-11-02, uncommitted).** `NiipManualController::uploadExcel` now validates (`file|mimes|max:5120`), stores on the `local` disk and dispatches `ProcessNiipManualImport`, which validates each row (policy no, reg no, date), posts to NIIP with a 180 s timeout per row, logs row numbers/outcomes **without PII payloads**, and always deletes the upload. The controller file was renamed `niipmanualController.php` -> `NiipManualController.php` (PSR-4 on Linux; the routes' `ECMRController` -> `EcmrController` typo was fixed in Fix #1). *Open:* the `update-states/colors/lgas/vmake` endpoints still make N+1 HTTP calls inside a GET request (now superadmin-only); no per-row result report in the UI. Requires the queue worker to be running. **Git note:** with `core.ignorecase=true` (Windows) git does not see the case-only rename; run it in two steps: `git mv app/Http/Controllers/niipmanualController.php app/Http/Controllers/tmp.php && git mv app/Http/Controllers/tmp.php app/Http/Controllers/NiipManualController.php` so the index (and Linux checkouts) get the correct name.
 
 ### H-9 No test coverage of the critical paths
 - `tests/` contains only scaffold tests (auth, settings, dashboard). Nothing covers credit accounting, payment verification, role gating, broker caching, claim flows or the API. Given C-1…C-8, add feature tests that assert **403 for every role that should not reach each privileged route** — those tests would have caught most of this review.
-- **Status:** OPEN
+- **Status:** **PARTIALLY FIXED (2026-11-02, uncommitted).** Added `tests/Feature/AuthorizationTest.php` (role x route matrix, escalation, IDOR, payment guards, credit release) and `tests/Feature/HighItemsTest.php` (API gating, token encryption/non-echo, ProxyClient, masking, throttle, payment route, NIIP import queueing). Suite: 86 pass, 2 pre-existing failures (`DashboardTest` - null agent record in `DashboardController`; `PasswordResetTest` - fails on the untouched baseline too). *Still missing:* concurrent credit use, broker portal, claim flows, NIIP/ECMR jobs.
 
 ---
 
@@ -250,6 +252,7 @@ Reviewed in depth: `routes/*`, `UserController`, `AgentsdetailsModelController`,
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-11-02 | Claude (Review #1) | Initial review created: 8 Critical, 9 High, 12 Medium, 12 Low findings. No code changed. |
+| 2026-11-02 | Claude (Fix #2) | High items: `ThirdPartyController` hardened (agent gate, random password, no body logging, null checks); `submitmpolicy` random password + role-restricted phone match; new `users:reset-default-passwords` command; `ProxyClient` rewritten (proc_open, secret via stdin, status logging); `agentsdetailsModel.auth_token` encrypted (+ migration) and masked in the admin UI; `PaystacktransactionController` rewritten on `Http`; `PolicyPaymentService` guarded; NIIP manual import moved to queued `ProcessNiipManualImport` and `NiipManualController` renamed; brown-card name masking; per-policy claim-lookup limiter; `.env.example` and `config/variables.php` cleaned. New tests `HighItemsTest.php`. |
 | 2026-11-02 | Claude (Fix #1) | Critical items C-1…C-8 addressed (C-4 partially). New: `EnsureRole` middleware (`role:` alias), `PolicyPolicy`, route regrouping in `routes/web.php`, hardened `UserController`, `AgentsdetailsModelController`, `PolicyController::paypolicy` (+ `reserveCredit`/`releaseCredit`), `PolicyPaymentController`, `PaystacktransactionController` (config instead of `env()`), registration token removed, `test_async` removed. Added `tests/Feature/AuthorizationTest.php`. |
 
 <!-- How to update this file:
